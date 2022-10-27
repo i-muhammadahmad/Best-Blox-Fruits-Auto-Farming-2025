@@ -21,7 +21,7 @@ import {
 	FormHelperText,
 	Typography
 } from '@material-ui/core';
-import {Autocomplete} from '@material-ui/lab';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import CKEditor from '@ckeditor/ckeditor5-react';
 import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
 import { isEmpty, forEach } from 'lodash';
