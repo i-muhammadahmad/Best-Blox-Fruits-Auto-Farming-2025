@@ -1,0 +1,136 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, StyledFab } from 'components';
+import {
+  Header,
+  Results,
+  ExtraFilters,
+  UserTimeLineComponent,
+  FlagImagesViewModel
+} from './components';
+import { forEach, isEmpty } from 'lodash'
+import VisibilityIcon from '@material-ui/icons/Visibility'
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+  extraFeilds: {
+    marginTop: theme.spacing(3)
+  }
+}));
+
+const UserImageCaptureChartReport = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const [userClockRecords, setUserClockInRecords] = useState([]);
+  const [TIntervals, setTIntervals] = useState([]);
+  const [openImageViewModel, setOpenImageViewModel] = React.useState(false);
+  const [empRecord, setEmpRecord] = React.useState([]);
+  const [currentTimeSlot, setCurrentTimeSlot] = React.useState('');
+
+  const userReportState = useSelector(state => state.userReportState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+      //dispatch(getUserClockInImagesList(extraFiltersState))
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let clockin_list = [];
+    forEach(userReportState.userClockInChartsReportList, function (value, key) {
+      let record = [];
+      let user_timeline = getUserTimeline(value);
+      record['user_timeline_html'] = user_timeline;
+      clockin_list.push(record);
+    });
+    setUserClockInRecords(clockin_list);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userReportState.userClockInChartsReportList]);
+
+  useEffect(() => {
+    let t_intervals = [];
+    for (var i = 0; i <= 1440; i += 15) {
+      let item = {};
+      let hours = Math.floor(i / 60);
+      let hour_24 = hours;
+      let minutes = i % 60;
+      let ampm;
+      if (minutes < 10) {
+        minutes = '0' + minutes; // adding leading zero
+      }
+      if (hour_24 < 10) {
+        hour_24 = '0' + hour_24; // adding leading zero
+      }
+
+      ampm = hours % 24 < 12 ? 'AM' : 'PM';
+      hours = hours % 12;
+      if (hours === 0) {
+        hours = 12;
+      }
+
+      item['interval'] = hour_24 + '.' + minutes;
+      item['interval_str'] = hours + ':' + minutes + ' ' + ampm;
+      t_intervals.push(item);
+    }
+    setTIntervals(t_intervals);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const imageViewOnClick = (emp_record, timeSlot) => {
+    setEmpRecord(emp_record);
+    setCurrentTimeSlot(timeSlot);
+    setOpenImageViewModel(true);
+  }
+
+  const getUserTimeline = userTimeline => {
+    return (
+      <UserTimeLineComponent
+        userTimeline={userTimeline}
+        tIntervals={TIntervals}
+        imageViewOnClick={imageViewOnClick}
+      />
+    )
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="User Image-Capture Report"
+    >
+      <Header />
+      <ExtraFilters
+        className={classes.extraFeilds}
+      />
+      {userClockRecords && (
+        <Results
+          className={classes.results}
+          userClockRecords={userClockRecords}
+          tIntervals={TIntervals}
+        />
+      )}
+      <FlagImagesViewModel
+        modalOpen={openImageViewModel}
+        handleModalOpen={setOpenImageViewModel}
+        empRecord={empRecord}
+        setEmpRecord={setEmpRecord}
+        currentTimeSlot={currentTimeSlot}
+        setCurrentTimeSlot={setCurrentTimeSlot}
+      />
+
+    </Page>
+  );
+};
+
+export default UserImageCaptureChartReport;

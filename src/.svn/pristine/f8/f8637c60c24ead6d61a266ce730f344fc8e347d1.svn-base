@@ -1,0 +1,649 @@
+import React, { useEffect, useState } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid,
+  ButtonBase,
+  TextField,
+  FormGroup,
+  FormControlLabel,
+  Switch 
+} from '@material-ui/core';
+import MuiAlert from '@material-ui/lab/Alert';
+import moment from 'moment';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  image: {
+    width: '100%',
+    height: 'auto',
+  },
+  img: {
+    margin: 'auto',
+    display: 'block',
+    maxWidth: '100%',
+    maxHeight: '100%',
+  },
+}));
+
+const useRadioStyles = makeStyles(theme => ({
+  root: {
+    width: 42,
+    height: 26,
+    padding: 0,
+    margin: theme.spacing(1),
+  },
+  switchBase: {
+    padding: 1,
+    '&$checked': {
+      transform: 'translateX(16px)',
+      color: theme.palette.common.white,
+      '& + $track': {
+        backgroundColor: theme.palette.bprimary.main,
+        opacity: 1,
+        border: 'none',
+      },
+    },
+    '&$focusVisible $thumb': {
+      color: theme.palette.bprimary.main,
+      border: '6px solid #fff',
+    },
+  },
+  thumb: {
+    width: 24,
+    height: 24,
+  },
+  track: {
+    borderRadius: 26 / 2,
+    border: `1px solid ${theme.palette.grey[400]}`,
+    backgroundColor: theme.palette.grey[50],
+    opacity: 1,
+    transition: theme.transitions.create(['background-color', 'border']),
+  },
+  checked: {},
+  focusVisible: {},
+}));
+
+const EmployeesView = () => {
+  const classes = useStyles();
+  const radio_classes = useRadioStyles();
+  const router = useRouter();
+  const employeesState = useSelector(state => state.employeesState);
+  const dispatch = useDispatch();
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      start_date: moment(moment().toDate()).format('YYYY-MM-DD'),
+      show_in_premier_directory: false,
+      'description': '',
+      'sudo_name': '',
+      'middlename': '',
+      'office_phone_no': '',
+      'office_ext': '',
+      'personal_phone_no': '',
+      'show_in_premier_directory': false,
+    },
+    touched: {
+      start_date: true,
+      show_in_premier_directory: false,
+      'description': true,
+      'sudo_name': true,
+      'middlename': true,
+      'office_phone_no': true,
+      'office_ext': true,
+      'personal_phone_no': true,
+      'show_in_premier_directory': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = employeesState.employeesRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': record.description,
+        'employee_code': record.employee_code,
+        'email': record.email,
+        'sudo_name': record.sudo_name,
+        'firstname': record.firstname,
+        'middlename': record.middlename,
+        'lastname': record.lastname,
+        'office_phone_no': record.office_phone_no,
+        'office_ext': record.office_ext,
+        'personal_phone_no': record.personal_phone_no,
+        'dob': record.dob,
+        'show_in_premier_directory': (record.show_in_premier_directory == 'y')? true:false,
+        'start_date': record.start_date,
+        'end_date': moment(record.end_date).format('MMM DD, YYYY'),
+        'office_id': record.office_id,
+        'workstation_id': record.workstation_id,
+        'department_id': record.latest_department_id,
+        'client_id': record.client_id,
+        'reporting_to': record.latest_reporting_to,
+        'is_active': record.is_active,
+        'id': record.id
+      },
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.employeesRecord]);  
+
+  useEffect(() => {
+    if (employeesState.redirect_to_list) { 
+      router.history.push('/employees');
+    }
+  }, [employeesState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!employeesState.showViewPage && !employeesState.showUpdateForm) { 
+      router.history.push('/employees');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.showViewPage, employeesState.showUpdateForm]);
+
+  const getPrimaryClient = () => {
+    let primary_client = '';
+    if(!isEmpty(employeesState.employeesRecord.employee_clients)){
+      Object.values(employeesState.employeesRecord.employee_clients).map(camp => (
+        primary_client = (camp.is_primary == true)? camp.client_name : ''
+      ));
+    }
+    return primary_client;
+  }
+
+  const getSecondaryClient = () => {
+    let secondary_client = [];
+    if(!isEmpty(employeesState.employeesRecord.employee_clients)){
+      Object.values(employeesState.employeesRecord.employee_clients).map(camp => {
+        if((camp.is_primary != true)){
+          secondary_client.push(camp.client_name);
+        }
+      });
+    }
+    return secondary_client.join(',');
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Employees View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Employees View" />
+        <CardContent>
+          {(formState.values.is_active == 'n')?
+            <Grid container spacing={3} style={{marginTop: '-37px', marginBottom: '23px'}}>
+              <Grid item xs={8} sm={6}>
+                <MuiAlert elevation={6} variant="filled" severity="warning" style={{borderRadius: '20px'}} >
+                  Employee is separated from PremierBPO! &nbsp; <b>Separation Date: </b> {formState.values.end_date}
+                </MuiAlert>
+              </Grid>
+            </Grid>   
+            :''
+          }   
+          <Grid container spacing={3}>
+            <Grid item xs={8} sm={8}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Employee Code"
+                    name="employee_code"
+                    value={formState.values.employee_code || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    name="email"
+                    value={formState.values.email || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Pseudonym (Alias)"
+                    name="sudo_name"
+                    value={formState.values.sudo_name || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="First Name"
+                    name="firstname"
+                    value={formState.values.firstname || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Middle Name"
+                    name="middlename"
+                    value={formState.values.middlename || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Last Name"
+                    name="lastname"
+                    value={formState.values.lastname || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    required
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={8} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Office Phone No"
+                    name="office_phone_no"
+                    value={formState.values.office_phone_no || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={4} sm={2}>
+                  <TextField
+                    fullWidth
+                    label="Extention"
+                    name="office_ext"
+                    value={formState.values.office_ext || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Personal Phone No"
+                    name="personal_phone_no"
+                    value={formState.values.personal_phone_no || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Office" 
+                    variant="outlined" 
+                    id="office_id"
+                    name="office_id"
+                    value={
+                      !isEmpty(employeesState.employeesRecord.office) ?
+                        employeesState.employeesRecord.office.name : ''
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Primary Client" 
+                    variant="outlined" 
+                    id="client_id"
+                    name="client_id"
+                    value={getPrimaryClient()}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Secondary Clients" 
+                    variant="outlined" 
+                    id="secondary_client_ids"
+                    name="secondary_client_ids"
+                    value={getSecondaryClient()}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Workstation" 
+                    variant="outlined" 
+                    id="workstation_id"
+                    name="workstation_id"
+                    value={
+                      !isEmpty(employeesState.employeesRecord.workstation) ?
+                        employeesState.employeesRecord.workstation.name : ''
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Department" 
+                    variant="outlined" 
+                    id="department_id"
+                    name="department_id"
+                    value={
+                      !isEmpty(employeesState.employeesRecord.department) ?
+                        employeesState.employeesRecord.department.name : ''
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Employee Reporting To" 
+                    variant="outlined" 
+                    id="reporting_to"
+                    name="reporting_to"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    className={classes.field}
+                    value={formState.values.start_date || ''}
+                    fullWidth
+                    label="Joining Date"
+                    name="start_date"
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    className={classes.field}
+                    value={formState.values.dob || ''}
+                    fullWidth
+                    label="Date Of Brith"
+                    name="dob"
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormGroup >
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formState.values.show_in_premier_directory}
+                          name="show_in_premier_directory"
+                          color="primary"
+                          classes={{
+                            root: radio_classes.root,
+                            switchBase: radio_classes.switchBase,
+                            thumb: radio_classes.thumb,
+                            track: radio_classes.track,
+                            checked: radio_classes.checked,
+                          }}
+                          inputProps={
+                            { readOnly: true, }
+                          }
+                        />
+                      }
+                      label="Show In Premier Directory"
+                    />
+                  </FormGroup>
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Created By" 
+                    variant="outlined" 
+                    id="created_by"
+                    name="created_by"
+                    value={
+                      !isEmpty(employeesState.employeesRecord.created_by_user) ?
+                        employeesState.employeesRecord.created_by_user.email : ''
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Created At" 
+                    variant="outlined" 
+                    id="created_at"
+                    name="created_at"
+                    value={employeesState.employeesRecord.date_created}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+              </Grid>  
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Updated By" 
+                    variant="outlined" 
+                    id="updated_by"
+                    name="updated_by"
+                    value={
+                      !isEmpty(employeesState.employeesRecord.updated_by_user) ?
+                        employeesState.employeesRecord.updated_by_user.email : ''
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                    fullWidth
+                    size="small" 
+                    label="Updated At" 
+                    variant="outlined" 
+                    id="updated_at"
+                    name="updated_at"
+                    value={employeesState.employeesRecord.date_last_modified}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={
+					            { readOnly: true, }
+				            }
+                  />
+                </Grid>
+              </Grid>  
+            </Grid>
+            <Grid item xs={4} sm={4}>
+              {(employeesState.employeesRecord.profile_pic)?
+              <ButtonBase className={classes.image}>
+                <img className={classes.img} alt="complex" src={API_URL+employeesState.employeesRecord.profile_pic} />
+              </ButtonBase>
+              :''}
+            </Grid>
+          </Grid>   
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Employees Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: employeesState.employeesRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default EmployeesView;

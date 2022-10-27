@@ -1,0 +1,58 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("quiz_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Course Name",
+  }),
+  createColumn("employee_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Employee Name",
+  }),
+  createColumn("category", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Course Category",
+  }),
+  createColumn("quiz_level_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Course Level",
+  }),
+  createColumn("assigned_from", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Assign Date",
+  }),
+  createColumn("due_date", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Due Date",
+  }),
+  createColumn("quiz_stauts", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Status",
+  }),
+];
+export default Columns;

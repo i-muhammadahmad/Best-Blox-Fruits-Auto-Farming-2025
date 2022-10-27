@@ -1,0 +1,47 @@
+
+
+const AccessRights = (current_page_permissions, mode = 'view', created_by = "") => {
+
+    if(mode == 'view'){
+        let reporting_access_view_ids = current_page_permissions.reporting_access_view_ids;
+        let reporting_access_view_all = current_page_permissions.reporting_access_view_all;
+        if(
+            current_page_permissions.rights_view &&
+            (reporting_access_view_all || (reporting_access_view_ids.indexOf(created_by) > -1))
+        ){
+            return true;
+        }
+    }
+    else if(mode == 'edit'){
+        
+        let reporting_access_edit_ids = current_page_permissions.reporting_access_edit_ids;
+        let reporting_access_edit_all = current_page_permissions.reporting_access_edit_all;
+
+        if(
+            current_page_permissions.rights_edit &&
+            (reporting_access_edit_all || (reporting_access_edit_ids.indexOf(created_by) > -1))
+        ){ 
+            return true;
+        }
+    }
+    else if(mode == 'delete'){
+        let reporting_access_delete_ids = current_page_permissions.reporting_access_delete_ids;
+        let reporting_access_delete_all = current_page_permissions.reporting_access_delete_all;
+        
+        if(
+            current_page_permissions.rights_delete &&
+            (reporting_access_delete_all || (reporting_access_delete_ids.indexOf(created_by) > -1))
+        ){
+            return true;
+        }
+    }
+    else if(mode == 'add'){
+        if(current_page_permissions.rights_add == '1'){
+            return true;
+        }
+    }
+    return false;
+
+}
+
+export default AccessRights;

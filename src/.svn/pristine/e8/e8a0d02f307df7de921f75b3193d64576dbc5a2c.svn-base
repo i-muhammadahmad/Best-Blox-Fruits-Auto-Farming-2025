@@ -1,0 +1,227 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const ROLES_REQUEST = 'ROLES_REQUEST'
+export const ROLES_SUCCESS = 'ROLES_SUCCESS'
+export const ROLES_VALIDATION_ERROR = 'ROLES_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_ROLES_FEILD_VALIDATION_ERROR = "HIDE_ROLES_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_ROLES_LIST = 'REDIRECT_TO_ROLES_LIST'
+export const ROLES_GET_SUCCESS = 'ROLES_GET_SUCCESS'
+export const ROLES_SERVER_SUCCESS = 'ROLES_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const rolesRequest = () => ({
+  type: ROLES_REQUEST,
+})
+
+export const rolesServerListSuccess = () => ({
+  type: ROLES_SERVER_SUCCESS
+})
+
+const rolesListSuccess = rolesList => ({
+  type: ROLES_SUCCESS,
+  rolesList: rolesList,
+})
+
+const rolesFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: ROLES_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const rolesAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(rolesSuccessNotification(message))
+  dispatch(redirectToRolesList())
+}
+
+export const redirectToRolesList = () => ({
+  type: REDIRECT_TO_ROLES_LIST,
+})
+
+const getRolesSuccess = (response, action) => ({
+  type: ROLES_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const rolesSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideRolesValidationError = (feild_key) => ({
+  type: HIDE_ROLES_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const rolesListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(rolesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "roles/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(rolesListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addRoles = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(rolesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "roles/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        rolesAddUpadteSuccess('Role Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateRoles = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(rolesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "roles/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        rolesAddUpadteSuccess('Role Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getRolesById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(rolesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "roles/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getRolesSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteRoles = (rolesId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(rolesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "roles/delete/" + rolesId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(rolesSuccessNotification('Role deleted successfully'))
+        dispatch(rolesListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(rolesFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(rolesFailure('Unable to perform action.Something went wrong'))
+  }
+}   

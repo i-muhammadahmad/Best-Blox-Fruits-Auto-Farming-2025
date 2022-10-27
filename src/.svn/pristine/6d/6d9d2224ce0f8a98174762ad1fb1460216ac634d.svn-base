@@ -1,0 +1,364 @@
+import React, { useEffect } from 'react';
+import { Page, AttachmentsPreviewer } from 'components';
+import useRouter from 'utils/useRouter';
+import { Header } from './components';
+import {
+	makeStyles,
+	Paper,
+	Table,
+	TableHead,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableRow,
+	Card,
+	CardHeader,
+	CardContent,
+	Grid,
+	GridList,
+	GridListTile,
+	GridListTileBar,
+	IconButton
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { FileIcon, defaultStyles } from 'react-file-icon';
+import { API_URL } from 'configs';
+import GetAppOutlinedIcon from '@material-ui/icons/GetAppOutlined';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	},
+	imageList: {
+		width: '100%'
+	},
+	iconDel: {
+		color: 'rgb(220, 53, 69)',
+		padding: 'unset'
+	},
+	iconDownload: {
+		color: theme.palette.bprimary.contrastText,
+		padding: 'unset',
+		borderRadius: 'unset'
+	},
+	svgIcon: {
+		height: '100%',
+		'& svg': {
+			height: '72%'
+		}
+	},
+	gridListTitle: {
+		fontSize: '13px'
+	}
+}));
+
+const PurchaseOrdersView = () => {
+	const classes = useStyles();
+	const router = useRouter();
+	const purchaseOrdersState = useSelector(state => state.purchaseOrdersState);
+	const dispatch = useDispatch();
+
+	useEffect(() => {
+		if (purchaseOrdersState.redirect_to_list) {
+			router.history.push('/purchase-orders');
+		}
+	}, [purchaseOrdersState.redirect_to_list, router.history]);
+
+	useEffect(() => {
+		if (!purchaseOrdersState.showUpdateForm && !purchaseOrdersState.showViewPage) {
+			router.history.push('/purchase-orders');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [purchaseOrdersState.showUpdateForm, purchaseOrdersState.showViewPage]);
+
+	const getFileIcon = file => {
+		let ext = file.file_name.split('.')[1];
+		return (
+			<div className={classes.svgIcon}>
+				<FileIcon extension={ext} {...defaultStyles[ext]} />
+			</div>
+		);
+	};
+
+	const downloadAttachment = (e, record_id) => {
+		window.location.href =
+			API_URL + 'documents/downloadDocumentAttachment?id=' + record_id;
+	};
+
+	return (
+		<Page className={classes.root} title="Purchase Order View">
+			<Header />
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Purchase Order" />
+				<CardContent>
+					<Grid container spacing={3}>
+						<Grid item xs={12} sm={6}>
+							<TableContainer component={Paper}>
+								<Table
+									className={classes.table}
+									size="small"
+									aria-label="simple table">
+									<TableBody>
+										<TableRow>
+											<TableCell variant="head"> P.O Number </TableCell>
+											<TableCell>
+												{
+													purchaseOrdersState.purchaseOrdersRecord
+														.purchase_order_number
+												}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> P.O Date </TableCell>
+											<TableCell>
+												{purchaseOrdersState.purchaseOrdersRecord.date}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Estimated Delivery </TableCell>
+											<TableCell>
+												{
+													purchaseOrdersState.purchaseOrdersRecord
+														.estimated_date_of_delivery
+												}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Actual Delivery </TableCell>
+											<TableCell>
+												{
+													purchaseOrdersState.purchaseOrdersRecord
+														.actual_date_of_delivery
+												}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Vendor </TableCell>
+											<TableCell>
+												{!isEmpty(
+													purchaseOrdersState.purchaseOrdersRecord.vendor
+												)
+													? purchaseOrdersState.purchaseOrdersRecord.vendor.name
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Office </TableCell>
+											<TableCell>
+												{!isEmpty(
+													purchaseOrdersState.purchaseOrdersRecord.office
+												)
+													? purchaseOrdersState.purchaseOrdersRecord.office.name
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Exchange Rate </TableCell>
+											<TableCell>
+												{purchaseOrdersState.purchaseOrdersRecord.exchange_rate}
+											</TableCell>
+										</TableRow>
+									</TableBody>
+								</Table>
+							</TableContainer>
+						</Grid>
+						<Grid item xs={12} sm={6}>
+							<TableContainer component={Paper}>
+								<Table
+									className={classes.table}
+									size="small"
+									aria-label="simple table">
+									<TableBody>
+										<TableRow>
+											<TableCell variant="head"> Created By </TableCell>
+											<TableCell>
+												{!isEmpty(
+													purchaseOrdersState.purchaseOrdersRecord
+														.created_by_user
+												)
+													? purchaseOrdersState.purchaseOrdersRecord
+															.created_by_user.email
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Created At </TableCell>
+											<TableCell>
+												{purchaseOrdersState.purchaseOrdersRecord.date_created}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Last Updated By </TableCell>
+											<TableCell>
+												{!isEmpty(
+													purchaseOrdersState.purchaseOrdersRecord
+														.updated_by_user
+												)
+													? purchaseOrdersState.purchaseOrdersRecord
+															.updated_by_user.email
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Last Updated At </TableCell>
+											<TableCell>
+												{
+													purchaseOrdersState.purchaseOrdersRecord
+														.date_last_modified
+												}
+											</TableCell>
+										</TableRow>
+									</TableBody>
+								</Table>
+							</TableContainer>
+						</Grid>
+					</Grid>
+				</CardContent>
+			</Card>
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Purchase Order Details" />
+				<CardContent>
+					<Grid container>
+						<Grid item xs={12}>
+							<TableContainer component={Paper}>
+								<Table
+									className={classes.table}
+									size="small"
+									aria-label="simple table">
+									<TableHead>
+										<TableRow>
+											<TableCell align="center">Item#</TableCell>
+											<TableCell colSpan={2}>Asset Details</TableCell>
+											<TableCell align="center">Quantity</TableCell>
+											<TableCell align="center">Unit Price</TableCell>
+											<TableCell align="center">Total Price</TableCell>
+											<TableCell align="center">Total Price (USD)</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{!isEmpty(
+											purchaseOrdersState.purchaseOrdersRecord.po_details
+										) ? (
+											<>
+												{purchaseOrdersState.purchaseOrdersRecord.po_details.map(
+													(detail, index) => (
+														<TableRow>
+															<TableCell align="center">{index + 1}</TableCell>
+															<TableCell colSpan={2}>
+																<div
+																	className="ck-content"
+																	dangerouslySetInnerHTML={{
+																		__html: detail.asset_details
+																	}}
+																/>
+																{/* {detail.asset_details} */}
+															</TableCell>
+															<TableCell align="center">
+																{detail.quantity}
+															</TableCell>
+															<TableCell align="center">
+																{detail.unit_price}
+															</TableCell>
+															<TableCell align="center">
+																{detail.local_currency_total}
+															</TableCell>
+															<TableCell align="center">
+																{detail.dollars_total}
+															</TableCell>
+														</TableRow>
+													)
+												)}
+											</>
+										) : (
+											''
+										)}
+									</TableBody>
+								</Table>
+							</TableContainer>
+						</Grid>
+						<Grid item xs={12}>
+							<Card className={classes.projectDetails}>
+								<CardHeader title="Documents"></CardHeader>
+								<CardContent>
+									{!isEmpty(
+										purchaseOrdersState.purchaseOrdersRecord.po_documents
+									) ? (
+										<>
+											<GridList
+												cellHeight="150"
+												cols="4"
+												className={classes.imageList}>
+												{purchaseOrdersState.purchaseOrdersRecord.po_documents.map(
+													(doc, index) => (
+														<GridListTile
+															key={doc.document_title.id}
+															style={{ marginRight: '8px' }}>
+															{doc.document_title.is_image ? (
+																<img
+																	src={API_URL + doc.document_title.file_path}
+																	alt={doc.document_title.title}
+																/>
+															) : (
+																getFileIcon(doc.document_title)
+															)}
+															<GridListTileBar
+																title={doc.document_title.title}
+																classes={{
+																	title: classes.gridListTitle
+																}}
+																actionIcon={
+																	<>
+																		<IconButton
+																			aria-label={`info about ${doc.document_title.file_name}`}
+																			className={classes.iconDownload}
+																			onClick={e =>
+																				downloadAttachment(
+																					e,
+																					doc.document_title.id
+																				)
+																			}>
+																			<GetAppOutlinedIcon />
+																		</IconButton>
+																	</>
+																}
+															/>
+														</GridListTile>
+													)
+												)}
+											</GridList>
+										</>
+									) : (
+										''
+									)}
+								</CardContent>
+							</Card>
+						</Grid>
+					</Grid>
+				</CardContent>
+			</Card>
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Purchase Order Description" />
+				<CardContent>
+					<div
+						className="ck-content"
+						dangerouslySetInnerHTML={{
+							__html: purchaseOrdersState.purchaseOrdersRecord.description
+						}}
+					/>
+				</CardContent>
+			</Card>
+		</Page>
+	);
+};
+
+export default PurchaseOrdersView;

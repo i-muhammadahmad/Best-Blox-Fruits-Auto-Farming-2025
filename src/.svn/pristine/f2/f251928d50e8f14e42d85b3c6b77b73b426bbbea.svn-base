@@ -1,0 +1,227 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const TIME_ZONES_REQUEST = 'TIME_ZONES_REQUEST'
+export const TIME_ZONES_SUCCESS = 'TIME_ZONES_SUCCESS'
+export const TIME_ZONES_VALIDATION_ERROR = 'TIME_ZONES_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_TIME_ZONES_FEILD_VALIDATION_ERROR = "HIDE_TIME_ZONES_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_TIME_ZONES_LIST = 'REDIRECT_TO_TIME_ZONES_LIST'
+export const TIME_ZONES_GET_SUCCESS = 'TIME_ZONES_GET_SUCCESS'
+export const TIME_ZONES_SERVER_REQUEST = 'TIME_ZONES_SERVER_REQUEST'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const timeZonesRequest = () => ({
+  type: TIME_ZONES_REQUEST,
+})
+
+export const timeZonesServerListSuccess = () => ({
+  type: TIME_ZONES_SERVER_REQUEST
+})
+
+const timeZonesListSuccess = timeZonesList => ({
+  type: TIME_ZONES_SUCCESS,
+  timeZonesList: timeZonesList,
+})
+
+const timeZonesFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: TIME_ZONES_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const timeZonesAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(timeZonesSuccessNotification(message))
+  dispatch(redirectToTimeZonesList())
+}
+
+export const redirectToTimeZonesList = () => ({
+  type: REDIRECT_TO_TIME_ZONES_LIST,
+})
+
+const getTimeZonesSuccess = (response, action) => ({
+  type: TIME_ZONES_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const timeZonesSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideTimeZonesValidationError = (feild_key) => ({
+  type: HIDE_TIME_ZONES_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const timeZonesListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(timeZonesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "timezone/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(timeZonesListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addTimeZones = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(timeZonesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "timezone/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        timeZonesAddUpadteSuccess('TimeZone Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateTimeZones = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(timeZonesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "timezone/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        timeZonesAddUpadteSuccess('TimeZone Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getTimeZonesById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(timeZonesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "timezone/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getTimeZonesSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteTimeZones = (timeZonesId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(timeZonesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "timeZones/delete/" + timeZonesId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(timeZonesSuccessNotification('TimeZone deleted successfully'))
+        dispatch(timeZonesListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(timeZonesFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(timeZonesFailure('Unable to perform action.Something went wrong'))
+  }
+}   

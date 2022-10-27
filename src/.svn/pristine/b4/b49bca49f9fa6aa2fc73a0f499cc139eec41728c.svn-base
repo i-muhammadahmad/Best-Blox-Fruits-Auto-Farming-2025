@@ -1,0 +1,193 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, DeleteAlert, StyledFab, StyledButton, StyledChip } from 'components';
+import { Header, Results } from './components';
+import { 
+  Avatar 
+} from '@material-ui/core'
+import {
+  deleteAssetTypes,
+  getAssetTypesById
+} from 'actions';
+import { forEach, isEmpty, join } from 'lodash';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import { API_URL } from 'configs';
+import AccessRights from 'utils/AccessRights';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const AssetTypesList = () => {
+  const classes = useStyles();
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [extraFiltersState, setExtraFiltersState] = useState({
+    isValid: false,
+    values: {},
+    touched: {},
+    errors: {}
+  });
+  const [assetTypesId, setAssetTypesId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (assetTypesState.showUpdateForm) {
+      router.history.push('/asset-types/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetTypesState.showUpdateForm]);
+
+  useEffect(() => {
+    if (assetTypesState.showViewPage) {
+      router.history.push('/asset-types/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetTypesState.showViewPage]);
+
+  const deleteRecord = async () => {
+    await dispatch(deleteAssetTypes(assetTypesId, session.current_page_permissions.object_id));
+    setRefershDataTable(true);
+  }
+
+  const showDeleteModal = (id) => {
+    setAssetTypesId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setAssetTypesId('')
+  }
+
+  const updateRecord = (id) => {
+    dispatch(getAssetTypesById(id, 'update'))
+  }
+
+  const viewRecord = (id) => {
+    dispatch(getAssetTypesById(id, 'view'))
+  }
+
+  const getAtypeIconAvator = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(value.assets_type_image)?
+          <Avatar alt="Avator" src={API_URL+value.assets_type_image} className={classes.large} />
+          :
+          ''
+        }
+      </div>
+    );  
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n') ?
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(AccessRights(session.current_page_permissions, 'view', value.created_by)) ?
+          <>
+            <StyledFab
+              color="bwarning"
+              aria-label="View"
+              size="small"
+              onClick={() => viewRecord(value.id)}
+            >
+              <VisibilityIcon />
+            </StyledFab>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          </>
+          : ''
+        }
+        {(AccessRights(session.current_page_permissions, 'delete', value.created_by) && value.is_deleted == 'n') ?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  const getDeletedStatus = value => {
+    if (value.is_deleted === 'n') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bsuccess" label="Active" />
+        </div>
+      )
+    }
+    else {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bdanger" label="Deleted" />
+        </div>
+      )
+    }
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Asset Types List"
+    >
+      <Header />
+      <Results
+        className={classes.results}
+        refershDataTable={refershDataTable}
+        setRefershDataTable={setRefershDataTable}
+        getAtypeIconAvator={getAtypeIconAvator}
+        actionsCol={getActions}
+        extraFiltersState={extraFiltersState}
+        setExtraFiltersState={setExtraFiltersState}
+        getDeletedStatus={getDeletedStatus}
+      />
+      <DeleteAlert
+        title="Asset Type Delete"
+        alertText="Are you sure, You want delete this Asset Type?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />
+    </Page>
+  );
+};
+
+export default AssetTypesList;

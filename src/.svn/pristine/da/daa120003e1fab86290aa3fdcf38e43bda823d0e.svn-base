@@ -1,0 +1,246 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, DeleteAlert, StyledFab, StyledButton, StyledChip, CommonAlert } from 'components';
+import { Header, Results } from './components';
+import {
+  deleteQuizSetup,
+  getQuizSetupById,
+  cloneQuizSetup
+} from 'actions';
+import { forEach } from 'lodash';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
+import AccessRights from 'utils/AccessRights';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const QuizSetupList = () => {
+  const classes = useStyles();
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [extraFiltersState, setExtraFiltersState] = useState({
+    isValid: false,
+    values: {},
+    touched: {},
+    errors: {}
+  });
+  const [quizSetupId, setQuizSetupId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const quizSetupState = useSelector(state => state.quizSetupState);
+  const session = useSelector(state => state.session);
+  const [openCloneModel, setOpenCloneModel] = React.useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (quizSetupState.showUpdateForm) {
+      router.history.push('/quiz-setup/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.showUpdateForm]);
+
+  useEffect(() => {
+    if (quizSetupState.showViewPage) {
+      router.history.push('/quiz-setup/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.showViewPage]);
+
+  const deleteRecord = async () => {
+    await dispatch(deleteQuizSetup(quizSetupId, session.current_page_permissions.object_id));
+    setRefershDataTable(true);
+  }
+
+  const showDeleteModal = (id) => {
+    setQuizSetupId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setQuizSetupId('')
+  }
+
+  const updateRecord = (id) => {
+    dispatch(getQuizSetupById(id, 'update'))
+  }
+
+  const viewRecord = (id) => {
+    dispatch(getQuizSetupById(id, 'view'))
+  }
+
+  const showCloneModel = (id) => {
+    setQuizSetupId(id)
+    setOpenCloneModel(true);
+  };
+
+  const hideCloneModel = () => {
+    setQuizSetupId('')
+    setOpenCloneModel(false);
+  };
+
+  const cloneRecord = async () => {
+    await dispatch(cloneQuizSetup(quizSetupId, session.current_page_permissions.object_id))
+    hideCloneModel()
+    setRefershDataTable(true);
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n' ) ?
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(AccessRights(session.current_page_permissions, 'view', value.created_by)) ?
+          <>
+            <StyledFab
+              color="bwarning"
+              aria-label="View"
+              size="small"
+              onClick={() => viewRecord(value.id)}
+            >
+              <VisibilityIcon />
+            </StyledFab>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          </>
+          : ''
+        }
+        {(AccessRights(session.current_page_permissions, 'delete', value.created_by) && value.is_deleted == 'n' && value.is_published === 'n') ?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab>
+          : ''
+        }
+        {(AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n' && value.is_published === 'y') ?
+          <><StyledFab
+          color="binfo"
+          aria-label="Clone"
+          size="small"
+          onClick={() => showCloneModel(value.id)}
+        >
+          <FileCopyIcon />
+        </StyledFab>&nbsp;</>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  const getQuizStatus = value => {
+    if (value.publish_status === 'Published') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bsuccess" label="Published" />
+        </div>
+      )
+    }
+    else if (value.publish_status === 'DRAFT') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bdefault" label="DRAFT" />
+        </div>
+      )
+    }
+  }
+
+  const getDeletedStatus = value => {
+    if (value.is_deleted === 'n') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bsuccess" label="Active" />
+        </div>
+      )
+    }
+    else {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bdanger" label="Deleted" />
+        </div>
+      )
+    }
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Course List"
+    >
+      <Header />
+      <Results
+        className={classes.results}
+        refershDataTable={refershDataTable}
+        setRefershDataTable={setRefershDataTable}
+        actionsCol={getActions}
+        getQuizStatus={getQuizStatus}
+        extraFiltersState={extraFiltersState}
+        setExtraFiltersState={setExtraFiltersState}
+        getDeletedStatus={getDeletedStatus}
+      />
+      <DeleteAlert
+        title="Course Delete"
+        alertText="Are you sure, You want delete this Course?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />
+      <CommonAlert 
+        title="Clone Course"
+        alertText="Are you sure, You want to clone this Course?"
+        modalOpen={openCloneModel}
+        handleModalOpen={setOpenCloneModel}
+        onModelClose={hideCloneModel}
+        submitCallback={cloneRecord}
+        submitButton={
+          () => (
+            <StyledButton 
+              variant="contained"
+              color="binfo"
+              
+              startIcon={<FileCopyIcon />}
+              onClick={cloneRecord}  
+              autoFocus={true}
+            >
+              Clone
+            </StyledButton>
+          )
+        }
+      />  
+    </Page>
+  );
+};
+
+export default QuizSetupList;

@@ -1,0 +1,333 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const ACTIVITY_SETUP_REQUEST = 'ACTIVITY_SETUP_REQUEST'
+export const ACTIVITY_SETUP_SUCCESS = 'ACTIVITY_SETUP_SUCCESS'
+export const ACTIVITY_SETUP_BY_ATTR_SUCCESS = 'ACTIVITY_SETUP_BY_ATTR_SUCCESS'
+export const ACTIVITY_SETUP_VALIDATION_ERROR = 'ACTIVITY_SETUP_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_ACTIVITY_SETUP_FEILD_VALIDATION_ERROR = "HIDE_ACTIVITY_SETUP_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_ACTIVITY_SETUP_LIST = 'REDIRECT_TO_ACTIVITY_SETUP_LIST'
+export const ACTIVITY_SETUP_GET_SUCCESS = 'ACTIVITY_SETUP_GET_SUCCESS'
+export const EXTRA_FIELDS_SUCCESS = 'EXTRA_FIELDS_SUCCESS'
+export const ADD_REMOVE_EXTRA_FEILD = 'ADD_REMOVE_EXTRA_FEILD'
+export const ACTIVITY_SETUP_SERVER_SUCCESS = 'ACTIVITY_SETUP_SERVER_SUCCESS'
+export const ACTIVITY_SETUP_BY_ROLE_SUCCESS = 'ACTIVITY_SETUP_BY_ROLE_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const activitySetupRequest = () => ({
+  type: ACTIVITY_SETUP_REQUEST,
+})
+
+export const activitySetupServerListSuccess = () => ({
+  type: ACTIVITY_SETUP_SERVER_SUCCESS,
+})
+
+const activitySetupListSuccess = activitySetupList => ({
+  type: ACTIVITY_SETUP_SUCCESS,
+  activitySetupList: activitySetupList,
+})
+
+const activitySetupByRoleListSuccess = activitySetupByRoleList => ({
+  type: ACTIVITY_SETUP_BY_ROLE_SUCCESS,
+  activitySetupByRoleList: activitySetupByRoleList,
+})
+
+const getExtraFieldsSuccess = extraFeilds => ({
+  type: EXTRA_FIELDS_SUCCESS,
+  extraFeilds: extraFeilds,
+})
+
+const activitySetupFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: ACTIVITY_SETUP_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const activitySetupAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(activitySetupSuccessNotification(message))
+  dispatch(redirectToActivitySetupList())
+}
+
+export const redirectToActivitySetupList = () => ({
+  type: REDIRECT_TO_ACTIVITY_SETUP_LIST,
+})
+
+const getActivitySetupSuccess = (response, action) => ({
+  type: ACTIVITY_SETUP_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const activitySetupSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const addRemoveExtraFeild = (a_feilds, added_feilds) => ({
+  type: ADD_REMOVE_EXTRA_FEILD,
+  a_feilds: a_feilds,
+  added_feilds: added_feilds
+})
+
+export const hideActivitySetupValidationError = (feild_key) => ({
+  type: HIDE_ACTIVITY_SETUP_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+/*
+* get activity setup by attibutes
+*/
+const activitySetupByAttrListSuccess = activitySetupByAttrList => ({
+  type: ACTIVITY_SETUP_BY_ATTR_SUCCESS,
+  activitySetupByAttrList: activitySetupByAttrList,
+})
+
+export const activitySetupByAttrListFetch = (object_viewed_id = '', request_data = []) => {
+  var token = localStorage.getItem("token");
+
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        request_data: request_data,
+        object_viewed_id: object_viewed_id
+      },
+      
+    })
+      .then((response) => {
+        dispatch(activitySetupByAttrListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+}
+
+export const activitySetupListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+      .then((response) => {
+        dispatch(activitySetupListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const activitySetupByRoleListFetch = (object_viewed_id = '', category_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/getAllByRoles", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id, category_id: category_id}
+    })
+    .then((response) => {
+      dispatch(activitySetupByRoleListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const getExtraFieldsConfigs = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/getExtraFieldsConfigs", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(getExtraFieldsSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addActivitySetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        activitySetupAddUpadteSuccess('Activity Setup Added Successfully', 'create', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const updateActivitySetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        activitySetupAddUpadteSuccess('Activity Setup Updated Successfully', 'update', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const getActivitySetupById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(getActivitySetupSuccess(response.data, action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const deleteActivitySetup = (activitySetupId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activitySetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_setup/delete/" + activitySetupId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(activitySetupSuccessNotification('Activity Setup deleted successfully'))
+        dispatch(activitySetupListFetch())
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(activitySetupFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(activitySetupFailure('Unable to perform action.Something went wrong'))
+  }
+}   

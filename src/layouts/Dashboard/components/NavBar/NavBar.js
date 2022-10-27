@@ -1,0 +1,245 @@
+import React, { Fragment, useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { useSelector, useDispatch } from 'react-redux';
+import { makeStyles } from '@material-ui/styles';
+import { 
+  Drawer, Divider, Paper, Avatar, Typography,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid
+} from '@material-ui/core';
+import { Hidden } from '@material-ui/core';
+import useRouter from 'utils/useRouter';
+import { Navigation, StyledButton } from 'components';
+import navigationConfig from './navigationConfig';
+import { hideDisclaimer } from 'actions'; 
+import { isEmpty } from 'lodash';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    height: '100%',
+    overflowY: 'auto'
+  },
+  content: {
+    padding: theme.spacing(2)
+  },
+  profile: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    minHeight: 'fit-content'
+  },
+  avatar: {
+    width: 60,
+    height: 60
+  },
+  name: {
+    marginTop: theme.spacing(1)
+  },
+  divider: {
+    marginTop: theme.spacing(2)
+  },
+  navigation: {
+    marginTop: theme.spacing(2)
+  }
+}));
+
+const NavBar = props => {
+  const { openMobile, onMobileClose, className, ...rest } = props;
+
+  const classes = useStyles();
+  const router = useRouter();
+  const session = useSelector(state => state.session);
+  const dispatch = useDispatch();
+
+  const [openDisclaimerModel, setOpenDisclaimerModel] = useState(false);
+  const [profilepic, setProfilepic] = useState('');
+
+  useEffect(() => {
+    if (!session.loggedIn) { 
+      //router.history.push('/auth/login');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.loggedIn]);
+
+  useEffect(() => {  
+    if (!(session.loggedIn)) {   
+      router.history.push('/auth/login');
+    }
+  }, [session.loggedIn]);
+
+  useEffect(() => {
+    if (session.loggedIn && !session.is_disclaimer_shown) {
+      showDisclaimerPopup();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.loggedIn, session.is_disclaimer_shown]);
+
+  useEffect(() => {
+    if (openMobile) {
+      onMobileClose && onMobileClose();
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.location.pathname]);
+
+  useEffect(() => {
+    if(!isEmpty(session.user.employee)){
+      setProfilepic(session.user.employee.profile_pic);
+    }  
+  }, [session.user.employee])
+
+  const showDisclaimerPopup = () => {
+    setOpenDisclaimerModel(true)
+  }
+
+  const hideDisclaimerModel = () => {
+    dispatch(hideDisclaimer())
+    setOpenDisclaimerModel(false)
+  }
+
+  const getEmployeeName = () => {
+    if(!isEmpty(session.user.employee)){
+      return (
+        <span>
+          {session.user.employee.firstname + ' ' + session.user.employee.middlename + ' ' + session.user.employee.lastname}
+        </span>
+      )
+    }
+    else{
+      return (
+        <span>{session.user.name}</span>
+      )  
+    }  
+  }
+
+  const navbarContent = (
+    <div className={classes.content}>
+      <div className={classes.profile}>
+        <Avatar
+          alt="Person"
+          className={classes.avatar}
+          component={RouterLink}
+          src={!isEmpty(profilepic)? API_URL+profilepic : session.user.avatar}
+          /*src={(session.user.avatar) ? session.user.avatar : ''}*/
+          to="/user-profile"
+        />
+        <Typography
+          className={classes.name}
+          variant="h4"
+        >
+          {!isEmpty(session.user) ? getEmployeeName() : ''}
+        </Typography>
+        <Typography variant="body2">{!isEmpty(session.user) ? getEmployeeName() : ''}</Typography>
+      </div>
+      <Divider className={classes.divider} />
+      <nav className={classes.navigation}>
+        {(session.nested_menus) ?
+          <Navigation
+            component="div"
+            key={'pages'}
+            pages={session.nested_menus}
+            title={'Pages'}
+          />
+          : ''}
+      </nav>
+    </div>
+  );
+
+  return (
+    <Fragment>
+      <Hidden lgUp>
+        <Drawer
+          anchor="left"
+          onClose={onMobileClose}
+          open={openMobile}
+          variant="temporary"
+        >
+          <div
+            {...rest}
+            className={clsx(classes.root, className)}
+          >
+            {navbarContent}
+          </div>
+        </Drawer>
+      </Hidden>
+      <Hidden mdDown>
+        <Paper
+          {...rest}
+          className={clsx(classes.root, className)}
+          elevation={1}
+          square
+        >
+          {navbarContent}
+        </Paper>
+      </Hidden>
+      <Dialog
+        open={openDisclaimerModel} 
+        onClose={hideDisclaimerModel}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+        fullWidth={true}
+        maxWidth={'sm'}
+      >
+        <DialogContent style={{overflowY: 'unset', fontFamily: 'calibri'}}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={3}>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <img src="/images/ClockIn/camera.png" alt="Cemara" style={{width: '100%', height: 'auto'}} />
+            </Grid>
+          </Grid>
+          <Grid container spacing={3}>
+            <Grid item xs={4} sm={2}>
+              <img src="/images/ClockIn/warning.png" alt="Warning" style={{width: '100%', height: 'auto'}} />
+            </Grid>
+            <Grid item xs={8} sm={10}>
+              <p style={{ textAlign: 'justify' }} >Welcome! <br/>
+                You are now logged into Premier BPO IMS to start your work shift. 
+                As part of our current work from home security measures, your web camera will be used to capture images at certain intervals. <br />
+                Similar to our installed CCTVs at the office, we continue to monitor employee activity during office hours. 
+              </p>
+            </Grid>
+          </Grid>
+          <Grid container spacing={3}>
+            <Grid item xs={8} sm={10}>
+              <p style={{ textAlign: 'justify' }}>
+                To make your working environment secure it is advised that you sit with your back against the wall so that
+                no one else can see your screen behind you. Doing so will also ensure that images captured will be only
+                of the person sitting in front of the workstation, preserving the privacy of others in your home.
+              </p>
+            </Grid>
+            <Grid item xs={4} sm={2}>
+              <img src="/images/ClockIn/sit.png" alt="sit" style={{width: '100%', height: 'auto'}} />
+            </Grid>
+          </Grid> 
+        </DialogContent>
+        <DialogActions>
+          <StyledButton
+            color="bPrimary"
+            size="small"
+            type="button"
+            variant="contained"
+            onClick={() => { hideDisclaimerModel() }}
+          >
+            I understand
+          </StyledButton>
+        </DialogActions>
+      </Dialog>
+    </Fragment>
+  );
+};
+
+NavBar.propTypes = {
+  className: PropTypes.string,
+  onMobileClose: PropTypes.func,
+  openMobile: PropTypes.bool
+};
+
+export default NavBar;

@@ -1,0 +1,268 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const BULK_ACTIVITY_SETUP_REQUEST = 'BULK_ACTIVITY_SETUP_REQUEST'
+export const BULK_ACTIVITY_SETUP_SUCCESS = 'BULK_ACTIVITY_SETUP_SUCCESS'
+export const BULK_ACTIVITY_SETUP_VALIDATION_ERROR = 'BULK_ACTIVITY_SETUP_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_BULK_ACTIVITY_SETUP_FIELD_VALIDATION_ERROR = "HIDE_BULK_ACTIVITY_SETUP_FIELD_VALIDATION_ERROR"
+export const REDIRECT_TO_BULK_ACTIVITY_SETUP_LIST = 'REDIRECT_TO_BULK_ACTIVITY_SETUP_LIST'
+export const BULK_ACTIVITY_SETUP_GET_SUCCESS = 'BULK_ACTIVITY_SETUP_GET_SUCCESS'
+export const BULK_EXTRA_FIELDS_SUCCESS = 'BULK_EXTRA_FIELDS_SUCCESS'
+export const ADD_REMOVE_BULK_EXTRA_FIELD = 'ADD_REMOVE_BULK_EXTRA_FIELD'
+export const BULK_ACTIVITY_SETUP_SERVER_SUCCESS = 'BULK_ACTIVITY_SETUP_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const bulkActivitySetupRequest = () => ({
+  type: BULK_ACTIVITY_SETUP_REQUEST,
+})
+
+export const bulkActivitySetupServerListSuccess = () => ({
+  type: BULK_ACTIVITY_SETUP_SERVER_SUCCESS,
+})
+
+const bulkActivitySetupListSuccess = bulkActivitySetupList => ({
+  type: BULK_ACTIVITY_SETUP_SUCCESS,
+  bulkActivitySetupList: bulkActivitySetupList,
+})
+
+const getExtraFieldsSuccess = extraFields => ({
+  type: BULK_EXTRA_FIELDS_SUCCESS,
+  extraFields: extraFields,
+})
+
+const bulkActivitySetupFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: BULK_ACTIVITY_SETUP_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const bulkActivitySetupAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(bulkActivitySetupSuccessNotification(message))
+  dispatch(redirectToBulkActivitySetupList())
+}
+
+export const redirectToBulkActivitySetupList = () => ({
+  type: REDIRECT_TO_BULK_ACTIVITY_SETUP_LIST,
+})
+
+const getBulkActivitySetupSuccess = (response, action) => ({
+  type: BULK_ACTIVITY_SETUP_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const bulkActivitySetupSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const addRemoveBulkExtraField = (a_fields, added_fields, removed_fields = []) => ({
+  type: ADD_REMOVE_BULK_EXTRA_FIELD,
+  a_fields: a_fields,
+  added_fields: added_fields,
+  removed_fields: removed_fields
+})
+
+export const hideBulkActivitySetupValidationError = (field_key) => ({
+  type: HIDE_BULK_ACTIVITY_SETUP_FIELD_VALIDATION_ERROR,
+  field_key: field_key
+})
+
+export const bulkActivitySetupListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(bulkActivitySetupRequest())
+    return axios(API_URL + "bulk_activity_setup/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(bulkActivitySetupListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getBulkExtraFieldsConfigs = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(bulkActivitySetupRequest())
+    return axios(API_URL + "bulk_activity_setup/getBulkExtraFieldsConfigs", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getExtraFieldsSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addBulkActivitySetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(bulkActivitySetupRequest())
+    return axios(API_URL + "bulk_activity_setup/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        bulkActivitySetupAddUpadteSuccess('Bulk Activity Setup Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateBulkActivitySetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(bulkActivitySetupRequest())
+    return axios(API_URL + "bulk_activity_setup/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        bulkActivitySetupAddUpadteSuccess('Bulk Activity Setup Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getBulkActivitySetupById = (id, action, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(bulkActivitySetupRequest())
+    return axios(API_URL + "bulk_activity_setup/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getBulkActivitySetupSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteBulkActivitySetup = (bulkActivitySetupId, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(bulkActivitySetupRequest())
+    return axios(API_URL + "bulk_activity_setup/delete/" + bulkActivitySetupId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(bulkActivitySetupSuccessNotification('Bulk Activity Setup deleted successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(bulkActivitySetupFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(bulkActivitySetupFailure('Unable to perform action.Something went wrong'))
+  }
+}   

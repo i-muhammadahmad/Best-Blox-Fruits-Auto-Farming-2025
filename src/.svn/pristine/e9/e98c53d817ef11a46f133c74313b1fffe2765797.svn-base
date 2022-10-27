@@ -1,0 +1,754 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+import { isEmpty } from 'lodash'
+
+export const QUIZ_SETUP_REQUEST = 'QUIZ_SETUP_REQUEST'
+export const QUIZ_SETUP_SUCCESS = 'QUIZ_SETUP_SUCCESS'
+export const QUIZ_SETUP_VALIDATION_ERROR = 'QUIZ_SETUP_VALIDATION_ERROR'
+export const QUIZ_SLIDES_VALIDATION_ERROR = 'QUIZ_SLIDES_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_QUIZ_SETUP_FEILD_VALIDATION_ERROR = "HIDE_QUIZ_SETUP_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_QUIZ_SETUP_LIST = 'REDIRECT_TO_QUIZ_SETUP_LIST'
+export const QUIZ_SETUP_GET_SUCCESS = 'QUIZ_SETUP_GET_SUCCESS'
+export const QUIZ_LEVEL_SUCCESS = 'QUIZ_LEVEL_SUCCESS'
+export const QUIZ_SLIDES_SUCCESS = 'QUIZ_SLIDES_SUCCESS'
+export const SLIDES_PARENT_SUCCESS = 'SLIDES_PARENT_SUCCESS'
+export const QUIZ_ADD_UPDATE_SUCCESS = 'QUIZ_ADD_UPDATE_SUCCESS'
+export const SLIDE_ADD_UPDATE_STATUS = 'SLIDE_ADD_UPDATE_STATUS'
+export const SET_QUIZ_ADD_UPDATE_STATUS_FALSE = 'SET_QUIZ_ADD_UPDATE_STATUS_FALSE'
+export const HIDE_SLIDE_FEILD_VALIDATION_ERROR = 'HIDE_SLIDE_FEILD_VALIDATION_ERROR'
+export const SET_QUIZ_ID = 'SET_QUIZ_ID'
+export const QUIZ_SETUP_SERVER_SUCCESS = 'QUIZ_SETUP_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+/*
+* Binding constants
+*/
+export const HIDE_BINDING_FEILD_VALIDATION_ERROR = 'HIDE_BINDING_FEILD_VALIDATION_ERROR'
+export const BINDING_ADD_UPDATE_STATUS = 'BINDING_ADD_UPDATE_STATUS'
+export const QUIZ_BINDING_SUCCESS = 'QUIZ_BINDING_SUCCESS'
+export const QUIZ_BINDING_VALIDATION_ERROR = 'QUIZ_BINDING_VALIDATION_ERROR'
+export const QUIZ_BINDING_SERVER_SUCCESS = 'QUIZ_BINDING_SERVER_SUCCESS'
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const quizSetupRequest = () => ({
+  type: QUIZ_SETUP_REQUEST,
+})
+
+export const quizSetupServerListSuccess = () => ({
+  type: QUIZ_SETUP_SERVER_SUCCESS,
+})
+
+const quizSetupListSuccess = quizSetupList => ({
+  type: QUIZ_SETUP_SUCCESS,
+  quizSetupList: quizSetupList,
+})
+
+const quizLevelListSuccess = quizLevelList => ({
+  type: QUIZ_LEVEL_SUCCESS,
+  quizLevelList: quizLevelList,
+})
+
+const quizSlidesListSuccess = (quizSlidesList, quizNestedSlidesList) => ({
+  type: QUIZ_SLIDES_SUCCESS,
+  quizSlidesList: quizSlidesList,
+  quizNestedSlidesList: quizNestedSlidesList
+})
+
+const slideParentSuccess = slidesParentList => ({
+  type: SLIDES_PARENT_SUCCESS,
+  slidesParentList: slidesParentList,
+})
+
+const QuizAddUpdateSuccess = quiz_id => ({
+  type: QUIZ_ADD_UPDATE_SUCCESS,
+  quiz_id: quiz_id,
+});
+
+export const setQuizId = quiz_id => ({
+  type: SET_QUIZ_ID,
+  quiz_id: quiz_id,
+});
+
+const SlideAddUpdateStatus = (status) => ({
+  type: SLIDE_ADD_UPDATE_STATUS,
+  slide_add_update_status: status
+});
+
+export const setQuizAddUpdateStatusFalse = () => ({
+  type: SET_QUIZ_ADD_UPDATE_STATUS_FALSE,
+})
+
+export const quizSetupFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: QUIZ_SETUP_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const SlideValidationError = notification => ({
+  type: QUIZ_SLIDES_VALIDATION_ERROR,
+  slide_validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const quizSetupAddUpadteSuccess = (message, action, data, dispatch) => {
+  dispatch(quizSetupSuccessNotification(message))
+  if (isEmpty(data.id)) {
+    dispatch(QuizAddUpdateSuccess(""))
+  }
+  else {
+    dispatch(QuizAddUpdateSuccess(data.id))
+  }
+  //dispatch(redirectToQuizSetupList())
+}
+
+const quizSlideAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(quizSetupSuccessNotification(message));
+  dispatch(SlideAddUpdateStatus(true))
+}
+
+export const redirectToQuizSetupList = () => ({
+  type: REDIRECT_TO_QUIZ_SETUP_LIST,
+})
+
+const getQuizSetupSuccess = (response, action) => ({
+  type: QUIZ_SETUP_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const quizSetupSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const hideQuizSetupValidationError = (feild_key) => ({
+  type: HIDE_QUIZ_SETUP_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const quizLevelListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz_level/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(quizLevelListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const quizSetupListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(quizSetupListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addQuizSetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        quizSetupAddUpadteSuccess('Quiz Created Successfully', 'create', response.data, dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateQuizSetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        quizSetupAddUpadteSuccess('Quiz Updated Successfully', 'update', response.data, dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const publishQuizSetup = (id, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/publishQuiz/" + id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(quizSetupSuccessNotification('Quiz Published Successfully'))
+        dispatch(getQuizSetupById(id, 'update'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+
+export const getQuizSetupById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(getQuizSetupSuccess(response.data, action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const deleteQuizSetup = (quizSetupId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/delete/" + quizSetupId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(quizSetupSuccessNotification('Quiz deleted successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+export const cloneQuizSetup = (id, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz/clone/" + id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(quizSetupSuccessNotification('Quiz Cloned Successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+/*
+* slides methods
+*/
+export const hideSlideValidationError = (feild_key) => ({
+  type: HIDE_SLIDE_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const getNestedSlidesForMyQuizzes = (quiz_id, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "slides/getQuizNestedSlides", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        "quiz_id": quiz_id,
+        object_viewed_id: object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(quizSlidesListSuccess(response.data.slides, response.data.nestedSlides));
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleSlideErrorResponse(error, dispatch);
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const quizSlidesListFetch = (quiz_id, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "slides/getAllNestedSlides", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        "quiz_id": quiz_id,
+        object_viewed_id: object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(quizSlidesListSuccess(response.data.slides, response.data.nestedSlides));
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleSlideErrorResponse(error, dispatch);
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addQuizSlide = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(SlideAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "slides/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        quizSlideAddUpadteSuccess('Quiz Slide Created Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleSlideErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateQuizSlide = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(SlideAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "slides/update/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        quizSlideAddUpadteSuccess('Quiz Slide Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleSlideErrorResponse(error, dispatch)
+      });
+  }
+}
+
+export const updateNestedSlidesOrder = (nestedSlides, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    //dispatch(SlideAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "slides/SlidesOrderChanged", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: { object_viewed_id: object_viewed_id, nestedSlides: nestedSlides }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader());
+        //SlideAddUpdateStatus(true)
+        quizSlideAddUpadteSuccess('Quiz Slides Order Changed Successfully', 'update', dispatch)
+        //dispatch(quizSetupSuccessNotification('Quiz Slides Order Changed Successfully'));
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleSlideErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteQuizSlide = (quizSlideId, object_viewed_id, quiz_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "slides/delete/" + quizSlideId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(quizSetupSuccessNotification('Slide deleted successfully'))
+        dispatch(hideCommonLoader())
+        dispatch(quizSlidesListFetch(quiz_id, object_viewed_id))
+        slideParentListFetch(quiz_id)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleSlideErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling slide error reponse   
+const handleSlideErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(SlideValidationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(quizSetupFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(quizSetupFailure('Unable to perform action.Something went wrong'))
+  }
+}
+
+//getting slides categories
+export const slideParentListFetch = (quiz_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(quizSetupRequest())
+    return axios(API_URL + "slides/getAllParents", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        quiz_id: quiz_id
+      }
+    })
+      .then((response) => {
+        dispatch(slideParentSuccess(response.data))
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(quizSetupFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(quizSetupFailure('Unable to perform action.Something went wrong'))
+  }
+}
+
+
+/*
+* binding methods
+*/
+
+const quizBindingListSuccess = (quizBindingList) => ({
+  type: QUIZ_BINDING_SUCCESS,
+  quizBindingList: quizBindingList,
+})
+
+export const quizBindingServerListSuccess = () => ({
+  type: QUIZ_BINDING_SERVER_SUCCESS,
+})
+
+const BindingAddUpdateStatus = (status) => ({
+  type: BINDING_ADD_UPDATE_STATUS,
+  binding_add_update_status: status
+});
+
+const BindingValidationError = notification => ({
+  type: QUIZ_BINDING_VALIDATION_ERROR,
+  binding_validation_error: notification,
+})
+
+const quizBindingAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(quizSetupSuccessNotification(message));
+  dispatch(BindingAddUpdateStatus(true))
+}
+
+export const hideBindingValidationError = (feild_key) => ({
+  type: HIDE_BINDING_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const quizBindingListFetch = (quiz_id, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz_binding/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        "quiz_id": quiz_id,
+        object_viewed_id: object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(quizBindingListSuccess(response.data));
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleBindingErrorResponse(error, dispatch);
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addQuizBinding = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(BindingAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz_binding/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        quizBindingAddUpadteSuccess('Quiz Binding Created Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleBindingErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateQuizBinding = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(BindingAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz_binding/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        quizBindingAddUpadteSuccess('Quiz Binding Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleBindingErrorResponse(error, dispatch)
+      });
+  }
+}
+
+export const deleteQuizBinding = (quizBindingId, object_viewed_id, quiz_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "quiz_binding/delete/" + quizBindingId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(quizSetupSuccessNotification('Binding deleted successfully'))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleBindingErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling binding error reponse   
+const handleBindingErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(BindingValidationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(quizSetupFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(quizSetupFailure('Unable to perform action.Something went wrong'))
+  }
+}
+

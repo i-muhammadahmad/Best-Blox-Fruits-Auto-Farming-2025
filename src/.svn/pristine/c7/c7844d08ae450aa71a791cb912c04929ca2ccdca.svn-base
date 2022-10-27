@@ -1,0 +1,436 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header,
+  LogoImage
+} from './components';
+import {
+  updateCompany,
+  hideCompanyValidationError,
+  redirectToCompanyList,
+  companyTypeListFetch,
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography,
+  FormGroup,
+  FormControlLabel,
+  Switch
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+
+const schema = {
+  name: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  website: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  company_type_id: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  phoneno: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  is_client: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+}));
+
+const useRadioStyles = makeStyles(theme => ({
+  root: {
+    width: 42,
+    height: 26,
+    padding: 0,
+    margin: theme.spacing(1),
+  },
+  switchBase: {
+    padding: 1,
+    '&$checked': {
+      transform: 'translateX(16px)',
+      color: theme.palette.common.white,
+      '& + $track': {
+        backgroundColor: theme.palette.bprimary.main,
+        opacity: 1,
+        border: 'none',
+      },
+    },
+    '&$focusVisible $thumb': {
+      color: theme.palette.bprimary.main,
+      border: '6px solid #fff',
+    },
+  },
+  thumb: {
+    width: 24,
+    height: 24,
+  },
+  track: {
+    borderRadius: 26 / 2,
+    border: `1px solid ${theme.palette.grey[400]}`,
+    backgroundColor: theme.palette.grey[50],
+    opacity: 1,
+    transition: theme.transitions.create(['background-color', 'border']),
+  },
+  checked: {},
+  focusVisible: {},
+}));
+
+const CompanyUpdate = () => {
+  const classes = useStyles();
+  const radio_classes = useRadioStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const companyState = useSelector(state => state.companyState);
+  const companyTypeState = useSelector(state => state.companyTypeState);
+  const session = useSelector(state => state.session);
+
+  const [CompanyType, setCompanyTypeValue] = useState(null);
+  const [files, setFiles] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'is_client': false
+    },
+    touched: {
+      'object_viewed_id': true,
+      'is_client': true
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = companyState.companyRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'name': record.name,
+        'id': record.id,
+        'company_type_id': record.company_type_id,
+        'is_client': record.is_client,
+        'website': record.website,
+        'phoneno': record.phoneno
+      },
+      touched: {
+        ...formState.touched,
+        'name': true,
+        'id': true,
+        'company_type_id': true,
+        'website': true,
+        'phoneno': true,
+        'is_client': true,
+      }
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyState.companyRecord]);
+
+  useEffect(() => {
+    let record = companyState.companyRecord
+    const item = find(companyTypeState.companyTypeList, ['id', record.company_type_id])
+    setCompanyTypeValue(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyTypeState.companyTypeList]);
+
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    dispatch(companyTypeListFetch(session.current_page_permissions.object_id))
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(companyState.validation_error)) {
+      const errors = companyState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [companyState.validation_error]);
+
+  useEffect(() => {
+    if (!companyState.showUpdateForm && !companyState.showViewPage) {
+      router.history.push('/company');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyState.showUpdateForm, companyState.showViewPage]);
+
+  useEffect(() => {
+    if (companyState.redirect_to_list) {
+      router.history.push('/company');
+    }
+  }, [companyState.redirect_to_list, router.history]);
+
+  const setCompanyTypeId = company_type_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'company_type_id': company_type_id
+      },
+      touched: {
+        ...formState.touched,
+        'company_type_id': true
+      }
+    }));
+    dispatch(hideCompanyValidationError('company_type_id'));
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideCompanyValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideCompanyValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const data = new FormData();
+    if (!isEmpty(files[0])) {
+      data.append('logo', files[0]);
+    }
+
+    //appending form state to data object
+    forEach(formState.values, function (value, key) {
+      data.append(key, value);
+    });
+    dispatch(updateCompany(data));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Company"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Update Company" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={8} sm={8}>
+                <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('name')}
+                        fullWidth
+                        helperText={hasError('name') ? formState.errors.name[0] : null}
+                        label="Name"
+                        name="name"
+                        onChange={handleChange}
+                        value={formState.values.name || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <Autocomplete
+                        id="company_type_id"
+                        value={CompanyType}
+                        onChange={(event, newValue) => {
+                          if (newValue) {
+                            setCompanyTypeValue(newValue)
+                            setCompanyTypeId(newValue.id)
+                          }
+                          else {
+                            setCompanyTypeValue(newValue)
+                            setCompanyTypeId('')
+                          }
+
+                        }}
+                        options={companyTypeState.companyTypeList}
+                        getOptionLabel={(option) => option.opt_display}
+                        size="small"
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Company Type" variant="outlined" error={hasError('company_type_id')} helperText={hasError('company_type_id') ? formState.errors.company_type_id[0] : null} />}
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('website')}
+                        fullWidth
+                        helperText={hasError('website') ? formState.errors.website[0] : null}
+                        label="Website"
+                        name="website"
+                        onChange={handleChange}
+                        value={formState.values.website || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('phoneno')}
+                        fullWidth
+                        helperText={hasError('phoneno') ? formState.errors.phoneno[0] : null}
+                        label="Phone no"
+                        name="phoneno"
+                        onChange={handleChange}
+                        value={formState.values.phoneno || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={3}>
+                      <FormGroup >
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={formState.values.is_client}
+                              onChange={handleChange}
+                              name="is_client"
+                              color="primary"
+                              classes={{
+                                root: radio_classes.root,
+                                switchBase: radio_classes.switchBase,
+                                thumb: radio_classes.thumb,
+                                track: radio_classes.track,
+                                checked: radio_classes.checked,
+                              }}
+                            />
+                          }
+                          label="Is Client"
+                        />
+                      </FormGroup>
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={12}>
+                      <FormHelperText id="description">
+                        <Typography component="b">Description</Typography>
+                      </FormHelperText>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={CK_CONFIGS(localStorage.getItem("token"))}
+                        data={companyState.companyRecord.description || ''}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data)
+                        }}
+                      />
+                      <FormControl error={hasError('description')} >
+                        <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </Grid>
+                <Grid item xs={4} sm={4}>
+                  <LogoImage
+                    files={files}
+                    setFiles={setFiles}
+                    companyState={companyState}
+                  />
+                </Grid>
+              </Grid>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Update Company
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToCompanyList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default CompanyUpdate;

@@ -1,0 +1,112 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import { TextField } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import {
+  auditFormInfractionCategoryDropdownListFetch
+} from 'actions';
+import { isEmpty, includes, isArray, forEach, find } from 'lodash'
+
+const useStyles = makeStyles(theme => ({
+  root: {}
+}));
+
+const AuditFormInfractionCategoryDropdown = props => {
+  const { InfractionCategoryValue, setInfractionCategoryValue, selectedId, infractionCategoryOnChange, id, name, size, renderInput, showSelectAllOption, ...attr } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const auditFormInfractionCategoryState = useSelector(state => state.auditFormInfractionCategoryState);
+  const session = useSelector(state => state.session);
+  const [infractionCategoryList, setInfractionCategoryList] = useState([]);
+
+  useEffect(() => {
+    
+    dispatch(auditFormInfractionCategoryDropdownListFetch(session.current_page_permissions.object_id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (auditFormInfractionCategoryState.auditFormInfractionCategoriesDropdownList) {
+      
+      if (!isEmpty(selectedId)) {
+        if (isArray(selectedId)) {
+          let scat = [];
+          forEach(selectedId, function (value, key) {
+            let item = find(auditFormInfractionCategoryState.auditFormInfractionCategoriesDropdownList, ['id', value]);
+            if (!isEmpty(item)) {
+              scat.push(item);
+            }
+          });
+          setInfractionCategoryValue(scat);
+
+        }
+        else {
+          let scat = find(auditFormInfractionCategoryState.auditFormInfractionCategoriesDropdownList, ['id', selectedId]);
+          
+          if(!isEmpty(scat)){
+            setInfractionCategoryValue(scat);
+          }
+          else{
+            setInfractionCategoryValue(null);
+          }
+        }
+      }
+
+      let infraction_category_list = {
+        ...auditFormInfractionCategoryState.auditFormInfractionCategoriesDropdownList
+      }
+      infraction_category_list = Object.values(infraction_category_list);
+
+      if (attr.multiple === true && !isEmpty(infraction_category_list) && showSelectAllOption === true) {
+        let first = {
+          id: 'all',
+          opt_display: 'All',
+        }
+        infraction_category_list.unshift(first);
+      }
+
+      setInfractionCategoryList(Object.values(infraction_category_list));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditFormInfractionCategoryState.auditFormInfractionCategoriesDropdownList]);
+
+  return (
+    <>
+      {(infractionCategoryList) ?
+        <Autocomplete
+          value={InfractionCategoryValue}
+          onChange={(event, newValue) => {
+            infractionCategoryOnChange(event, newValue)
+          }}
+          options={infractionCategoryList}
+          getOptionLabel={(option) => option.opt_display}
+          id={id}
+          size={size}
+          name={name}
+          renderInput={renderInput}
+          {...attr}
+        />
+
+        : ''}
+    </>
+  );
+}
+
+AuditFormInfractionCategoryDropdown.propTypes = {
+  infractionCategoryOnChange: PropTypes.any.isRequired,
+  renderInput: PropTypes.any.isRequired
+};
+
+AuditFormInfractionCategoryDropdown.defaultProps = {
+  InfractionCategoryValue: [],
+  id: 'audit_form_infraction_category_id',
+  name: 'audit_form_infraction_category_id',
+  size: 'small',
+  selectedId: '',
+  showSelectAllOption: false
+};
+
+export default AuditFormInfractionCategoryDropdown;

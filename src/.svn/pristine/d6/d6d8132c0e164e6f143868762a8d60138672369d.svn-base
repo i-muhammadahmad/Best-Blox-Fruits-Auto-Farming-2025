@@ -1,0 +1,205 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import useRouter from 'utils/useRouter';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Typography,
+  Grid,
+} from '@material-ui/core'
+import { StyledButton, ViewActionButtons, DeleteAlert } from 'components';
+import {
+  redirectToQuizSetupList,
+  publishQuizSetup,
+  getQuizSetupById,
+  deleteQuizSetup
+} from 'actions';
+import PublishIcon from '@material-ui/icons/Publish';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(() => ({
+  root: {}
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+  const dispatch = useDispatch();
+  const classes = useStyles();
+  const router = useRouter();
+
+  const [openPublishModel, setOpenPublishModel] = React.useState(false);
+  const [disablePublishButton, setDisablePublishButton] = React.useState(true);
+  const quizSetupState = useSelector(state => state.quizSetupState);
+  const session = useSelector(state => state.session);
+  const [openDeleteModel, setOpenDeleteModel] = useState(false); 
+  const [btnToShow, setBtnToShow] = useState(['view', 'close']);
+
+  useEffect(() => {
+    if (!isEmpty(quizSetupState.quizSetupRecord) && quizSetupState.quizSetupRecord.is_published == 'n' ) {
+      setBtnToShow(['delete', 'view', 'close']);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.quizSetupRecord]);
+
+  useEffect(() => {
+    if (!isEmpty(quizSetupState.quiz_id) && !isEmpty(quizSetupState.quizSlidesList)) {
+      setDisablePublishButton(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.quiz_id, quizSetupState.quizSlidesList]);
+
+  useEffect(() => {
+    if (quizSetupState.showViewPage) {
+      router.history.push('/quiz-setup/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.showViewPage]);
+
+  useEffect(() => {
+    if (!quizSetupState.showUpdateForm && !quizSetupState.showViewPage) {
+      router.history.push('/quiz-setup');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.showUpdateForm, quizSetupState.showViewPage]);
+
+  useEffect(() => {
+    if (quizSetupState.redirect_to_list) {
+      router.history.push('/quiz-setup');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.redirect_to_list]);
+
+  const showPublishModel = () => {
+    setOpenPublishModel(true)
+  }
+
+  const hidePublishModel = () => {
+    setOpenPublishModel(false)
+  }
+
+  const publishQuiz = () => {
+    dispatch(publishQuizSetup(quizSetupState.quiz_id, session.current_page_permissions.object_id))
+    setOpenPublishModel(false)
+  }
+
+  const deleteRecord = async () => {
+    await dispatch(deleteQuizSetup(quizSetupState.quizSetupRecord.id, session.current_page_permissions.object_id));
+    closeView();
+  }
+
+  const showDeleteModal = () => {
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+  }
+
+  const viewRecord = () => {
+    dispatch(getQuizSetupById(quizSetupState.quizSetupRecord.id, 'view'))
+  }
+
+  const closeView = () => {
+    dispatch(redirectToQuizSetupList())
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Grid
+        alignItems="flex-end"
+        container
+        justify="space-between"
+        spacing={3}
+      >
+        <Grid item>
+          <Typography
+            component="h2"
+            gutterBottom
+            variant="overline"
+          >
+            Course Management
+          </Typography>
+          <Typography
+            component="h1"
+            variant="h3"
+          >
+            Course Setup
+          </Typography>
+        </Grid>
+        <Grid item style={{display: 'flex'}}>
+          {(quizSetupState.quizSetupRecord.is_published !== 'y') ?
+            <><StyledButton
+              variant="contained"
+              color="bsuccess"
+              size="small"
+              onClick={() => showPublishModel()}
+              startIcon={<PublishIcon />}
+              disabled={disablePublishButton}
+            >
+              Publish
+            </StyledButton>&nbsp;&nbsp;</>
+            : ''
+          }
+          <ViewActionButtons  
+            btnToShow={btnToShow}
+            viewRecord={viewRecord}
+            deleteRecord={showDeleteModal}
+            closeView={closeView}
+            currentRecord={quizSetupState.quizSetupRecord}
+          />
+        </Grid>
+      </Grid>
+      <Dialog
+        open={openPublishModel}
+        onClose={hidePublishModel}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">Publish Course</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to publish this Course? <br />
+            You will not be able to edit a published Course.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <StyledButton onClick={hidePublishModel}   >
+            Cancel
+          </StyledButton>
+          <StyledButton
+            variant="contained"
+            color="bsuccess"
+            startIcon={<PublishIcon />}
+            onClick={publishQuiz}
+            autoFocus={true}
+          >
+            Publish
+          </StyledButton>
+        </DialogActions>
+      </Dialog>
+      <DeleteAlert
+        title="Course Delete"
+        alertText="Are you sure, You want delete this Course?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+export default Header;

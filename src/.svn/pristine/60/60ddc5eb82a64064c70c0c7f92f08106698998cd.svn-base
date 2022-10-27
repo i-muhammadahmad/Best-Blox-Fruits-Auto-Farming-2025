@@ -1,0 +1,137 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { makeStyles } from '@material-ui/styles';
+import { Page } from 'components';
+import {
+  Header
+} from './components';
+import {
+  Tabs,
+  Tab,
+  Box,
+  Card,
+  CardContent
+} from '@material-ui/core';
+import useRouter from 'utils/useRouter';
+import ClientUpdateForm from './ClientUpdateForm';
+import MeetingNotes from '../MeetingNotes';
+import ClientInvoices from '../ClientInvoices';
+import { isEmpty, filter } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  tabPanelStyle: {
+    borderBottom: '1px solid #e8e8e8',
+  }
+}));
+
+const ClientUpdate = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const session = useSelector(state => state.session);
+
+  //finding meeting notes permissions against code
+  const meeting_note_per = filter(session.user_permissions_raw, function(item){
+    if(!isEmpty(item.permission_object)){
+      return item.permission_object.object_code === 'meeting_notes';
+    }
+  });
+
+  const [activeTab, setActiveTab] = React.useState(0);
+
+  const getTabNo = type => {
+    if(type === 'meeting_notes'){
+      if((meeting_note_per[0].rights_view == '1') && (meeting_note_per[0].rights_edit == '1')){
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+  const TabPanel = (props) => {
+    const { children, activeTab, index, ...other } = props;
+
+    return (
+      <div
+        role="tabpanel"
+        hidden={activeTab !== index}
+        id={`simple-tabpanel-${index}`}
+        aria-labelledby={`simple-tab-${index}`}
+        {...other}
+      >
+        {activeTab === index && (
+          <div>
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const a11yProps = (index) => {
+    return {
+      id: `simple-tab-${index}`,
+      'aria-controls': `simple-tabpanel-${index}`,
+    };
+  }
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Client"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardContent>
+          <Tabs value={activeTab} onChange={handleTabChange} aria-label="Client Tabs" className={classes.tabPanelStyle}>
+            { (session.current_page_permissions.rights_edit == '1')?
+              <Tab label="Update Client" {...a11yProps(getTabNo('client'))} />
+              :''
+            }  
+            { (meeting_note_per[0].rights_view == '1')?
+            <Tab label="Meeting Notes" {...a11yProps(getTabNo('meeting_notes'))} />
+              :''
+            } 
+            <Tab label="Client Invoices" {...a11yProps(2)} />
+          </Tabs>
+          { (session.current_page_permissions.rights_edit == '1')?
+          <TabPanel activeTab={activeTab} index={getTabNo('client')}>
+            <ClientUpdateForm
+              activeTab={activeTab}
+            />
+          </TabPanel>
+          :''}
+          { (meeting_note_per[0].rights_view == '1')?
+          <TabPanel activeTab={activeTab} index={getTabNo('meeting_notes')}>
+            <MeetingNotes 
+              activeTab={activeTab}
+            />  
+          </TabPanel>
+          :''}
+          <TabPanel activeTab={activeTab} index={2}>
+            <ClientInvoices 
+              activeTab={activeTab}
+            />  
+          </TabPanel>
+        </CardContent>
+      </Card>    
+    </Page>
+  );
+};
+
+export default ClientUpdate;

@@ -1,0 +1,130 @@
+import React, {useEffect} from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import { 
+  makeStyles,
+  Paper,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ActivityLogView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const activityLogState = useSelector(state => state.activityLogState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if(activityLogState.redirect_to_list){
+      router.history.push('/activity-log');
+    } 
+  }, [activityLogState.redirect_to_list, router.history]);
+
+  useEffect(()=> {
+    if(!activityLogState.showUpdateForm && !activityLogState.showViewPage){
+      router.history.push('/activity-log');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[activityLogState.showUpdateForm, activityLogState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Activity Log View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Activity Log View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Name </TableCell>
+                  <TableCell>{activityLogState.activityLogRecord.name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Unit Processed </TableCell>
+                  <TableCell>{activityLogState.activityLogRecord.activity_units_logged}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Activity </TableCell>
+                  <TableCell>{
+                    !isEmpty(activityLogState.activityLogRecord.activity_record)?
+                    activityLogState.activityLogRecord.activity_record.name:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(activityLogState.activityLogRecord.created_by_user)?
+                    activityLogState.activityLogRecord.created_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{activityLogState.activityLogRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(activityLogState.activityLogRecord.created_by_user)?
+                    activityLogState.activityLogRecord.updated_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{activityLogState.activityLogRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody> 
+            </Table> 
+          </TableContainer>    
+        </CardContent>
+      </Card> 
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Activity Log Description" />
+        <CardContent>    
+            <div 
+              className="ck-content" dangerouslySetInnerHTML={{ __html: activityLogState.activityLogRecord.description }} />
+        </CardContent>  
+      </Card>   
+    </Page>
+  );
+}
+
+export default ActivityLogView;

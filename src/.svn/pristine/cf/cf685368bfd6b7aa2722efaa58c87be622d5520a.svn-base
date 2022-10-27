@@ -1,0 +1,496 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import {
+  updateEmployeesDesignation,
+  hideEmployeesDesignationValidationError,
+  getEmployeesById,
+  departmentsDropdownListFetch,
+  designationsDropdownListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography,
+  FormGroup,
+  FormControlLabel,
+  Switch,
+  List,
+  ListItem,
+  ListItemIcon,
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS, API_URL } from 'configs';
+import AccountCircleRoundedIcon from '@material-ui/icons/AccountCircleRounded';
+import { EmployeeDropdown } from 'commonDropdowns';
+import { StyledButton } from 'components';
+
+const schema = {
+  employee_id: {
+    presence: { allowEmpty: false, message: '^ please Select Employee' },
+  },
+  designation_id: {
+    presence: { allowEmpty: false, message: '^ please Select Designation' },
+  },
+  department_id: {
+    presence: { allowEmpty: false, message: '^ please Select Department' },
+  },
+  reporting_to: {
+    presence: { allowEmpty: false, message: '^ please select reporting To' },
+  },
+  show_in_premier_directory: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  thumb: {
+    display: 'inline-flex',
+    borderRadius: 2,
+    border: '1px solid #eaeaea',
+    marginBottom: 8,
+    marginRight: 8,
+    width: 100,
+    height: 100,
+    padding: 4,
+    boxSizing: 'border-box'
+  },
+  thumbInner: {
+    display: 'flex',
+    minWidth: 0,
+    overflow: 'hidden'
+  },
+  img: {
+    display: 'block',
+    width: 'auto',
+    height: '100%'
+  },
+  image: {
+    width: 130,
+    height: 'auto'
+  },
+}));
+
+const useRadioStyles = makeStyles(theme => ({
+  root: {
+    width: 42,
+    height: 26,
+    padding: 0,
+    margin: theme.spacing(1),
+  },
+  switchBase: {
+    padding: 1,
+    '&$checked': {
+      transform: 'translateX(16px)',
+      color: theme.palette.common.white,
+      '& + $track': {
+        backgroundColor: theme.palette.bprimary.main,
+        opacity: 1,
+        border: 'none',
+      },
+    },
+    '&$focusVisible $thumb': {
+      color: theme.palette.bprimary.main,
+      border: '6px solid #fff',
+    },
+  },
+  thumb: {
+    width: 24,
+    height: 24,
+  },
+  track: {
+    borderRadius: 26 / 2,
+    border: `1px solid ${theme.palette.grey[400]}`,
+    backgroundColor: theme.palette.grey[50],
+    opacity: 1,
+    transition: theme.transitions.create(['background-color', 'border']),
+  },
+  checked: {},
+  focusVisible: {},
+}));
+
+const EmployeeDesignationTab = (props) => {
+  const { activeTab, ...rest } = props;
+
+  const classes = useStyles();
+  const radio_classes = useRadioStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const employeesState = useSelector(state => state.employeesState);
+  const departmentsState = useSelector(state => state.departmentsState);
+  const designationState = useSelector(state => state.designationState);
+  const session = useSelector(state => state.session);
+
+  const [DepartmentValue, setDepartmentValue] = useState(null);
+  const [ReportingToValue, setReportingToValue] = useState(null);
+  const [designationValue, setDesignationValue] = useState(null);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      show_in_premier_directory: false,
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'description': '',
+      'show_in_premier_directory': false,
+    },
+    touched: {
+      show_in_premier_directory: false,
+      'object_viewed_id': true,
+      'show_in_premier_directory': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = employeesState.employeesRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': record.designation_description,
+        'employee_name': record.firstname + ' ' + record.lastname,
+        'employee_email': record.email,
+        'show_in_premier_directory': (record.show_in_premier_directory == 'y')? true:false,
+        'office_id': record.office_id,
+        'department_id': record.latest_department_id,
+        'reporting_to': record.latest_reporting_to,
+        'designation_id': record.latest_designation_id,
+        'employee_id': record.id
+      },
+      touched: {
+        ...formState.touched,
+        'description': true,
+        'employee_name': true,
+        'employee_email': true,
+        'show_in_premier_directory': true,
+        'office_id': true,
+        'department_id': true,
+        'designation_id': true,
+        'reporting_to': true,
+        'employee_id': true
+      }
+    }));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.employeesRecord]);
+
+  useEffect(() => {
+    dispatch(designationsDropdownListFetch());
+  }, []);
+
+  useEffect(() => {
+    
+    dispatch(departmentsDropdownListFetch([formState.values.office_id], session.current_page_permissions.object_id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.values.office_id]);
+
+  useEffect(() => {
+    let record = employeesState.employeesRecord;
+    const item = find(departmentsState.departmentsDropdownList, ['id', record.latest_department_id]);
+    setDepartmentValue(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departmentsState.departmentsDropdownList]);
+
+  useEffect(() => {
+    let record = employeesState.employeesRecord;
+    const item = find(designationState.designationsDropdownList, ['id', record.latest_designation_id]);
+    setDesignationValue(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [designationState.designationsDropdownList]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(employeesState.emp_designation_validation_error)) {
+      const errors = employeesState.emp_designation_validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [employeesState.emp_designation_validation_error]);
+
+  useEffect(() => {
+    if(activeTab === 0 && employeesState.showUpdateForm === true){
+      dispatch(getEmployeesById(employeesState.employeesRecord.id, 'update'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideEmployeesDesignationValidationError('description'))
+  }
+
+  const reportingToOnChange = (event, newValue) => {
+    if (newValue) {
+      setReportingToValue(newValue)
+      setReportingToId(newValue.id)
+    }
+    else {
+      setReportingToValue(newValue)
+      setReportingToId('')
+    }
+  }
+
+  const setReportingToId = reporting_to => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'reporting_to': reporting_to
+      },
+      touched: {
+        ...formState.touched,
+        'reporting_to': true
+      }
+    }));
+    dispatch(hideEmployeesDesignationValidationError('reporting_to'))
+  }
+
+  const setDepartmentId = department_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'department_id': department_id
+      },
+      touched: {
+        ...formState.touched,
+        'department_id': true
+      }
+    }));
+    dispatch(hideEmployeesDesignationValidationError('department_id'))
+  }
+
+  const setDesignationtId = designation_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'designation_id': designation_id
+      },
+      touched: {
+        ...formState.touched,
+        'designation_id': true
+      }
+    }));
+    dispatch(hideEmployeesDesignationValidationError('designation_id'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideEmployeesDesignationValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    
+    dispatch(updateEmployeesDesignation(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Card
+      className={classes.projectDetails}
+    >
+      
+      <CardContent>
+        <form
+          onSubmit={handleSubmit}
+        >
+          <div className={classes.formGroup}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  error={hasError('employee_name')}
+                  fullWidth
+                  helperText={hasError('employee_name') ? formState.errors.employee_name[0] : null}
+                  label="Employee Name"
+                  name="employee_name"
+                  onChange={handleChange}
+                  value={formState.values.employee_name || ''}
+                  variant="outlined"
+                  size="small"
+                  required
+                  disabled
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                { (designationState.designationsDropdownList)?
+                  <Autocomplete
+                    id="designation_id"
+                    name="designation_id"
+                    value={designationValue || null}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        setDesignationValue(newValue)
+                        setDesignationtId(newValue.id)
+                      }
+                      else {
+                        setDesignationValue(newValue)
+                        setDesignationtId('')
+                      }
+                    }}
+                    options={designationState.designationsDropdownList}
+                    getOptionLabel={(option) => option.name}
+                    size="small"
+                    required
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Designation" variant="outlined" error={hasError('designation_id')} helperText={hasError('designation_id') ? formState.errors.designation_id[0] : null} />}
+                  />
+                  :''
+                }
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                { (departmentsState.departmentsDropdownList)?
+                <Autocomplete
+                  id="department_id"
+                  value={DepartmentValue}
+                  onChange={(event, newValue) => {
+                    if (newValue) {
+                      setDepartmentValue(newValue)
+                      setDepartmentId(newValue.id)
+                    }
+                    else {
+                      setDepartmentValue(newValue)
+                      setDepartmentId('')
+                    }
+                  }}
+                  options={departmentsState.departmentsDropdownList}
+                  getOptionLabel={(option) => option.name}
+                  size="small"
+                  required
+                  renderInput={(params) => <TextField {...params} size="small" label="Select Department" variant="outlined" error={hasError('department_id')} helperText={hasError('department_id') ? formState.errors.department_id[0] : null} />}
+                />
+                :''
+                }
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <EmployeeDropdown
+                  EmployeeValue={ReportingToValue}
+                  setEmployeeValue={setReportingToValue}
+                  selectedId={formState.values.reporting_to}
+                  id="reporting_to"
+                  name="reporting_to"
+                  employeeOnChange={reportingToOnChange}
+                  renderInput={(params) => <TextField {...params} size="small" label="Select Employee Reporting To" variant="outlined" error={hasError('reporting_to')} helperText={hasError('reporting_to') ? formState.errors.reporting_to[0] : null} />}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormGroup >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formState.values.show_in_premier_directory}
+                        onChange={handleChange}
+                        name="show_in_premier_directory"
+                        color="primary"
+                        classes={{
+                          root: radio_classes.root,
+                          switchBase: radio_classes.switchBase,
+                          thumb: radio_classes.thumb,
+                          track: radio_classes.track,
+                          checked: radio_classes.checked,
+                        }}
+                      />
+                    }
+                    label="Show In Premier Directory"
+                  />
+                </FormGroup>
+                <FormControl error={hasError('show_in_premier_directory')} >
+                  <FormHelperText id="component-error-text">{hasError('show_in_premier_directory') ? formState.errors.show_in_premier_directory[0] : null}</FormHelperText>
+                </FormControl>
+              </Grid>
+            </Grid>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={12}>
+                <FormHelperText id="description">
+                  <Typography component="b">Description</Typography>
+                </FormHelperText>
+                <CKEditor
+                  editor={ClassicEditor}
+                  config={CK_CONFIGS(localStorage.getItem("token"))}
+                  data={employeesState.employeesRecord.designation_description || ''}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setDescription(data)
+                  }}
+                />
+                <FormControl error={hasError('description')} >
+                  <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </div>
+          <StyledButton
+            color="bprimary"
+            disabled={!formState.isValid}
+            size="small"
+            type="submit"
+            variant="contained"
+            startIcon={<SaveIcon />}
+          >
+            Update Employee Designation
+          </StyledButton> 
+
+        </form>
+
+      </CardContent>
+    </Card>
+  );
+};
+
+export default EmployeeDesignationTab;

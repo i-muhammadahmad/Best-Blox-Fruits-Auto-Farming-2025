@@ -1,0 +1,323 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const ACTIVITY_CATEGORY_REQUEST = 'ACTIVITY_CATEGORY_REQUEST'
+export const ACTIVITY_CATEGORY_SUCCESS = 'ACTIVITY_CATEGORY_SUCCESS'
+export const ACTIVITY_CATEGORIES_BY_ATTR_SUCCESS = 'ACTIVITY_CATEGORIES_BY_ATTR_SUCCESS'
+export const ACTIVITY_CATEGORY_VALIDATION_ERROR = 'ACTIVITY_CATEGORY_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_ACTIVITY_CATEGORY_FEILD_VALIDATION_ERROR = "HIDE_ACTIVITY_CATEGORY_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_ACTIVITY_CATEGORY_LIST = 'REDIRECT_TO_ACTIVITY_CATEGORY_LIST'
+export const ACTIVITY_CATEGORY_PARENT_SUCCESS = 'ACTIVITY_CATEGORY_PARENT_SUCCESS'
+export const ACTIVITY_CATEGORY_GET_SUCCESS = 'ACTIVITY_CATEGORY_GET_SUCCESS'
+export const ACTIVITY_CATEGORY_DROPDOWN_LIST_SUCCESS = 'ACTIVITY_CATEGORY_DROPDOWN_LIST_SUCCESS'
+export const ACTIVITY_CATEGORY_SERVER_SUCCESS = 'ACTIVITY_CATEGORY_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const activityCategoryRequest = () => ({
+  type: ACTIVITY_CATEGORY_REQUEST,
+})
+
+export const activityCategoryServerListSuccess = () => ({
+  type: ACTIVITY_CATEGORY_SERVER_SUCCESS,
+})
+
+const activityCategoryListSuccess = activityCategoryList => ({
+  type: ACTIVITY_CATEGORY_SUCCESS,
+  activityCategoryList: activityCategoryList,
+})
+
+const activityCategoryParentListSuccess = activityCategoryParentsList => ({
+  type: ACTIVITY_CATEGORY_PARENT_SUCCESS,
+  activityCategoryParentsList: activityCategoryParentsList,
+})
+
+const activityCategoryFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: ACTIVITY_CATEGORY_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const activityCategoryAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(activityCategorySuccessNotification(message))
+  dispatch(redirectToActivityCategoryList())
+}
+
+export const redirectToActivityCategoryList = () => ({
+  type: REDIRECT_TO_ACTIVITY_CATEGORY_LIST,
+})
+
+const getActivityCategorySuccess = (response, action) => ({
+  type: ACTIVITY_CATEGORY_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const activityCategorySuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const hideActivityCategoryValidationError = (feild_key) => ({
+  type: HIDE_ACTIVITY_CATEGORY_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+const activityCategoriesByAttrListSuccess = activityCategoriesByAttrList => ({
+  type: ACTIVITY_CATEGORIES_BY_ATTR_SUCCESS,
+  activityCategoriesByAttrList: activityCategoriesByAttrList,
+})
+
+/*
+* activity categories dropdown list fetch methods
+*/
+const activityCategoryDropdownListSuccess = activityCategoriesDropdownList => ({
+  type: ACTIVITY_CATEGORY_DROPDOWN_LIST_SUCCESS,
+  activityCategoriesDropdownList: activityCategoriesDropdownList,
+})
+
+export const activityCategoryDropdownListFetch = (client_ids, user_ids) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/getAllForDropdown", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        client_ids: client_ids,
+        user_ids: user_ids,
+      }
+    })
+    .then((response) => {
+      dispatch(activityCategoryDropdownListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+
+export const activityCategoriesByAttrListFetch = (request_data = []) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: request_data
+    })
+      .then((response) => {
+        dispatch(activityCategoriesByAttrListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+}
+
+export const activityCategoryListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(activityCategoryListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+}
+
+export const activityCategoryParentListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/getAllParents", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(activityCategoryParentListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addActivityCategory = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        activityCategoryAddUpadteSuccess('Activity Category Added Successfully', 'create', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const updateActivityCategory = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        activityCategoryAddUpadteSuccess('Activity Category Updated Successfully', 'update', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const getActivityCategoryById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(getActivityCategorySuccess(response.data, action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const deleteActivityCategory = (activityCategoryId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(activityCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "activity_categories/delete/" + activityCategoryId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(activityCategorySuccessNotification('Activity Category deleted successfully'))
+        dispatch(activityCategoryListFetch())
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(activityCategoryFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(activityCategoryFailure('Unable to perform action.Something went wrong'))
+  }
+}   

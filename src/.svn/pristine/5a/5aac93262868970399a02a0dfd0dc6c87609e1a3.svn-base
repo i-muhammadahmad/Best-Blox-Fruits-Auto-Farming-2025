@@ -1,0 +1,378 @@
+import React, { useEffect } from 'react';
+import { API_URL } from 'configs'
+import { Page, StyledButton, StyledChip } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header,
+  SlideContant,
+  SlidesList
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Card,
+  CardHeader,
+  CardMedia,
+  CardActionArea,
+  CardContent,
+  MobileStepper,
+  Typography,
+  Grid,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+} from '@material-ui/core';
+import { useTheme } from '@material-ui/core/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+import KeyboardArrowLeft from '@material-ui/icons/KeyboardArrowLeft';
+import KeyboardArrowRight from '@material-ui/icons/KeyboardArrowRight';
+import { getNestedSlidesForMyQuizzes, saveQuizResponse, getQuizById } from 'actions';
+import LoopIcon from '@material-ui/icons/Loop';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    height: 50,
+    paddingLeft: theme.spacing(4),
+    backgroundColor: theme.palette.background.default,
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  menuButton: {
+    marginRight: theme.spacing(2),
+  },
+}));
+
+const QuizView = () => {
+  const classes = useStyles();
+
+  const theme = useTheme();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [activeStep, setActiveStep] = React.useState(0);
+  const [activeSlideId, setActiveSlideId] = React.useState('');
+  const [maxSteps, setMaxSteps] = React.useState(0);
+  const [quizSlides, SetQuizSlides] = React.useState([]);
+  const [enableNextStep, setEnableNextStep] = React.useState(true);
+  const [isAnsSelected, setIsAnsSelected] = React.useState(false);
+  const [showSlideMenu, setShowSlideMenu] = React.useState(true);
+  const quizState = useSelector(state => state.quizState);
+  const quizSetupState = useSelector(state => state.quizSetupState);
+
+  useEffect(() => {
+    if (!quizState.showViewPage) {
+      router.history.push('/quiz');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizState.showViewPage]);
+
+  useEffect(() => {
+    if (quizState.redirect_to_list) {
+      router.history.push('/quiz');
+    }
+  }, [quizState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!isEmpty(quizState.quizRecord)) {
+      dispatch(getNestedSlidesForMyQuizzes(quizState.quizRecord.id));
+    }
+  }, [quizState.quizRecord]);
+
+  useEffect(() => {
+    if (!isEmpty(quizSetupState.quizSlidesList)) {
+      SetQuizSlides(quizSetupState.quizSlidesList);
+      setMaxSteps(Object.values(quizSetupState.quizSlidesList).length);
+      setActiveStep(0);
+      setActiveSlideId(quizSetupState.quizSlidesList[activeStep].id);
+      if (quizSetupState.quizSlidesList[activeStep].slide_type === 'Information') {
+        setEnableNextStep(true);
+      }
+    }
+  }, [quizSetupState.quizSlidesList])
+
+  useEffect(() => {
+    if (!isEmpty(quizSetupState.quizSlidesList)) {
+      setActiveSlideId(quizSetupState.quizSlidesList[activeStep].id);
+    }
+  }, [activeStep]);
+
+  const showHideSlidesMenu = () => {
+    setShowSlideMenu((prev) => !prev);
+  }
+
+  const handleNext = () => {
+    if (activeStep === (maxSteps - 1)) {
+      let fdata = {
+        'slides': quizSlides,
+        'quiz_id': quizState.quizRecord.id,
+        'quiz_name': quizState.quizRecord.name,
+        'binding_id': quizState.quizBindingId
+      }
+      dispatch(saveQuizResponse(fdata));
+    }
+    else {
+      setIsAnsSelected(false);
+      let currStep = activeStep + 1;
+
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      if (
+        quizSlides[currStep].slide_type === 'Interactive'
+        && ((!isEmpty(quizSlides[currStep]['selected_ans']))
+        && quizSlides[currStep]['selected_ans'].length > quizSlides[currStep]['slide_answers_count']
+      )
+      ) {
+        setEnableNextStep(false);
+      }
+      else {
+        setEnableNextStep(true);
+      }
+    }
+
+  };
+
+  const handleBack = () => {
+    let currStep = activeStep - 1;
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+
+    if (
+      quizSlides[currStep].slide_type === 'Interactive'
+      && (!isEmpty(quizSlides[currStep]['selected_ans']))
+      && quizSlides[currStep]['selected_ans'].length > quizSlides[currStep]['slide_answers_count']
+    ) {
+      setEnableNextStep(false);
+    }
+    else {
+      setEnableNextStep(true);
+    }
+
+  };
+
+  const ansOnClick = (select_ans_id, ans_index) => {
+    setIsAnsSelected(true);
+
+    let slide_ans = quizSlides[activeStep]['selected_ans'];
+    let selected_ans_arr;
+    if(!isEmpty(slide_ans) && slide_ans.includes(select_ans_id)){
+      
+      selected_ans_arr = slide_ans.filter(x => x !== select_ans_id);
+      SetQuizSlides(quizSlides => ({
+        ...quizSlides,
+        [activeStep]: {
+          ...quizSlides[activeStep],
+          'selected_ans': selected_ans_arr
+        }
+      }));
+      //delete 
+    }
+    else{
+      selected_ans_arr = Object.values({...quizSlides[activeStep]['selected_ans'], select_ans_id});
+      SetQuizSlides(quizSlides => ({
+        ...quizSlides,
+        [activeStep]: {
+          ...quizSlides[activeStep],
+          'selected_ans': selected_ans_arr
+        }
+      }));
+    }
+    
+    if (
+      quizSlides[activeStep].slide_type === 'Interactive'
+      && (!isEmpty(selected_ans_arr))
+      && selected_ans_arr.length > quizSlides[activeStep]['slide_answers_count']
+    ) {
+      setEnableNextStep(false);
+    }
+    else {
+      setEnableNextStep(true);
+    }
+
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Quizes"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Quiz Slide" />
+        <CardContent>
+          <Grid container spacing={3}>
+            {(!isEmpty(quizState.quiz_attemp_status) || !isEmpty(quizState.certificate_path) ) ?
+              <>
+              {(quizState.quiz_attemp_status === 'pass' || !isEmpty(quizState.certificate_path) )?
+                <Grid item xs={12} sm={12}>
+                  <Card className={classes.root}>
+                    <CardActionArea>
+                      <CardMedia
+                        component="img"
+                        alt="Certificate"
+                        image={API_URL + quizState.certificate_path}
+                        title="Certificate"
+                      />
+                    </CardActionArea>
+                  </Card>
+                </Grid>
+                :
+                <Grid item xs={12} sm={12}>
+                  <Grid
+                    alignItems="flex-start"
+                    container
+                    spacing={3}
+                  >
+                    <Grid item style={{width: '200px',height:'auto'}}>
+                      <img
+                        src="/images/logos/sorry.png"
+                        title="Failed"
+                        alt="Failed"
+                        style={{width: '200px'}}
+                      />
+                    </Grid>
+                    <Grid item style={{paddingTop: '60px'}}>
+                      <Typography gutterBottom variant="h5" component="h2">
+                        <StyledChip color="bdanger" label="Failed" /> 
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" component="div">
+                        Your Score: {quizState.scoring_percentage}/100
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" component="div">
+                        You need to score at least <b>{quizState.quizRecord.passing_percentage}%</b> to pass the course and receive certification.  Please try again!
+                        &nbsp;&nbsp;
+                        <StyledButton
+                          variant="contained"
+                          color="bprimary"
+                          size="small"
+                          onClick={() => { dispatch(getQuizById(quizState.quizRecord.id, quizState.quizBindingId, 'view'))} }
+                          startIcon={<LoopIcon />}
+                        >
+                          Retake Quiz
+                        </StyledButton>
+                      </Typography>
+                    </Grid>
+                  </Grid>  
+                </Grid>
+
+              }
+              </>
+              :
+              <>
+                <Grid item xs={12} sm={(showSlideMenu) ? '4' : '1'}>
+                  {quizSetupState.quizNestedSlidesList ?
+                    <SlidesList
+                      className={classes.results}
+                      nestedSlideList={quizSetupState.quizNestedSlidesList}
+                      activeSlideId={activeSlideId}
+                      showSlideMenu={showSlideMenu}
+                      showHideSlidesMenu={showHideSlidesMenu}
+                    />
+                    : ''
+                  }
+
+                </Grid>
+                {(!isEmpty(quizSlides)) ?
+                  <Grid item xs={12} sm={(showSlideMenu) ? '8' : '11'}>
+                    <Paper elevation={3}  >
+                      <Paper square elevation={0} className={classes.header}>
+                        <Typography>{quizSlides[activeStep].name}</Typography>
+                      </Paper>
+                      <div style={{ minHeight: '200px', paddingLeft: '15px', paddingRight: '15px' }}>
+                        <br />
+                        <SlideContant
+                          style={{ display: 'flex' }}
+                          slideData={quizSlides[activeStep]}
+                        />
+                        <br />
+                        {(quizSlides[activeStep].slide_type === 'Interactive') ?
+                          <>
+                            <Grid container spacing={3} style={{ margin: '0px' }}>
+                              <SlideAnswer
+                                choices={quizSlides[activeStep].slide_answers}
+                                quizSlides={quizSlides}
+                                activeStep={activeStep}
+                                ansOnClick={ansOnClick}
+                              />
+                              {(!isEmpty(quizSlides[activeStep]['selected_ans']) && 
+                                quizSlides[activeStep]['selected_ans'].length > quizSlides[activeStep]['slide_answers_count'])?
+                                <Typography variant="body1" style={{color: 'red'}} > 
+                                  You can select maximum {quizSlides[activeStep]['slide_answers_count']} answer
+                                </Typography>
+                                : ''
+                              }
+                            </Grid>
+                            <br />
+                          </>
+                          : ''}
+                      </div>
+                      <MobileStepper
+                        steps={maxSteps}
+                        position="static"
+                        variant="text"
+                        activeStep={activeStep}
+                        nextButton={
+                          <StyledButton
+                            size="small"
+                            onClick={handleNext}
+                            disabled={!enableNextStep}
+                            color={(activeStep === (maxSteps - 1)) ? "bprimary" : ""}
+                          >
+                            {(activeStep === (maxSteps - 1)) ? 'Finish Quiz' : 'Next'}
+                            {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
+                          </StyledButton>
+                        }
+                        backButton={
+                          <StyledButton size="small" onClick={handleBack} disabled={activeStep === 0}>
+                            {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
+                            Back
+                      </StyledButton>
+                        }
+                      />
+                    </Paper>
+                  </Grid>
+                  : ''
+                }
+              </>
+            }
+          </Grid>
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+//slide ans
+const SlideAnswer = (props) => {
+  const { choices, quizSlides, activeStep, ansOnClick, ...rest } = props;
+  let answers_arr = Object.values(choices);
+  let selected_ans = quizSlides[activeStep]['selected_ans'];
+  return (
+    <>
+      {answers_arr.map((choice, index) => (
+        <Grid item xs={12} sm={12} key={choice.ans_id}>
+          <StyledButton
+            color={(!isEmpty(selected_ans) && selected_ans.includes(choice.ans_id)) ? "binfo" : "blight"}
+            size="small"
+            type="submit"
+            variant="contained"
+            onClick={() => { ansOnClick(choice.ans_id, index) }}
+          >
+            {choice.answer}
+          </StyledButton>
+        </Grid>
+      ))}
+    </>
+  )
+}
+
+export default QuizView;

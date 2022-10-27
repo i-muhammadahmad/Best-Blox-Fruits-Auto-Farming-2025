@@ -1,0 +1,279 @@
+import React, { useEffect, useState } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import { Header } from './components';
+import { StyledChip, AttachmentsPreviewer } from 'components';
+import {
+	makeStyles,
+	Paper,
+	Table,
+	TableHead,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableRow,
+	Card,
+	CardHeader,
+	CardContent,
+	Grid,
+	ButtonBase,
+	Typography
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+import { API_URL } from 'configs';
+import DoubleArrowIcon from '@material-ui/icons/DoubleArrow';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3),
+		fontFamily: 'Roboto',
+		fontSize: '14px'
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	},
+	noTopPad: {
+		paddingTop: '0px !important'
+	},
+	title: {
+		fontSize: 14
+	},
+	borderWhite: {
+		borderColor: 'white'
+	},
+	detailHead: {
+		color: 'grey'
+	},
+	detailBody: {
+		color: '#000'
+	},
+	img: {
+		margin: 'auto',
+		display: 'block',
+		maxWidth: '100%',
+		maxHeight: '100%'
+	}
+}));
+
+const DocumentsView = () => {
+	const classes = useStyles();
+	const router = useRouter();
+	const documentsState = useSelector(state => state.documentsState);
+	const dispatch = useDispatch();
+
+	const [recordState, setRecordState] = useState('');
+
+	useEffect(() => {
+		setRecordState(documentsState.documentsRecord);
+	}, []);
+
+	useEffect(() => {
+		if (documentsState.redirect_to_list) {
+			router.history.push('/documents');
+		}
+	}, [documentsState.redirect_to_list, router.history]);
+
+	useEffect(() => {
+		if (!documentsState.showUpdateForm && !documentsState.showViewPage) {
+			router.history.push('/documents');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [documentsState.showUpdateForm, documentsState.showViewPage]);
+
+	const downloadAttachment = (e, record_id) => {
+		window.location.href =
+			API_URL + 'documents/downloadDocumentAttachment?id=' + record_id;
+	};
+
+	return (
+		<Page className={classes.root} title="Documents View">
+			<Header />
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Documents View" />
+				<CardContent>
+					<div className={classes.formGroup}>
+						<Grid container spacing={3}>
+							<Grid item xs={8} sm={8}>
+								<TableContainer component={Paper}>
+									<Table className={classes.table} aria-label="simple table">
+										<TableBody>
+											<TableRow>
+												<TableCell variant="head"> Title </TableCell>
+												<TableCell>
+													{!isEmpty(recordState.document)
+														? recordState.document.title
+														: ''}
+												</TableCell>
+											</TableRow>
+											<TableRow>
+												<TableCell variant="head"> Category </TableCell>
+												<TableCell>
+													{!isEmpty(recordState.document)
+														? recordState.document.documents_category
+																.category_name
+														: ''}
+												</TableCell>
+											</TableRow>
+											<TableRow>
+												<TableCell variant="head"> Created By </TableCell>
+												<TableCell>
+													{!isEmpty(recordState.document)
+														? recordState.document.created_by_user.email
+														: ''}
+												</TableCell>
+											</TableRow>
+											<TableRow>
+												<TableCell variant="head"> Created At </TableCell>
+												<TableCell>
+													{!isEmpty(recordState.document)
+														? recordState.document.date_created
+														: ''}
+												</TableCell>
+											</TableRow>
+											<TableRow>
+												<TableCell variant="head"> Last Updated By </TableCell>
+												<TableCell>
+													{!isEmpty(recordState.document)
+														? recordState.document.updated_by_user.email
+														: ''}
+												</TableCell>
+											</TableRow>
+											<TableRow>
+												<TableCell variant="head"> Last Updated At </TableCell>
+												<TableCell>
+													{!isEmpty(recordState.document)
+														? recordState.document.date_last_modified
+														: ''}
+												</TableCell>
+											</TableRow>
+										</TableBody>
+									</Table>
+								</TableContainer>
+							</Grid>
+							<Grid item xs={4} sm={4}>
+								
+								{!isEmpty(recordState.document) &&
+								recordState.document.is_image == 1 ? (
+									<ButtonBase className={classes.image}>
+										{!isEmpty(recordState.document) ? (
+											<img
+												className={classes.img}
+												alt="complex"
+												src={
+													!isEmpty(recordState.document.attachment)
+														? API_URL + recordState.document.file_path
+														: ''
+												}
+											/>
+										) : (
+											''
+										)}
+									</ButtonBase>
+								) : !isEmpty(recordState.document) && recordState.document.is_image == 0 ? (
+									<AttachmentsPreviewer
+										attachmentList={
+											!isEmpty(recordState.document) && !isEmpty(recordState.document.file_path)
+												? [
+														{
+															id: recordState.document.id,
+															file_name: recordState.document.attachment,
+															file_path: recordState.document.file_path,
+															is_image: recordState.document.is_image
+														}
+												  ]
+												: []
+										}
+										setAttachmentList={() => {}}
+										showDeleteButton={false}
+										downloadCallback={downloadAttachment}
+										colHeight={250}
+										noOfCols={1}
+									/>
+								) : (
+									''
+								)}
+							</Grid>
+						</Grid>
+					</div>
+				</CardContent>
+			</Card>
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Document Access Details" />
+				<CardContent>
+					<div className={classes.formGroup}>
+						<Grid container spacing={3}>
+							<Grid item xs={12} sm={12}>
+								<TableContainer component={Paper}>
+									<Table className={classes.table} aria-label="simple table">
+										<TableHead>
+											<TableRow>
+												<TableCell>Office</TableCell>
+												<TableCell>Access To</TableCell>
+												<TableCell>Users</TableCell>
+												<TableCell>Departments</TableCell>
+												<TableCell>Roles</TableCell>
+											</TableRow>
+										</TableHead>
+										<TableBody>
+											{!isEmpty(recordState.document_access)
+												? recordState.document_access.map((data, index) => (
+														<TableRow>
+															<TableCell>{data.office_name}</TableCell>
+															<TableCell>
+																{data.type == 'user'
+																	? 'Users'
+																	: data.type == 'department'
+																	? 'Departments'
+																	: data.type == 'role'
+																	? 'Roles'
+																	: 'All'}
+															</TableCell>
+															<TableCell>
+																{!isEmpty(data.user_name) ? data.user_name : ''}
+															</TableCell>
+															<TableCell>
+																{!isEmpty(data.department_name)
+																	? data.department_name
+																	: ''}
+															</TableCell>
+															<TableCell>
+																{!isEmpty(data.role_name) ? data.role_name : ''}
+															</TableCell>
+														</TableRow>
+												  ))
+												: ''}
+										</TableBody>
+									</Table>
+								</TableContainer>
+							</Grid>
+						</Grid>
+					</div>
+				</CardContent>
+			</Card>
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Description" />
+				<CardContent>
+					<div
+						className="ck-content"
+						dangerouslySetInnerHTML={{
+							__html:
+								!isEmpty(recordState.document) &&
+								!isEmpty(recordState.document.description)
+									? recordState.document.description
+									: ''
+						}}
+					/>
+				</CardContent>
+			</Card>
+		</Page>
+	);
+};
+
+export default DocumentsView;

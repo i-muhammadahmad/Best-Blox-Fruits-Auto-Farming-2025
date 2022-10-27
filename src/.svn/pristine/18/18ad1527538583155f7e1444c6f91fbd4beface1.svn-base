@@ -1,0 +1,191 @@
+import React, { useEffect } from 'react';
+import { Router, useLocation, useHistory } from 'react-router-dom';
+import { createBrowserHistory } from 'history';
+import { renderRoutes, matchRoutes } from 'react-router-config';
+import routes from './routes';
+import {
+  ScrollReset,
+  GoogleAnalytics,
+  CookiesNotification,
+  MainLoader
+} from './components';
+import { isEmpty, find, filter } from 'lodash';
+import { logUrlVisted, setCurrentPagePermissions } from 'actions';
+import { useDispatch, useSelector } from 'react-redux';
+import useRouter from 'utils/useRouter';
+
+const history = createBrowserHistory();
+
+const Main = () => {
+
+  const history = useHistory()
+  let location = useLocation()
+  const dispatch = useDispatch()
+  const router = useRouter()
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+
+    //setting current page default permissions
+    dispatch(setCurrentPagePermissions([]));
+
+    if (!isEmpty(location)) {
+      //dispatch(logUrlVisted(location.pathname));
+
+      /*
+      *  checking role access
+      */
+      //ignoring dashboard, auth and errors pages from validation
+      let ignoredRouts = [
+        '/user-profile',
+        '/dashboards/default', '/dashboards/analytics', '/',
+        '/auth/login', '/auth/register',
+        '/errors/error-404', '/unauthorized', '/errors/error-500', '/errors/error-404', '/errors/error-401'
+      ]
+      if (!ignoredRouts.includes(location.pathname)) {
+
+        //checking jwt token 
+        if (isEmpty(localStorage.getItem("token"))) { 
+          sessionStorage.clear();
+          router.history.push('/auth/login');
+        }
+        else {
+
+          //checking if rout addedd otherwise rdirection to 404 page
+          const branch = matchRoutes(routes[3].routes, location.pathname);
+          if (isEmpty(branch)){
+            router.history.push('/errors/error-404');
+          }  
+
+          //spplitting url 
+          let current_url = location.pathname.substring(1);
+          let splitted_url = current_url.split("/");
+
+          //checking if url last chunk is (add/update/view)
+          let page_type = 'view';
+          let last_index = splitted_url[splitted_url.length - 1];
+          if (["add", "update", "view"].includes(last_index)) {
+            page_type = last_index;
+            splitted_url.splice(-1, 1);
+            current_url = splitted_url.join('/');
+          }
+
+          //find permissions against url
+          let current_page
+          if(session.user.is_super_admin === 'y'){
+            
+            current_page = filter(session.user_permissions_raw, function (item) {
+              return item.object_url === current_url
+            });
+          }
+          else{
+            current_page = filter(session.user_permissions_raw, function (item) { 
+              return item.object_url === current_url
+            });
+          }
+
+          //checking add/update/view access for that url
+          if (!isEmpty(current_page)) {
+            let current_page_permissions;
+            if(session.user.is_super_admin === 'y'){
+              current_page_permissions = {
+                rights_view: 1,
+                rights_edit: 1,
+                rights_add: 1,
+                rights_delete: 1,
+                rights_view_deleted: 1,
+                object_id: current_page[0].object_id,
+                reporting_access_view_ids: [],
+                reporting_access_view_all: 1,
+                reporting_access_edit_ids: [],
+                reporting_access_edit_all: 1,
+                reporting_access_delete_ids: [],
+                reporting_access_delete_all: 1,
+              }
+            }
+            else{
+              current_page_permissions = {
+                rights_view: (current_page[0].rights_view == '1') ? 1 : 0,
+                rights_edit: (current_page[0].rights_edit == '1') ? 1 : 0,
+                rights_add: (current_page[0].rights_add == '1') ? 1 : 0,
+                rights_delete: (current_page[0].rights_delete == '1') ? 1 : 0,
+                rights_view_deleted: (current_page[0].rights_view_deleted == '1') ? 1 : 0,
+                object_id: current_page[0].object_id,
+              }
+
+              //defining access ids 
+              const access_specifier_array = ['view', 'edit', 'delete'];
+              
+              access_specifier_array.map((solo) =>{
+                if((current_page[0]['reporting_access_'+solo ]).includes('all')){
+                  current_page_permissions = {
+                    ...current_page_permissions,
+                    ['reporting_access_'+solo+'_all']: 1,
+                    ['reporting_access_'+solo+'_ids']: [],
+                  }
+                }
+                else{
+                  let access_ids = [];
+                  if((current_page[0]['reporting_access_'+solo ]).includes('peers')){
+                    access_ids = access_ids.concat(session.user_reporting.peers);
+                    access_ids = access_ids.concat(session.user.id);
+                  }
+                  if((current_page[0]['reporting_access_'+solo ]).includes('direct')){
+                    access_ids = access_ids.concat(session.user_reporting.direct);
+                    access_ids = access_ids.concat(session.user.id);
+                  }
+                  if((current_page[0]['reporting_access_'+solo ]).includes('indirect')){
+                    access_ids = access_ids.concat(session.user_reporting.direct);
+                    access_ids = access_ids.concat(session.user_reporting.indirect);
+                    access_ids = access_ids.concat(session.user.id);
+                  }
+                  if((current_page[0]['reporting_access_'+solo ]).includes('peers_directly')){
+                    access_ids = access_ids.concat(session.user_reporting.direct);
+                    access_ids = access_ids.concat(session.user_reporting.peers);
+                    access_ids = access_ids.concat(session.user.id);
+                  }
+                  if((current_page[0]['reporting_access_'+solo ]).includes('self')){
+                    access_ids = access_ids.concat(session.user.id);
+                  }
+
+                  current_page_permissions = {
+                    ...current_page_permissions,
+                    ['reporting_access_'+solo+'_all']: 0,
+                    ['reporting_access_'+solo+'_ids']: access_ids,
+                  }
+                }
+              });
+
+            }
+
+            
+            dispatch(setCurrentPagePermissions(current_page_permissions))
+            if (page_type === 'view' && current_page_permissions.rights_view == '1') { }
+            else if (page_type === 'update') { }
+            else if (page_type === 'add' && current_page_permissions.rights_add == '1') { }
+            else {
+              router.history.push('/unauthorized');
+            }
+          }
+          else {
+            router.history.push('/unauthorized');
+          }
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location])
+
+  return (
+
+    <Router history={history}>
+      <ScrollReset />
+      <GoogleAnalytics />
+      <CookiesNotification />
+      <MainLoader />
+      {renderRoutes(routes)}
+    </Router >
+  );
+};
+
+export default Main;

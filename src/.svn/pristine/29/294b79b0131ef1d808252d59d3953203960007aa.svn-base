@@ -1,0 +1,207 @@
+import React, { useEffect, useState} from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  TableHead,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty, map } from 'lodash';
+import { copyShiftData } from 'actions';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ShiftsView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const shiftsState = useSelector(state => state.shiftsState);
+  const dispatch = useDispatch();
+  const [officeNames, setOfficeNames] = useState([]);
+
+  useEffect(() => {
+    dispatch(copyShiftData());
+  }, []);
+
+  useEffect(() => {
+    let record = shiftsState.shiftsRecord;
+    let office_name = [];
+    if (!isEmpty(record.shift_offices)){
+      office_name = (map(record.shift_offices, 'office_name'));
+    }
+    setOfficeNames(office_name);
+  }, [shiftsState.shiftsRecord]);
+
+  useEffect(() => {
+    if (shiftsState.redirect_to_list) {
+      router.history.push('/shifts');
+    }
+  }, [shiftsState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!shiftsState.showViewPage) {
+      router.history.push('/shifts');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shiftsState.showViewPage]);
+
+  const calculateTotalHours = (start_time, end_time) => {
+    let timeStart = new Date("01/01/2007 " + start_time);
+    let timeEnd = new Date("01/01/2007 " + end_time);
+    let diff = (timeEnd - timeStart) / 60000; //dividing by seconds and milliseconds
+    let minutes = diff % 60;
+    let hours = parseFloat(diff / 60);
+    if(hours < 0)
+      hours = 24+hours;
+    else if(hours == 24)
+      hours = 0;
+    else if(hours > 24)
+      hours = hours-24;
+
+    hours = isNaN(hours.toFixed(2))? '': hours.toFixed(2) +' hrs';
+    return hours; 
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Shifts View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Shifts View" />
+        <CardContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TableContainer component={Paper}>
+                <Table className={classes.table} aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head" > Name </TableCell>
+                      <TableCell>{shiftsState.shiftsRecord.name}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Office </TableCell>
+                      <TableCell>{
+                        (officeNames) ? officeNames.join(', ') : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Client </TableCell>
+                      <TableCell>{
+                        (shiftsState.shiftsRecord.client) ? shiftsState.shiftsRecord.client.client_name : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Start Time </TableCell>
+                      <TableCell>{shiftsState.shiftsRecord.start_time}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > End Time </TableCell>
+                      <TableCell>{shiftsState.shiftsRecord.end_time}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > TimeZone </TableCell>
+                      <TableCell>{
+                        (shiftsState.shiftsRecord.timezone) ? shiftsState.shiftsRecord.timezone.name : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Created By </TableCell>
+                      <TableCell>{
+                        !isEmpty(shiftsState.shiftsRecord.created_by_user) ?
+                          shiftsState.shiftsRecord.created_by_user.email : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Created At </TableCell>
+                      <TableCell>{shiftsState.shiftsRecord.date_created}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Last Updated By </TableCell>
+                      <TableCell>{
+                        !isEmpty(shiftsState.shiftsRecord.updated_by_user) ?
+                          shiftsState.shiftsRecord.updated_by_user.email : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Last Updated At </TableCell>
+                      <TableCell>{shiftsState.shiftsRecord.date_last_modified}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              {!isEmpty(shiftsState.shiftsRecord)?
+              <TableContainer component={Paper}>
+                <Table  aria-label="Shift Detail Tbale">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Day</TableCell>
+                      <TableCell >Rest Day</TableCell>
+                      <TableCell >Start Time</TableCell>
+                      <TableCell >End Time</TableCell>
+                      <TableCell >Hrs</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {shiftsState.shiftsRecord.shift_detail.map((shift_day, i) => (
+                      <TableRow>
+                        <TableCell>{shift_day.day}</TableCell>
+                        <TableCell >{(shift_day.rest_day)? 'Yes':'No'}</TableCell>
+                        <TableCell >{shift_day.start_time}</TableCell>
+                        <TableCell >{shift_day.end_time}</TableCell>
+                        <TableCell >{calculateTotalHours(shift_day.start_time, shift_day.end_time)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer> 
+              :''}     
+            </Grid>  
+          </Grid>    
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Shifts Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: shiftsState.shiftsRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default ShiftsView;

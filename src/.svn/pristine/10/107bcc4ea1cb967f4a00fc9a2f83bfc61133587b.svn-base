@@ -1,0 +1,786 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton, FilesDropzone } from 'components';
+import {
+  Header
+} from './components';
+import {
+  addEmployees,
+  hideEmployeesValidationError,
+  redirectToEmployeesList,
+  workstationsByOfficesListFetch,
+  departmentsDropdownListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography, 
+  FormGroup,
+  FormControlLabel,
+  Switch
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find, map, toArray } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import moment from 'moment';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown, ClientDropdown, EmployeeDropdown } from 'commonDropdowns';
+import AccountCircleRoundedIcon from '@material-ui/icons/AccountCircleRounded';
+
+const schema = {
+  employee_code: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  email: {
+    presence: { allowEmpty: false, message: 'is required' },
+    email: true
+  },
+  firstname: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  office_id: {
+    presence: { allowEmpty: false, message: '^ please select office' },
+  },
+  /*department_id: {
+    presence: { allowEmpty: false, message: '^ please select department' },
+  },
+  reporting_to: {
+    presence: { allowEmpty: false, message: '^ please select reporting To' },
+  },*/
+  client_id: {
+    presence: { allowEmpty: false, message: '^ please select primary client' },
+  },
+  start_date: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  dob: {
+    presence: { allowEmpty: false, message: '^ date of birth is required' },
+  },
+  show_in_premier_directory: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  image: {
+    width: 130,
+    height: 'auto'
+  },
+}));
+
+const useRadioStyles = makeStyles(theme => ({
+  root: {
+    width: 42,
+    height: 26,
+    padding: 0,
+    margin: theme.spacing(1),
+  },
+  switchBase: {
+    padding: 1,
+    '&$checked': {
+      transform: 'translateX(16px)',
+      color: theme.palette.common.white,
+      '& + $track': {
+        backgroundColor: theme.palette.bprimary.main,
+        opacity: 1,
+        border: 'none',
+      },
+    },
+    '&$focusVisible $thumb': {
+      color: theme.palette.bprimary.main,
+      border: '6px solid #fff',
+    },
+  },
+  thumb: {
+    width: 24,
+    height: 24,
+  },
+  track: {
+    borderRadius: 26 / 2,
+    border: `1px solid ${theme.palette.grey[400]}`,
+    backgroundColor: theme.palette.grey[50],
+    opacity: 1,
+    transition: theme.transitions.create(['background-color', 'border']),
+  },
+  checked: {},
+  focusVisible: {},
+}));
+
+const EmployeesAdd = () => {
+  const classes = useStyles();
+  const radio_classes = useRadioStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const employeesState = useSelector(state => state.employeesState);
+  const workstationsState = useSelector(state => state.workstationsState);
+  const departmentsState = useSelector(state => state.departmentsState);
+  const session = useSelector(state => state.session);
+
+  const [files, setFiles] = useState([]);
+  const [OfficeValue, setOfficeValue] = useState(null);
+  const [WorkstationValue, setWorkstationValue] = useState(null);
+  const [DepartmentValue, setDepartmentValue] = useState(null);
+  const [PrimaryClientValue, setPrimaryClientValue] = useState(null);
+  const [SecondaryClientsValue, setSecondaryClientsValue] = useState([]);
+  const [ReportingToValue, setReportingToValue] = useState(null);
+  const [selectedOfficeId, setSelectedOfficeId] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState([]);
+
+  const [dropZoneConfig, setDropZoneConfig] = useState({
+    accept: { 'image/*': [] },
+    maxFiles: 1,
+    maxSize: 5000000,
+  });
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      start_date: moment(moment().toDate()).format('YYYY-MM-DD'),
+      show_in_premier_directory: false,
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'description': '',
+      'sudo_name': '',
+      'middlename': '',
+      'office_phone_no': '',
+      'office_ext': '',
+      'personal_phone_no': '',
+      'show_in_premier_directory': false,
+    },
+    touched: {
+      start_date: true,
+      show_in_premier_directory: false,
+      'object_viewed_id': true,
+      'description': true,
+      'sudo_name': true,
+      'middlename': true,
+      'office_phone_no': true,
+      'office_ext': true,
+      'personal_phone_no': true,
+      'show_in_premier_directory': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(employeesState.validation_error)) {
+      const errors = employeesState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [employeesState.validation_error]);
+
+  useEffect(() => {
+    if (employeesState.redirect_to_list) {
+      router.history.push('/employees');
+    }
+  }, [employeesState.redirect_to_list, router.history]);
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideEmployeesValidationError('description'))
+  }
+
+  const OfficeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue);
+      setOfficeId(newValue.id);
+      setSelectedOfficeId([newValue.id]);
+    }
+    else {
+      setOfficeValue(newValue);
+      setOfficeId('');
+      setSelectedOfficeId([]);
+    }
+
+    setPrimaryClientValue(null);
+    setSecondaryClientsValue([]);
+    setWorkstationValue(null);
+    setDepartmentValue(null);
+
+  }
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'office_id': office_id
+      },
+      touched: {
+        ...formState.touched,
+        'office_id': true
+      }
+    }));
+    
+    dispatch(workstationsByOfficesListFetch(office_id));
+    dispatch(departmentsDropdownListFetch([office_id]));
+    dispatch(hideEmployeesValidationError('office_id'));
+  }
+
+  const PrimaryClientOnChange = (event, newValue) => {
+    if (newValue) {
+      setPrimaryClientValue(newValue)
+      setPrimaryClientId(newValue.id)
+      setSelectedClientId([newValue.id]);
+    }
+    else {
+      setPrimaryClientValue(newValue)
+      setPrimaryClientId('')
+      setSelectedClientId([]);
+    }
+  }
+
+  const setPrimaryClientId = client_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'client_id': client_id
+      },
+      touched: {
+        ...formState.touched,
+        'client_id': true
+      }
+    }));
+    dispatch(hideEmployeesValidationError('client_id'))
+  }
+
+  const reportingToOnChange = (event, newValue) => {
+    if (newValue) {
+      setReportingToValue(newValue)
+      setReportingToId(newValue.id)
+    }
+    else {
+      setReportingToValue(newValue)
+      setReportingToId('')
+    }
+  }
+
+  const setReportingToId = reporting_to => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'reporting_to': reporting_to
+      },
+      touched: {
+        ...formState.touched,
+        'reporting_to': true
+      }
+    }));
+    dispatch(hideEmployeesValidationError('reporting_to'))
+  }
+
+  const setDepartmentId = department_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'department_id': department_id
+      },
+      touched: {
+        ...formState.touched,
+        'department_id': true
+      }
+    }));
+    dispatch(hideEmployeesValidationError('department_id'))
+  }
+
+  const setWorkstationId = workstation_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'workstation_id': workstation_id
+      },
+      touched: {
+        ...formState.touched,
+        'workstation_id': true
+      }
+    }));
+    dispatch(hideEmployeesValidationError('workstation_id'))
+  }
+
+  const SecondaryClientsOnChange = (event, newValue) => {
+    if (newValue) { 
+      setSecondaryClientsValue(newValue)
+      let camp_ids = (map(newValue,'id'))
+      setSecondaryClientsIds(camp_ids)
+    }
+    else {
+      setSecondaryClientsValue(newValue)
+      setSecondaryClientsIds([])
+    }
+  }
+
+  const setSecondaryClientsIds = camp_ids => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'camp_ids': camp_ids
+      },
+      touched: {
+        ...formState.touched,
+        'camp_ids': true
+      }
+    }));
+    dispatch(hideEmployeesValidationError('camp_ids'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideEmployeesValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const data = new FormData();
+    if(!isEmpty(files[0])){
+      data.append('profile_pic', files[0]);
+    }  
+
+    //appending form state to data object
+    forEach(formState.values, function(value, key) {
+      data.append(key, value);
+    });
+    dispatch(addEmployees(data));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Employees"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Employees" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={8} sm={8}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('employee_code')}
+                        fullWidth
+                        helperText={hasError('employee_code') ? formState.errors.employee_code[0] : null}
+                        label="Employee Code"
+                        name="employee_code"
+                        onChange={handleChange}
+                        value={formState.values.employee_code || ''}
+                        variant="outlined"
+                        size="small"
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('email')}
+                        fullWidth
+                        helperText={hasError('email') ? formState.errors.email[0] : null}
+                        label="Email"
+                        name="email"
+                        onChange={handleChange}
+                        value={formState.values.email || ''}
+                        variant="outlined"
+                        size="small"
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('sudo_name')}
+                        fullWidth
+                        helperText={hasError('sudo_name') ? formState.errors.sudo_name[0] : null}
+                        label="Pseudonym (Alias)"
+                        name="sudo_name"
+                        onChange={handleChange}
+                        value={formState.values.sudo_name || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('firstname')}
+                        fullWidth
+                        helperText={hasError('firstname') ? formState.errors.firstname[0] : null}
+                        label="First Name"
+                        name="firstname"
+                        onChange={handleChange}
+                        value={formState.values.firstname || ''}
+                        variant="outlined"
+                        size="small"
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('middlename')}
+                        fullWidth
+                        helperText={hasError('middlename') ? formState.errors.middlename[0] : null}
+                        label="Middle Name"
+                        name="middlename"
+                        onChange={handleChange}
+                        value={formState.values.middlename || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('lastname')}
+                        fullWidth
+                        helperText={hasError('lastname') ? formState.errors.lastname[0] : null}
+                        label="Last Name"
+                        name="lastname"
+                        onChange={handleChange}
+                        value={formState.values.lastname || ''}
+                        variant="outlined"
+                        size="small"
+                        required
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={8} sm={6}>
+                      <TextField
+                        error={hasError('office_phone_no')}
+                        fullWidth
+                        helperText={hasError('office_phone_no') ? formState.errors.office_phone_no[0] : null}
+                        label="Office Phone No"
+                        name="office_phone_no"
+                        onChange={handleChange}
+                        value={formState.values.office_phone_no || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={4} sm={2}>
+                      <TextField
+                        error={hasError('office_ext')}
+                        fullWidth
+                        helperText={hasError('office_ext') ? formState.errors.office_ext[0] : null}
+                        label="Extention"
+                        name="office_ext"
+                        onChange={handleChange}
+                        value={formState.values.office_ext || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        error={hasError('personal_phone_no')}
+                        fullWidth
+                        helperText={hasError('personal_phone_no') ? formState.errors.personal_phone_no[0] : null}
+                        label="Personal Phone No"
+                        name="personal_phone_no"
+                        onChange={handleChange}
+                        value={formState.values.personal_phone_no || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={4}>
+                      <OfficesDropdown
+                        OfficeValue={OfficeValue}
+                        setOfficeValue={setOfficeValue}
+                        id="office_id"
+                        name="office_id"
+                        officeOnChange={OfficeOnChange}
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Office" variant="outlined" error={hasError('office_id')} helperText={hasError('office_id') ? formState.errors.office_id[0] : null} />}
+                      />
+                    </Grid>  
+                    <Grid item xs={12} sm={4}>
+                      <ClientDropdown
+                        ClientValue={PrimaryClientValue}
+                        setClientValue={setPrimaryClientValue}
+                        id="client_id"
+                        name="client_id"
+                        clientOnChange={PrimaryClientOnChange}
+                        officesIds={selectedOfficeId}
+                        disabled={isEmpty(selectedOfficeId)}
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Primary Client" variant="outlined" error={hasError('client_id')} helperText={hasError('client_id') ? formState.errors.client_id[0] : null} />}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <ClientDropdown
+                        ClientValue={SecondaryClientsValue}
+                        setClientValue={setSecondaryClientsValue}
+                        id="secondary_client_ids"
+                        name="secondary_client_ids"
+                        clientOnChange={SecondaryClientsOnChange}
+                        officesIds={selectedOfficeId}
+                        disabled={isEmpty(selectedOfficeId)}
+                        showSelectAllOption={false}
+                        multiple={true}
+                        limitTags={2}
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Secondary Clients" variant="outlined" error={hasError('secondary_client_ids')} helperText={hasError('secondary_client_ids') ? formState.errors.secondary_client_ids[0] : null} />}
+                      />
+                    </Grid>
+                  </Grid> 
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={4}>
+                      { (workstationsState.workstationsByOfficeList)?
+                      <Autocomplete
+                        id="workstation_id"
+                        value={WorkstationValue}
+                        onChange={(event, newValue) => {
+                          if (newValue) {
+                            setWorkstationValue(newValue)
+                            setWorkstationId(newValue.id)
+                          }
+                          else {
+                            setWorkstationValue(newValue)
+                            setWorkstationId('')
+                          }
+                        }}
+                        options={workstationsState.workstationsByOfficeList}
+                        getOptionLabel={(option) => option.name}
+                        size="small"
+                        disabled={isEmpty(selectedOfficeId)}
+                        required
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Workstation" variant="outlined" error={hasError('workstation_id')} helperText={hasError('workstation_id') ? formState.errors.workstation_id[0] : null} />}
+                      />
+                      :''
+                      }
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      { (departmentsState.departmentsDropdownList)?
+                      <Autocomplete
+                        id="department_id"
+                        value={DepartmentValue}
+                        onChange={(event, newValue) => {
+                          if (newValue) {
+                            setDepartmentValue(newValue)
+                            setDepartmentId(newValue.id)
+                          }
+                          else {
+                            setDepartmentValue(newValue)
+                            setDepartmentId('')
+                          }
+                        }}
+                        options={departmentsState.departmentsDropdownList}
+                        getOptionLabel={(option) => option.name}
+                        size="small"
+                        disabled={isEmpty(selectedOfficeId)}
+                        required
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Department" variant="outlined" error={hasError('department_id')} helperText={hasError('department_id') ? formState.errors.department_id[0] : null} />}
+                      />
+                      :''
+                      }
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <EmployeeDropdown
+                        EmployeeValue={ReportingToValue}
+                        setEmployeeValue={setReportingToValue}
+                        id="reporting_to"
+                        name="reporting_to"
+                        disabled={isEmpty(selectedOfficeId)}
+                        employeeOnChange={reportingToOnChange}
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Employee Reporting To" variant="outlined" error={hasError('reporting_to')} helperText={hasError('reporting_to') ? formState.errors.reporting_to[0] : null} />}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        className={classes.field}
+                        value={formState.values.start_date || ''}
+                        fullWidth
+                        label="Joining Date"
+                        name="start_date"
+                        onChange={handleChange}
+                        type="date"
+                        variant="outlined"
+                        size="small"
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        error={hasError('start_date')}
+                        helperText={hasError('start_date') ? formState.errors.start_date[0] : null}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        className={classes.field}
+                        value={formState.values.dob || ''}
+                        fullWidth
+                        label="Date Of Brith"
+                        name="dob"
+                        onChange={handleChange}
+                        type="date"
+                        variant="outlined"
+                        size="small"
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        error={hasError('dob')}
+                        helperText={hasError('dob') ? formState.errors.dob[0] : null}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <FormGroup >
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={formState.values.show_in_premier_directory}
+                              onChange={handleChange}
+                              name="show_in_premier_directory"
+                              color="primary"
+                              classes={{
+                                root: radio_classes.root,
+                                switchBase: radio_classes.switchBase,
+                                thumb: radio_classes.thumb,
+                                track: radio_classes.track,
+                                checked: radio_classes.checked,
+                              }}
+                            />
+                          }
+                          label="Show In Premier Directory"
+                        />
+                      </FormGroup>
+                      <FormControl error={hasError('show_in_premier_directory')} >
+                        <FormHelperText id="component-error-text">{hasError('show_in_premier_directory') ? formState.errors.show_in_premier_directory[0] : null}</FormHelperText>
+                      </FormControl>
+                    </Grid>  
+                  </Grid>   
+                  <Grid container spacing={3}> 
+                    <Grid item xs={12} sm={12}>
+                      <FormHelperText id="description">
+                        <Typography component="b">Description</Typography>
+                      </FormHelperText>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={CK_CONFIGS(localStorage.getItem("token"))}
+                        data={formState.values.description || ''}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data)
+                        }}
+                      />
+                      <FormControl error={hasError('description')} >
+                        <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                      </FormControl>
+                    </Grid>  
+                  </Grid>
+                </Grid>
+                <Grid item xs={4} sm={4}>
+                  <FilesDropzone
+                    files={files}
+                    setFiles={setFiles}
+                    customDZconfigs={dropZoneConfig}
+                    title={'Upload Profile Image'}
+                    dzFileIcon={() => (<><AccountCircleRoundedIcon 
+                      className={classes.image}
+                      color="disabled"
+                    /></>)}
+                  /> 
+                  <FormControl error={formState.errors.profile_pic} >
+                    <FormHelperText id="component-error-text">{(formState.errors.profile_pic) ? formState.errors.profile_pic[0] : null}</FormHelperText>
+                  </FormControl>
+                </Grid> 
+              </Grid>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Create Employees
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToEmployeesList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default EmployeesAdd;

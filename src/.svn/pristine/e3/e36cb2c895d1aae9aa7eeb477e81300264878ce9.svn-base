@@ -1,0 +1,246 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { StyledFab } from 'components';
+import {
+  Typography,
+  Checkbox,
+  FormControl,
+  FormHelperText,
+  FormControlLabel,
+  FormLabel,
+  FormGroup,
+  Grid,
+  TextField,
+  Avatar,
+  Chip,
+  Paper
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import DeleteIcon from '@material-ui/icons/Delete';
+import { isEmpty, forEach } from 'lodash';
+import { API_URL } from 'configs';
+import Nestable from 'react-nestable';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    marginTop: theme.spacing(3),
+    marginBottom: theme.spacing(3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  largeAvatar: {
+    width: theme.spacing(3),
+    height: theme.spacing(3),
+    marginTop: '5px',
+    marginLeft: '-20px'
+  },
+  employeeChip: {
+    marginLeft: theme.spacing(1),
+    marginRight: theme.spacing(1),
+    marginTop: '4px',
+    marginBottom: '4px',
+  },
+  checkboxStyle: {
+    padding: '4px'
+  }
+}));
+
+const ApprovalLevels = props => {
+  const { className, approvalList, setApprovalAuth, formState, hasError, setApprovalId, removeApprovalLevel, handleApprovalFromChange, setDropDownValues, dropDownValues, ...rest } = props;
+
+  const designationState = useSelector(state => state.designationState);
+  const employeesState = useSelector(state => state.employeesState);
+
+  const classes = useStyles();
+
+  const approvalSortOrderChanged = (items, changedItem) => {
+    let approvals_obj = {};
+    forEach(items, function (value, key) {
+      value['priority'] = key;
+      approvals_obj[value.id] = value;
+    });
+    setApprovalAuth(approvals_obj);
+  }
+
+  const setAutocompleteValue = (type, value, unique_id) => {
+    setDropDownValues(dropDownValues => ({
+      ...dropDownValues,
+      [type]: {
+        ...dropDownValues[type],
+        [unique_id]: value,
+      },
+    }));
+  }
+
+  const getReportingToChipLable = (unique_id) => {
+    return (
+      <>
+        <b>Reporting To: </b>
+        {dropDownValues.employee[unique_id].reporting_to_name}
+      </>
+    )
+  }
+
+  const ListItemRenderer = ({ item, collapseIcon, index }) => {
+    let unique_id = item['unique_id'];
+
+    return (
+      <Paper elevation={1} key={unique_id} style={{ cursor: 'move' }} >
+        <Grid container spacing={3} style={{ marginLeft: "10px" }} >
+          <Grid item xs={6} sm="auto" >
+
+            <FormControl component="fieldset" size="small" className={classes.formControl} error={hasError('approval_from' + unique_id)}>
+              <FormGroup row>
+
+                <FormControlLabel
+                  style={{ marginLeft: "0px", marginRight: "5px", paddingTop: "2px" }}
+                  control={<FormLabel ><b>{(index + 1) + ") "}</b></FormLabel>}
+                  label=""
+                />
+                <FormControlLabel
+                  style={{ marginLeft: "0px", marginRight: "0px", paddingTop: "2px" }}
+                  control={<FormLabel ><b>Approval From? </b></FormLabel>}
+                  label=""
+                />
+                <FormControlLabel
+                  style={{ marginLeft: "0px", marginRight: "0px", paddingTop: "2px" }}
+                  control={<Checkbox className={classes.checkboxStyle} checked={formState.values['approval_from' + unique_id] === 'employee'} value="employee" onChange={(e) => { setAutocompleteValue('designation', null, unique_id); handleApprovalFromChange(e, unique_id) }} name={'approval_from' + unique_id} />}
+                  label="Employee"
+                />
+                <FormControlLabel
+                  style={{ marginLeft: "0px", marginRight: "0px", paddingTop: "2px" }}
+                  control={<Checkbox className={classes.checkboxStyle} checked={formState.values['approval_from' + unique_id] === 'designation'} value="designation" onChange={(e) => { setAutocompleteValue('employee', null, unique_id); handleApprovalFromChange(e, unique_id) }} name={'approval_from' + unique_id} />}
+                  label="Designation"
+                />
+              </FormGroup>
+              <FormHelperText component="div" id="bound-error-text">{hasError('approval_from' + unique_id) ? formState.errors['approval_from' + unique_id][0] : null}</FormHelperText>
+            </FormControl>
+          </Grid>
+          {(formState.values['approval_from' + unique_id] === 'employee') ?
+            <Grid item xs={6} sm={3}  >
+              {(employeesState.approvalProfileEmployeeList) ?
+                <Autocomplete
+                  id={'approval_id' + unique_id}
+                  name={'approval_id' + unique_id}
+                  value={dropDownValues.employee[unique_id] || null}
+                  onChange={(event, newValue) => {
+                    if (newValue) {
+                      setAutocompleteValue('employee', newValue, unique_id);
+                      setApprovalId(newValue.id, unique_id)
+                    }
+                    else {
+                      setAutocompleteValue('employee', newValue, unique_id);
+                      setApprovalId('', unique_id)
+                    }
+                  }}
+                  size="small"
+                  options={employeesState.approvalProfileEmployeeList}
+                  getOptionLabel={(option) => option.emp_name}
+                  renderInput={(params) => <TextField {...params} label="Select Employee" variant="outlined" error={hasError('approval_id' + unique_id)} helperText={hasError('approval_id' + unique_id) ? formState.errors['approval_id' + unique_id][0] : null} />}
+                />
+                : ''
+              }
+            </Grid>
+            :
+            <Grid item xs={6} sm={3} >
+              {(designationState.designationList) ?
+                <Autocomplete
+                  id={'approval_id' + unique_id}
+                  name={'approval_id' + unique_id}
+                  value={dropDownValues.designation[unique_id] || null}
+                  onChange={(event, newValue) => {
+                    if (newValue) {
+                      setAutocompleteValue('designation', newValue, unique_id);
+                      setApprovalId(newValue.id, unique_id)
+                    }
+                    else {
+                      setAutocompleteValue('designation', newValue, unique_id);
+                      setApprovalId('', unique_id)
+                    }
+                  }}
+                  size="small"
+                  options={designationState.designationList}
+                  getOptionLabel={(option) => option.name}
+                  renderInput={(params) => <TextField {...params} label="Select Designation" variant="outlined" error={hasError('approval_id' + unique_id)} helperText={hasError('approval_id' + unique_id) ? formState.errors['approval_id' + unique_id][0] : null} />}
+                />
+                : ''}
+            </Grid>
+          }
+          <Grid item xs={6} sm >
+            <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap', display: 'inline-flex' }}>
+              {(
+                formState.values['approval_from' + unique_id] === 'employee'
+                && !isEmpty(dropDownValues.employee[unique_id])
+              ) ?
+                <>
+                  {(dropDownValues.employee[unique_id].office_flag_image) ?
+                    <Avatar
+                      alt="Avator"
+                      variant="rounded"
+                      src={API_URL + dropDownValues.employee[unique_id].office_flag_image}
+                      className={classes.largeAvatar}
+                    />
+                    :
+                    ''
+                  }
+                  <Chip
+                    className={classes.employeeChip}
+                    label={getReportingToChipLable(unique_id)}
+                    variant="outlined"
+                  />
+
+                </>
+                : ''
+              }
+
+            </div>
+          </Grid>
+          <Grid item xs={2} sm={1} style={{marginRight: "10px"}} >
+            {(index != 0) ?
+              <StyledFab
+                color="bdanger"
+                aria-label="edit"
+                size="small"
+                onClick={() => removeApprovalLevel(unique_id)}
+              >
+                <DeleteIcon size="small" />
+              </StyledFab>
+              : ''
+            }
+          </Grid>
+        </Grid>
+      </Paper>
+    );
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Nestable
+        items={approvalList}
+        renderItem={ListItemRenderer}
+        onChange={(items, changedItem) => {
+          approvalSortOrderChanged(items, changedItem)
+        }}
+        maxDepth={1}
+      />
+    </div>
+  );
+
+
+};
+
+ApprovalLevels.propTypes = {
+  className: PropTypes.string
+};
+
+export default ApprovalLevels;

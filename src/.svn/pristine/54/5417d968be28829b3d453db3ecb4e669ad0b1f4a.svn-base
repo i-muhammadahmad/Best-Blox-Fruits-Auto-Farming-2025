@@ -1,0 +1,82 @@
+import React, {useEffect, useState} from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header,
+  DocumentsCategory,
+  Documents
+} from './components'; 
+import { 
+  makeStyles,
+  Paper,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const DocumentsRepositoryView = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const [documentCategoryId, setDocumentCategoryId] = useState(null);
+  const [showDocumentsCategory, setShowDocumentsCategory] = useState(true);
+  const [showDocuments, setShowDocuments] = useState(false); 
+
+  const clickForwardHandler = (id) => {
+    setShowDocumentsCategory(false);
+    setShowDocuments(true);
+    setDocumentCategoryId(id);
+  }
+
+  const clickBackwardHandler = () => {
+    setShowDocumentsCategory(true);
+    setShowDocuments(false);
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Documents Repository"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardContent>
+          <Grid container spacing={1}>
+            {showDocumentsCategory ? 
+              <DocumentsCategory 
+                clickForwardHandler={clickForwardHandler}
+              /> : ''}
+            {showDocuments ? <Documents clickBackwardHandler={clickBackwardHandler} documentCategoryId={documentCategoryId}/> : ''}
+            
+          </Grid>
+        </CardContent>
+      </Card> 
+    </Page>  
+  );
+}
+
+export default DocumentsRepositoryView;

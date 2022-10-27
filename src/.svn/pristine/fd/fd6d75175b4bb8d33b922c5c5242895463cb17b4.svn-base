@@ -1,0 +1,353 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, CommonAlert, StyledFab, StyledButton, GenericMoreButton } from 'components';
+import { Header, Results, RejectionModel } from './components';
+import {
+  deleteAssetApprovals,
+  getAssetApprovalsById,
+} from 'actions';
+import { forEach, isEmpty } from 'lodash';
+import DeleteIcon from '@material-ui/icons/Delete';
+import BeenhereIcon from '@material-ui/icons/Beenhere';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { 
+  Tooltip, 
+  Checkbox,
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography,
+  DialogContentText
+} from '@material-ui/core';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+  content: {
+    padding: 0
+  },
+}));
+
+const AssetApprovalsList = () => {
+  const classes = useStyles();
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [assetApprovalsId, setAssetApprovalsId] = useState('');
+  const [selectedNotifications, setSelectedNotifications] = React.useState([]);
+  
+  const [showAlert, setShowAlert] = React.useState(false);
+  const [alertDetails, setAlertDetails] = useState({
+		title: 'Delete Record',
+		desc: 'Are you sure, You want delete this record?',
+		submitCallback: () => {},
+    onModelClose: ()=>{},
+    submitButton: ''
+  });
+  
+  const [showRejectionModel, setShowRejectionModel] = React.useState(false);
+  const [rejectionModelDetails, setRejectionModelDetails] = useState({
+		title: 'Delete Record',
+		desc: 'Are you sure, You want delete this record?',
+		submitCallback: () => {},
+    onModelClose: ()=>{},
+    rejectionButtonTxt: 'Delete'
+	});
+
+  const assetApprovalsState = useSelector(state => state.assetApprovalsState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleApprovalNotificationChange = (e, notification_id) => { 
+    if(e.target.checked === true){
+      setSelectedNotifications(selectedNotifications => ({
+        ...selectedNotifications,
+        [notification_id]: true
+      }));
+    }
+    else{
+      let s_noti_arr = { ...selectedNotifications };
+      delete s_noti_arr[notification_id];
+      setSelectedNotifications(s_noti_arr);
+    }
+    
+  }
+
+  const deleteRecord = async () => {
+    await dispatch(deleteAssetApprovals(assetApprovalsId, session.current_page_permissions.object_id));
+    setRefershDataTable(true);
+  }
+
+  const showAssetsApprovalModel = async (id) => {
+    //setAssetApprovalsId(id)
+		await setAlertDetails({
+			title: 'Approve Assets',
+			desc: 'Are you sure, You want approve this asset?',
+			submitCallback: () => { /*removeAssetNotifications(id)*/ },
+      onModelClose: () => { /*nothing to do*/ },
+      submitButton: () => {
+        return(
+          <StyledButton
+            color="bsuccess"
+            size="small"
+            type="submit"
+            variant="contained"
+            onClick={() => { setShowAlert(false);/*showAssetsApprovalModel(notification.notification_id)*/ }}
+            startIcon={<BeenhereIcon />}
+          >
+            Approve
+          </StyledButton>
+        )  
+      }
+		});
+		await setShowAlert(true);
+  }
+
+  const showDeleteModel = async (id) => {
+    
+    await setRejectionModelDetails({
+			title: 'Reject Assets Approval',
+			desc: 'Are you sure, You want reject this approval?',
+			submitCallback: () => { /*removeAssetNotifications(id)*/ },
+      onModelClose: () => { /*nothing to do*/ },
+      rejectionButtonTxt: 'Reject'
+		});
+		await setShowRejectionModel(true);
+  }
+
+  const showApproveSelectedModel = async () => {
+    //setAssetApprovalsId(id)
+		await setAlertDetails({
+			title: 'Approve Selected Assets',
+			desc: 'Are you sure, You want approve selected assets?',
+			submitCallback: () => { /*removeAssetNotifications(id)*/ },
+      onModelClose: () => { /*nothing to do*/ },
+      submitButton: () => {
+        return(
+          <StyledButton
+            color="bsuccess"
+            size="small"
+            type="submit"
+            variant="contained"
+            onClick={() => { setShowAlert(false);/*showAssetsApprovalModel(notification.notification_id)*/ }}
+            startIcon={<BeenhereIcon />}
+          >
+            Approve Selected
+          </StyledButton>
+        )  
+      }
+		});
+		await setShowAlert(true);
+  }
+
+  const showRejectSelectedModel = async () => {
+    await setRejectionModelDetails({
+			title: 'Reject Selected Assets Approvals',
+			desc: 'Are you sure, You want reject selected approvals?',
+			submitCallback: () => { /*removeAssetNotifications(id)*/ },
+      onModelClose: () => { /*nothing to do*/ },
+      rejectionButtonTxt: 'Reject Selected'
+		});
+		await setShowRejectionModel(true);
+  }
+
+  const showApproveAllModel = async () => {
+    //setAssetApprovalsId(id)
+		await setAlertDetails({
+			title: 'Approve All Assets',
+			desc: 'Are you sure, You want approve all asset?',
+			submitCallback: () => { /*removeAssetNotifications(id)*/ },
+      onModelClose: () => { /*nothing to do*/ },
+      submitButton: () => {
+        return(
+          <StyledButton
+            color="bsuccess"
+            size="small"
+            type="submit"
+            variant="contained"
+            onClick={() => { setShowAlert(false);/*showAssetsApprovalModel(notification.notification_id)*/ }}
+            startIcon={<BeenhereIcon />}
+          >
+            Approve All
+          </StyledButton>
+        )  
+      }
+		});
+		await setShowAlert(true);
+  }
+
+  const showRejectAllModel = async () => {
+    await setRejectionModelDetails({
+			title: 'Reject All Approvals',
+			desc: 'Are you sure, You want reject all approval?',
+			submitCallback: () => { /*removeAssetNotifications(id)*/ },
+      onModelClose: () => { /*nothing to do*/ },
+      rejectionButtonTxt: 'Reject All'
+		});
+		await setShowRejectionModel(true);
+  }
+
+  const hideDeleteModel = () => {
+    setAssetApprovalsId('')
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        { (value.is_approved == '0' && value.is_rejected == '0')? 
+          <>
+            <StyledFab
+              color="bsuccess"
+              aria-label="Edit"
+              size="small"
+              onClick={()=> showAssetsApprovalModel(value.id)}
+            >
+              <Tooltip title="Approve">
+                <BeenhereIcon />
+              </Tooltip>
+            </StyledFab>&nbsp; &nbsp; &nbsp;
+            <StyledFab
+              color="bdanger"
+              aria-label="edit"
+              size="small"
+              onClick={() => showDeleteModel(value.id)}
+            >
+              <Tooltip title="Delete">
+                <DeleteIcon size="small" />
+              </Tooltip>  
+            </StyledFab> 
+          </>
+          : ''
+        }  
+      </div>
+    )
+  }
+
+  const getCheckBoxCol = value => {
+    return (
+      <>
+        <Checkbox
+          onChange={(e) => {handleApprovalNotificationChange(e, value.notification_id)}}
+          inputProps={{ 'aria-label': 'primary checkbox' }}
+        />
+      </>
+    );
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Asset Approval Notification List"
+    >
+      <Header />
+      <div
+        className={classes.results}
+      >
+        <Typography
+          color="textSecondary"
+          gutterBottom
+          variant="body2"
+        >
+
+        </Typography>
+        <Card>
+          <CardHeader
+            action={<GenericMoreButton />}
+            title="All Asset Approval Notifications"
+          />
+          <Divider />
+          <CardContent className={classes.content}>
+            <PerfectScrollbar>
+              <div style={{padding: '20px'}}>
+                <StyledButton
+                  color="bsuccess"
+                  size="small"
+                  type="submit"
+                  variant="contained"
+                  onClick={() => { showApproveSelectedModel() }}
+                  startIcon={<BeenhereIcon />}
+                  disabled={isEmpty(selectedNotifications)}
+                >
+                  Approve Selected
+                </StyledButton> &nbsp; &nbsp;
+                <StyledButton
+                  variant="contained"
+                  color="bdanger"
+                  size="small"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => { showRejectSelectedModel() }}
+                  disabled={isEmpty(selectedNotifications)}
+                >
+                  Reject Selected
+                </StyledButton> &nbsp; &nbsp; &nbsp; &nbsp;
+                <StyledButton
+                  color="bsuccess"
+                  size="small"
+                  type="submit"
+                  variant="contained"
+                  onClick={() => { showApproveAllModel() }}
+                  startIcon={<BeenhereIcon />}
+                >
+                  Approve All
+                </StyledButton> &nbsp; &nbsp;
+                <StyledButton
+                  variant="contained"
+                  color="bdanger"
+                  size="small"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => { showRejectAllModel() }}
+                >
+                  Reject All
+                </StyledButton>
+              </div> 
+              <Results
+                refershDataTable={refershDataTable}
+                setRefershDataTable={setRefershDataTable}
+                actionsCol={getActions}
+                getCheckBoxCol={getCheckBoxCol}
+              />
+            </PerfectScrollbar>
+          </CardContent>
+        </Card>
+      </div> 
+      <CommonAlert
+        title={alertDetails.title}
+				alertText={alertDetails.desc}
+				submitCallback={alertDetails.submitCallback}
+				modalOpen={showAlert}
+				handleModalOpen={setShowAlert}
+        onModelClose={alertDetails.onModelClose}
+        submitButton={alertDetails.submitButton}
+      />
+      <RejectionModel
+        title={rejectionModelDetails.title}
+				alertText={rejectionModelDetails.desc}
+				submitCallback={rejectionModelDetails.submitCallback}
+				modalOpen={showRejectionModel}
+				handleModalOpen={setShowRejectionModel}
+        onModelClose={rejectionModelDetails.onModelClose}
+        rejectionButtonTxt={rejectionModelDetails.rejectionButtonTxt}
+      />
+    </Page>
+  );
+};
+
+export default AssetApprovalsList;

@@ -1,0 +1,718 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import uuid from 'uuid/v1';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton, FilesDropzone } from 'components';
+import { Header, Attachment, Sidebar } from './components';
+import {
+	updateDocuments,
+	hideDocumentsValidationError,
+	redirectToDocumentsList,
+	documentsCategoryDropdownListFetch
+} from 'actions';
+import {
+	Card,
+	CardHeader,
+	CardContent,
+	TextField,
+	Grid,
+	FormControl,
+	FormHelperText,
+	Typography,
+	FormGroup,
+	FormControlLabel,
+	Switch,
+	List,
+	ListItem,
+	ListItemIcon
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find, each } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS, API_URL } from 'configs';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import { FileIcon, defaultStyles } from 'react-file-icon';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	},
+	thumb: {
+		display: 'inline-flex',
+		borderRadius: 2,
+		border: '1px solid #eaeaea',
+		marginBottom: 8,
+		marginRight: 8,
+		width: 100,
+		height: 100,
+		padding: 4,
+		boxSizing: 'border-box'
+	},
+	svgIcon: {
+		height: '100%',
+		'& svg': {
+			height: '100%'
+		}
+	},
+  svgTitle: {
+    fontSize: '10px',
+    position: 'absolute',
+    top: '110px'
+  }, 
+	thumbInner: {
+		display: 'flex',
+		minWidth: 0,
+		overflow: 'hidden'
+	},
+	image: {
+		width: '100%',
+		height: 'auto'
+	},
+	img: {
+		margin: 'auto',
+		display: 'block',
+		maxWidth: '100%',
+		maxHeight: '100%'
+	}
+}));
+
+const DocumentsUpdate = () => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const router = useRouter();
+	const documentsState = useSelector(state => state.documentsState);
+	const documentsCategoryState = useSelector(
+		state => state.documentsCategoryState
+	);
+	const session = useSelector(state => state.session);
+
+	const [category, setCategory] = useState(null);
+	const [files, setFiles] = useState([]);
+	const [serverFileErrors, setServerFileErrors] = useState([]);
+	const [dropZoneConfig, setDropZoneConfig] = useState({
+		maxSize: 5000000
+	});
+	const [open, setOpen] = useState(false);
+	const [lineItemsList, setLineItemsList] = useState({});
+
+	const [schema, setSchema] = React.useState({
+		title: {
+			presence: { allowEmpty: false, message: 'is required' }
+		},
+		category_id: {
+			presence: { allowEmpty: false, message: '^Please Select Category' }
+		}
+	});
+
+	const [formState, setFormState] = useState({
+		isValid: false,
+		values: {
+			object_viewed_id: session.current_page_permissions.object_id
+		},
+		touched: {
+			object_viewed_id: true
+		},
+		errors: {}
+	});
+
+	useEffect(() => {
+		let record = documentsState.documentsRecord;
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				title: record.title,
+				category_id: record.category_id,
+				id: record.id,
+				description: record.description
+			},
+			touched: {
+				...formState.touched,
+				title: true,
+				category_id: true,
+				id: true,
+				description: true
+			}
+		}));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [documentsState.documentsRecord]);
+
+	useEffect(() => {
+		let record = documentsState.documentsRecord;
+		const item = find(documentsCategoryState.documentsCategoryDropdownList, [
+			'id',
+			record.category_id
+		]);
+		setCategory(item);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [documentsCategoryState.documentsCategoryDropdownList]);
+
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		dispatch(documentsCategoryDropdownListFetch(session.current_page_permissions.object_id));
+	}, []);
+
+	useEffect(() => {
+		const errors = validate(formState.values, schema);
+
+		setFormState(formState => ({
+			...formState,
+			isValid: errors ? false : true,
+			errors: errors || {}
+		}));
+	}, [formState.values]);
+
+	useEffect(() => {
+		if (!isEmpty(documentsState.validation_error)) {
+			const errors = documentsState.validation_error;
+			setFormState(formState => ({
+				...formState,
+				isValid: errors ? false : true,
+				errors: errors || {}
+			}));
+		}
+	}, [documentsState.validation_error]);
+
+	useEffect(() => {
+		let record = documentsState.documentsRecord;
+		each(record.documents_access, (val, key) => {
+			if (!isEmpty(val)) {
+				//setting validation
+				setSchema(schema => ({
+					...schema,
+					['office_id_' + val.id]: {
+						presence: { allowEmpty: false, message: '^Please Select Office' }
+					},
+					['type_' + val.id]: {
+						presence: {
+							allowEmpty: false,
+							message: '^Please Select Access Type'
+						}
+					}
+				}));
+
+				// setting formState
+				setFormState(formState => ({
+					...formState,
+					values: {
+						...formState.values,
+						['office_id_' + val.id]: val.office_id,
+						['type_' + val.id]: val.type
+					},
+					touched: {
+						...formState.touched,
+						['office_id_' + val.id]: true,
+						['type_' + val.id]: true
+					}
+				}));
+
+				setLineItemsList(lineItemsList => ({
+					...lineItemsList,
+					[val.id]: {
+						...lineItemsList[val.id],
+						office_id: val.office_id,
+						selected_office_id: [val.office_id],
+						type: val.type,
+						id: val.id
+					}
+				}));
+
+				if (val.type === 'all') {
+					setLineItemsList(lineItemsList => ({
+						...lineItemsList,
+						[val.id]: {
+							...lineItemsList[val.id],
+							user_id: 'all',
+							department_id: 'all',
+							role_id: 'all'
+						}
+					}));
+				}
+				if (val.type === 'user') {
+					//setting validation
+					setSchema(schema => ({
+						...schema,
+						['user_id_' + val.id]: {
+							presence: { allowEmpty: false, message: '^Please Select User' }
+						}
+					}));
+
+					if (val.is_all === 1) {
+						setLineItemsList(lineItemsList => ({
+							...lineItemsList,
+							[val.id]: {
+								...lineItemsList[val.id],
+								user_id: ['all'],
+								department_id: [],
+								role_id: []
+							}
+						}));
+						// setting formState
+						setFormState(formState => ({
+							...formState,
+							values: {
+								...formState.values,
+								['user_id_' + val.id]: 'all'
+							},
+							touched: {
+								...formState.touched,
+								['user_id_' + val.id]: true
+							}
+						}));
+					} else {
+						let access_details = val.documents_access_details;
+						let u_ids = [];
+						each(access_details, (val, key) => {
+							u_ids.push(val.user_id);
+						});
+						setLineItemsList(lineItemsList => ({
+							...lineItemsList,
+							[val.id]: {
+								...lineItemsList[val.id],
+								user_id: u_ids,
+								department_id: [],
+								role_id: []
+							}
+						}));
+						// setting formState
+						setFormState(formState => ({
+							...formState,
+							values: {
+								...formState.values,
+								['user_id_' + val.id]: u_ids
+							},
+							touched: {
+								...formState.touched,
+								['user_id_' + val.id]: true
+							}
+						}));
+					}
+				}
+				if (val.type === 'department') {
+					//setting validation
+					setSchema(schema => ({
+						...schema,
+						['department_id_' + val.id]: {
+							presence: {
+								allowEmpty: false,
+								message: '^Please Select Department'
+							}
+						}
+					}));
+
+					if (val.is_all === 1) {
+						setLineItemsList(lineItemsList => ({
+							...lineItemsList,
+							[val.id]: {
+								...lineItemsList[val.id],
+								user_id: [],
+								department_id: ['all'],
+								role_id: []
+							}
+						}));
+						// setting formState
+						setFormState(formState => ({
+							...formState,
+							values: {
+								...formState.values,
+								['department_id_' + val.id]: 'all'
+							},
+							touched: {
+								...formState.touched,
+								['department_id_' + val.id]: true
+							}
+						}));
+					} else {
+						let access_details = val.documents_access_details;
+						let d_ids = [];
+						each(access_details, (val, key) => {
+							d_ids.push(val.department_id);
+						});
+						setLineItemsList(lineItemsList => ({
+							...lineItemsList,
+							[val.id]: {
+								...lineItemsList[val.id],
+								user_id: [],
+								department_id: d_ids,
+								role_id: []
+							}
+						}));
+						// setting formState
+						setFormState(formState => ({
+							...formState,
+							values: {
+								...formState.values,
+								['department_id_' + val.id]: d_ids
+							},
+							touched: {
+								...formState.touched,
+								['department_id_' + val.id]: true
+							}
+						}));
+					}
+				}
+				if (val.type === 'role') {
+					//setting validation
+					setSchema(schema => ({
+						...schema,
+						['role_id_' + val.id]: {
+							presence: { allowEmpty: false, message: '^Please Select Role' }
+						}
+					}));
+
+					if (val.is_all === 1) {
+						setLineItemsList(lineItemsList => ({
+							...lineItemsList,
+							[val.id]: {
+								...lineItemsList[val.id],
+								user_id: [],
+								department_id: [],
+								role_id: ['all']
+							}
+						}));
+						// setting formState
+						setFormState(formState => ({
+							...formState,
+							values: {
+								...formState.values,
+								['role_id_' + val.id]: 'all'
+							},
+							touched: {
+								...formState.touched,
+								['role_id_' + val.id]: true
+							}
+						}));
+					} else {
+						let access_details = val.documents_access_details;
+						let r_ids = [];
+						each(access_details, (val, key) => {
+							r_ids.push(val.role_id);
+						});
+						setLineItemsList(lineItemsList => ({
+							...lineItemsList,
+							[val.id]: {
+								...lineItemsList[val.id],
+								user_id: [],
+								department_id: [],
+								role_id: r_ids
+							}
+						}));
+						// setting formState
+						setFormState(formState => ({
+							...formState,
+							values: {
+								...formState.values,
+								['role_id_' + val.id]: r_ids
+							},
+							touched: {
+								...formState.touched,
+								['role_id_' + val.id]: true
+							}
+						}));
+					}
+				}
+			}
+		});
+	}, [documentsState.documentsRecord]);
+
+	useEffect(() => {
+		if (!documentsState.showViewPage && !documentsState.showUpdateForm) {
+			router.history.push('/documents');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [documentsState.showViewPage, documentsState.showUpdateForm]);
+
+	useEffect(() => {
+		if (documentsState.redirect_to_list) {
+			router.history.push('/documents');
+		}
+	}, [documentsState.redirect_to_list, router.history]);
+
+	const setCategoryId = category_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				category_id: category_id
+			},
+			touched: {
+				...formState.touched,
+				category_id: true
+			}
+		}));
+		dispatch(hideDocumentsValidationError('category_id'));
+	};
+
+	const setDescription = description => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				description: description
+			},
+			touched: {
+				...formState.touched,
+				description: true
+			}
+		}));
+		dispatch(hideDocumentsValidationError('description'));
+	};
+
+	const handleChange = event => {
+		event.persist();
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				[event.target.name]:
+					event.target.type === 'checkbox'
+						? event.target.checked
+						: event.target.value
+			},
+			touched: {
+				...formState.touched,
+				[event.target.name]: true
+			}
+		}));
+		dispatch(hideDocumentsValidationError(event.target.name));
+	};
+
+	const handleSubmit = async event => {
+		event.preventDefault();
+		const data = new FormData();
+		if (!isEmpty(files)) {
+			for (let i = 0; i < files.length; i++) {
+				data.append('attachments[]', files[i]);
+			}
+		}
+
+		//appending form state to data object
+		forEach(formState.values, function(value, key) {
+			data.append(key, value);
+		});
+		data.append(
+			'document_access_details',
+			JSON.stringify(Object.values(lineItemsList))
+		);
+
+		dispatch(updateDocuments(data, true));
+	};
+
+	const handleDrawerToggle = () => {
+		setOpen(!open);
+	};
+
+	const hasError = field =>
+		formState.touched[field] && formState.errors[field] ? true : false;
+
+	const getFileIcon = file_name => {
+		let ext = file_name.split('.')[1];
+		return (
+			<div className={classes.svgIcon}>
+				<FileIcon extension={ext} {...defaultStyles[ext]} />
+			</div>
+		);
+	};
+
+	return (
+		<Page className={classes.root} title="Update Documents">
+			<Header />
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Update Documents" />
+				<CardContent>
+					<form onSubmit={handleSubmit}>
+						<div className={classes.formGroup}>
+							<Grid container spacing={3}>
+								<Grid item xs={8} sm={8}>
+									<Grid container spacing={3}>
+										<Grid item xs={6} sm={6}>
+											<TextField
+												error={hasError('title')}
+												fullWidth
+												helperText={
+													hasError('title') ? formState.errors.title[0] : null
+												}
+												label="Document Title"
+												name="title"
+												onChange={handleChange}
+												value={formState.values.title || ''}
+												variant="outlined"
+												size="small"
+											/>
+										</Grid>
+										<Grid item xs={6} sm={6}>
+											{documentsCategoryState.documentsCategoryDropdownList ? (
+												<Autocomplete
+													id="category_id"
+													value={category}
+													onChange={(event, newValue) => {
+														if (newValue) {
+															setCategory(newValue);
+															setCategoryId(newValue.id);
+														} else {
+															setCategory(newValue);
+															setCategoryId('');
+														}
+													}}
+													size="small"
+													options={
+														documentsCategoryState.documentsCategoryDropdownList
+													}
+													getOptionLabel={option => option.category_name}
+													renderInput={params => (
+														<TextField
+															{...params}
+															label="Select Category"
+															variant="outlined"
+															error={hasError('category_id')}
+															helperText={
+																hasError('category_id')
+																	? formState.errors.category_id[0]
+																	: null
+															}
+														/>
+													)}
+												/>
+											) : (
+												''
+											)}
+										</Grid>
+									</Grid>
+									<Grid container spacing={3}>
+										<Grid item xs={12} sm={12}>
+											<FormHelperText id="description">
+												<Typography component="b">Description</Typography>
+											</FormHelperText>
+											<CKEditor
+												editor={ClassicEditor}
+												config={CK_CONFIGS(localStorage.getItem('token'))}
+												data={formState.values.description || ''}
+												onChange={(event, editor) => {
+													const data = editor.getData();
+													setDescription(data);
+												}}
+											/>
+											<FormControl error={hasError('description')}>
+												<FormHelperText id="component-error-text">
+													{hasError('description')
+														? formState.errors.description[0]
+														: null}
+												</FormHelperText>
+											</FormControl>
+										</Grid>
+									</Grid>
+									<Grid container spacing={3}>
+										<Grid item xs={12} sm={12}>
+											<StyledButton
+												color="bsuccess"
+												type="button"
+												variant="contained"
+												onClick={handleDrawerToggle}
+												size="small"
+												startIcon={!isEmpty(documentsState.documentsRecord.documents_access) ? <VisibilityIcon /> : <AddCircleOutlineIcon />}>
+												{!isEmpty(documentsState.documentsRecord.documents_access) ? 'Show Document Access' : 'Add Document Access'}
+											</StyledButton>
+										</Grid>
+									</Grid>
+								</Grid>
+								<Grid item xs={4} sm={4}>
+									<FilesDropzone
+										files={files}
+										setFiles={setFiles}
+										thumbsAt={'bottom'}
+										customDZconfigs={dropZoneConfig}
+										title={'Add Attachment'}
+										serverRejectedFiles={serverFileErrors}
+									/>
+									<>
+										{files.length <= 0 ? (
+											<List className={classes.list}>
+												<ListItem>
+													<ListItemIcon>
+														<div className={classes.thumb}>
+															<div className={classes.thumbInner}>
+																{documentsState.documentsRecord.is_image ==
+																1 ? (
+																	<img
+																		src={
+																			API_URL +
+																			documentsState.documentsRecord.file_path
+																		}
+																		className={classes.img}
+																		alt="Attachment"
+																	/>
+																) : (
+																	<>
+																		{getFileIcon(
+																			API_URL +
+																				documentsState.documentsRecord.file_path
+																		)}
+                                    <span className={classes.svgTitle}>{documentsState.documentsRecord.file_name}</span>
+																	</>
+																)}
+															</div>
+														</div>
+													</ListItemIcon>
+												</ListItem>
+											</List>
+										) : (
+											''
+										)}
+									</>
+								</Grid>
+							</Grid>
+						</div>
+						<StyledButton
+							color="bprimary"
+							disabled={!formState.isValid}
+							size="small"
+							type="submit"
+							variant="contained"
+							startIcon={<SaveIcon />}>
+							Update Document
+						</StyledButton>{' '}
+						&nbsp; &nbsp;
+						<StyledButton
+							variant="contained"
+							color="blight"
+							size="small"
+							onClick={() => {
+								dispatch(redirectToDocumentsList());
+							}}
+							startIcon={<CancelIcon />}>
+							CLOSE
+						</StyledButton>
+					</form>
+				</CardContent>
+			</Card>
+			<Sidebar
+				open={open}
+				handleDrawerToggle={handleDrawerToggle}
+				lineItemsList={lineItemsList}
+				setLineItemsList={setLineItemsList}
+				formState={formState}
+				setFormState={setFormState}
+				schema={schema}
+				setSchema={setSchema}
+				hasError={hasError}
+			/>
+		</Page>
+	);
+};
+
+export default DocumentsUpdate;

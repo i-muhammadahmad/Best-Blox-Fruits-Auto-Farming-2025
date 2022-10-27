@@ -1,0 +1,123 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Grid,
+  TextField,
+  Box,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
+} from '@material-ui/core';
+import CheckIcon from '@material-ui/icons/Check';
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+  Autocomplete
+} from '@material-ui/lab';
+import {
+  assetTypesListFetch
+} from 'actions'
+import { StyledButton } from 'components'
+import SearchIcon from '@material-ui/icons/Search';
+import { ClientDropdown } from 'commonDropdowns'
+import { map } from 'lodash';
+
+const useStyles = makeStyles((theme) => ({
+
+  content: {
+    padding: theme.spacing(3)
+  },
+  inner: {
+    minWidth: 700
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    width: '100%',
+  },
+}));
+
+const ExtraFilters = props => {
+  const { className, extraFiltersState, setExtraFiltersState, filterRecords, ...rest } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const [AssetTypeValue, setAssetTypeValue] = useState([]);
+
+  useEffect(() => {
+    dispatch(assetTypesListFetch())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setAssetTypeIds = atype_ids => {
+    setExtraFiltersState(extraFiltersState => ({
+      ...extraFiltersState,
+      'atype_ids': atype_ids
+    }));
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      
+          <div className={classes.inner}>
+            <Grid container spacing={3}  >
+              <Grid item xs={6} sm={4}>
+                {(assetTypesState.assetTypesList) ?
+                  <Autocomplete
+                    id="atype_ids"
+                    name="atype_ids"
+                    value={AssetTypeValue}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        setAssetTypeValue(newValue);
+                        let atype_ids = map(newValue, 'id');
+                        setAssetTypeIds(atype_ids)
+                      }
+                      else {
+                        setAssetTypeValue(newValue);
+                        setAssetTypeIds([])
+                      }
+                    }}
+                    options={assetTypesState.assetTypesList}
+                    getOptionLabel={(option) => option.name}
+                    size="small"
+                    multiple={true}
+                    limitTags={2}
+                    renderInput={(params) => <TextField {...params} label="Select Asset Type" variant="outlined" />}
+                  />
+                  : ''}
+              </Grid>
+              <Grid item xs={6} sm={8} >
+                  <StyledButton
+                    color="bsuccess"
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<SearchIcon />}
+                    onClick={() => { filterRecords() }}
+                  >
+                    Filter Assets
+                  </StyledButton>
+              </Grid>
+            </Grid>
+          </div>
+    </div>
+  );
+};
+
+ExtraFilters.propTypes = {
+  className: PropTypes.string
+};
+
+export default ExtraFilters;

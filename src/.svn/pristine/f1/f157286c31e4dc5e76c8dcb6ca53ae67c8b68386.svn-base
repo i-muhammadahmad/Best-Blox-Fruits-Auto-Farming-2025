@@ -1,0 +1,59 @@
+import React, { useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import useRouter from 'utils/useRouter';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { Typography } from '@material-ui/core';
+
+const useStyles = makeStyles(() => ({
+  root: {}
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+
+  const router = useRouter();
+  const employeesState = useSelector(state => state.employeesState);
+  useEffect(() => {
+    if (employeesState.redirect_to_list) {
+      router.history.push('/employees');
+    }
+  }, [employeesState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!employeesState.showUpdateForm) {
+      router.history.push('/employees');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.showUpdateForm]);
+
+  const classes = useStyles();
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Typography
+        component="h2"
+        gutterBottom
+        variant="overline"
+      >
+        Employees Management
+      </Typography>
+      <Typography
+        component="h1"
+        variant="h3"
+      >
+        Employees
+      </Typography>
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+export default Header;

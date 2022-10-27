@@ -1,0 +1,263 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const COMPANY_REQUEST = 'COMPANY_REQUEST'
+export const COMPANY_SUCCESS = 'COMPANY_SUCCESS'
+export const COMPANY_VALIDATION_ERROR = 'COMPANY_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_COMPANY_FEILD_VALIDATION_ERROR = "HIDE_COMPANY_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_COMPANY_LIST = 'REDIRECT_TO_COMPANY_LIST'
+export const COMPANY_GET_SUCCESS = 'COMPANY_GET_SUCCESS'
+export const CLIENT_COMPANIES_LIST_SUCCESS = 'CLIENT_COMPANIES_LIST_SUCCESS'
+export const COMPANY_SERVER_SUCCESS = 'COMPANY_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const companyRequest = () => ({
+  type: COMPANY_REQUEST,
+})
+
+const clientCompaniesListSuccess = clientCompaniesList => ({
+  type: CLIENT_COMPANIES_LIST_SUCCESS,
+  clientCompaniesList: clientCompaniesList,
+})
+
+export const companyServerListSuccess = () => ({
+  type: COMPANY_SERVER_SUCCESS,
+})
+
+const companyListSuccess = companyList => ({
+  type: COMPANY_SUCCESS,
+  companyList: companyList,
+})
+
+const companyFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: COMPANY_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const companyAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(companySuccessNotification(message))
+  dispatch(redirectToCompanyList())
+}
+
+export const redirectToCompanyList = () => ({
+  type: REDIRECT_TO_COMPANY_LIST,
+})
+
+const getCompanySuccess = (response, action) => ({
+  type: COMPANY_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const companySuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const hideCompanyValidationError = (feild_key) => ({
+  type: HIDE_COMPANY_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const companyListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(companyRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "company/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(companyListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+
+export const clientCompaniesListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(companyRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "company/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: [
+        {
+          "key": "is_client",
+          "value": '1'
+        },
+      ]
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(clientCompaniesListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addCompany = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(companyRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "company/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        companyAddUpadteSuccess('Company Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateCompany = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(companyRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "company/update/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        companyAddUpadteSuccess('Company Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getCompanyById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(companyRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "company/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getCompanySuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteCompany = (companyId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(companyRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "company/delete/" + companyId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(companySuccessNotification('Company deleted successfully'))
+        dispatch(companyListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(companyFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(companyFailure('Unable to perform action.Something went wrong'))
+  }
+}   

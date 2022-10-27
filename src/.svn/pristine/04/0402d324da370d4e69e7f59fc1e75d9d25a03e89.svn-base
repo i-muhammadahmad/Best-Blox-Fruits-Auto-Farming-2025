@@ -1,0 +1,139 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, StyledFab, StyledChip } from 'components';
+import { Header, Results } from './components';
+import {
+  getQuizById
+} from 'actions';
+import { forEach, isEmpty } from 'lodash';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import moment from 'moment';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const QuizList = () => {
+  const classes = useStyles();
+  
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [quizId, setQuizId] = useState('');
+  const quizState = useSelector(state => state.quizState);
+  const session = useSelector(state => state.session);
+  let search = window.location.search;
+	let params = new URLSearchParams(search);
+  const paramsObj = Object.fromEntries(params)
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (quizState.showViewPage) {
+      router.history.push('/quiz/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizState.showViewPage]);
+
+  const viewRecord = (id, binding_id) => {
+    dispatch(getQuizById(id, binding_id, 'view'));
+  }
+
+  const getQuizLastScore = value => {
+    if (!isEmpty(value.quiz_last_score)) {
+      return (
+        <span style={{ whiteSpace: 'nowrap' }}>
+          {value.quiz_last_score}%
+        </span>
+      )
+    }
+    return (
+      <span></span>
+    )
+  }
+
+  const getQuizStatus = value => {
+    if (value.quiz_stauts === 'Passed') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bsuccess" label="Passed" />
+        </div>
+      )
+    }
+    else if (value.quiz_stauts === 'Failed') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bdanger" label="Failed" />
+        </div>
+      )
+    }
+    else if (value.quiz_stauts === 'Over Due') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bdanger" label="Over Due" />
+        </div>
+      )
+    }
+    else if (value.quiz_stauts === 'Pending') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bwarning" label="Pending" />
+        </div>
+      )
+    }
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(session.current_page_permissions.rights_view == '1') ?
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewRecord(value.quiz_id, value.id)}
+          >
+            <VisibilityIcon />
+          </StyledFab>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Course Report"
+    >
+      <Header />
+      <Results
+        className={classes.results}
+        refershDataTable={refershDataTable}
+        setRefershDataTable={setRefershDataTable}
+        actionsCol={getActions}
+        getQuizStatus={getQuizStatus}
+        getQuizLastScore={getQuizLastScore}
+        paramsObj={paramsObj}
+      />
+    </Page>
+  );
+};
+
+export default QuizList;

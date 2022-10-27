@@ -1,0 +1,257 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const SHIFT_BREAKS_REQUEST = 'SHIFT_BREAKS_REQUEST'
+export const SHIFT_BREAKS_SUCCESS = 'SHIFT_BREAKS_SUCCESS'
+export const SHIFT_BREAKS_VALIDATION_ERROR = 'SHIFT_BREAKS_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_SHIFT_BREAKS_FEILD_VALIDATION_ERROR = "HIDE_SHIFT_BREAKS_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_SHIFT_BREAKS_LIST = 'REDIRECT_TO_SHIFT_BREAKS_LIST'
+export const SHIFT_BREAKS_GET_SUCCESS = 'SHIFT_BREAKS_GET_SUCCESS'
+export const SHIFT_BREAKS_SERVER_SUCCESS = 'SHIFT_BREAKS_SERVER_SUCCESS'
+export const BREAK_TYPES_DROPDOWN_LIST_SUCCESS = 'BREAK_TYPES_DROPDOWN_LIST_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const shiftBreaksRequest = () => ({
+  type: SHIFT_BREAKS_REQUEST,
+})
+
+export const shiftBreaksServerListSuccess = () => ({
+  type: SHIFT_BREAKS_SERVER_SUCCESS
+})
+
+const shiftBreaksListSuccess = shiftBreaksList => ({
+  type: SHIFT_BREAKS_SUCCESS,
+  shiftBreaksList: shiftBreaksList,
+})
+
+const breaksTypeDropdownSuccess = breakTypesDropdownList => ({
+  type: BREAK_TYPES_DROPDOWN_LIST_SUCCESS,
+  breakTypesDropdownList: breakTypesDropdownList,
+})
+
+const shiftBreaksFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: SHIFT_BREAKS_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const shiftBreaksAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(shiftBreaksSuccessNotification(message))
+  dispatch(redirectToShiftBreaksList())
+}
+
+export const redirectToShiftBreaksList = () => ({
+  type: REDIRECT_TO_SHIFT_BREAKS_LIST,
+})
+
+const getShiftBreaksSuccess = (response, action) => ({
+  type: SHIFT_BREAKS_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const shiftBreaksSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideShiftBreaksValidationError = (feild_key) => ({
+  type: HIDE_SHIFT_BREAKS_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const shiftBreaksDropdown = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(shiftBreaksRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "break_types/getAllForDropdown", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(breaksTypeDropdownSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const shiftBreaksListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(shiftBreaksRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "shift_breaks/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(shiftBreaksListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addShiftBreaks = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(shiftBreaksRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "shift_breaks/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        shiftBreaksAddUpadteSuccess('Shift Break Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateShiftBreaks = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(shiftBreaksRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "shift_breaks/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        shiftBreaksAddUpadteSuccess('Shift Break Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getShiftBreaksById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(shiftBreaksRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "shift_breaks/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getShiftBreaksSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteShiftBreaks = (shiftBreaksId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(shiftBreaksRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "shift_breaks/delete/" + shiftBreaksId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(shiftBreaksSuccessNotification('Shift Break deleted successfully'))
+        dispatch(shiftBreaksListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(shiftBreaksFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(shiftBreaksFailure('Unable to perform action.Something went wrong'))
+  }
+}   

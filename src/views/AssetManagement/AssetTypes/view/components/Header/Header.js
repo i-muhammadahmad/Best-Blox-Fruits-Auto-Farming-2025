@@ -1,0 +1,131 @@
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { 
+  Typography,
+  Grid,
+} from '@material-ui/core';
+import { 
+  redirectToAssetTypesList,
+  deleteAssetTypes,
+  getAssetTypesById,
+  showCommonLoader,
+  assetAttributeListFetch
+} from 'actions';
+import { ViewActionButtons, DeleteAlert, StyledButton } from 'components';
+import useRouter from 'utils/useRouter';
+import { useSelector, useDispatch } from 'react-redux';
+import CachedIcon from '@material-ui/icons/Cached';
+
+
+const useStyles = makeStyles(() => ({
+  root: {}
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const session = useSelector(state => state.session);
+
+  const [openDeleteModel, setOpenDeleteModel] = useState(false); 
+
+  useEffect(() => {
+    if (assetTypesState.showUpdateForm) {
+      router.history.push('/asset-types/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetTypesState.showUpdateForm]);
+
+  const deleteRecord = async () => {
+    await dispatch(deleteAssetTypes(assetTypesState.assetTypesRecord.id, session.current_page_permissions.object_id));
+    closeView();
+  }
+
+  const showDeleteModal = () => {
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+  }
+
+  const updateRecord = () => {
+    dispatch(getAssetTypesById(assetTypesState.assetTypesRecord.id, 'update'))
+  }
+
+  const closeView = () => {
+    dispatch(redirectToAssetTypesList())
+  }
+
+  const refershView = () => {
+    dispatch(showCommonLoader());
+    dispatch(getAssetTypesById(assetTypesState.assetTypesRecord.id, 'view'))
+    dispatch(assetAttributeListFetch(assetTypesState.assetTypesRecord.id, session.current_page_permissions.object_id));
+  }
+
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Grid
+        alignItems="flex-end"
+        container
+        justify="space-between"
+        spacing={3}
+      >
+        <Grid item>
+          <Typography
+            component="h2"
+            gutterBottom
+            variant="overline"
+          >
+            Asset Management
+          </Typography>
+          <Typography
+            component="h1"
+            variant="h3"
+          >
+            Asset Type
+          </Typography>
+        </Grid>
+        <Grid item>
+          <ViewActionButtons  
+            closeView={closeView}
+            updateRecord={updateRecord}
+            deleteRecord={showDeleteModal}
+            currentRecord={assetTypesState.assetTypesRecord}
+          />
+          <StyledButton
+            variant="contained"
+            color="bprimary"
+            size="small"
+            onClick={() => { refershView() }}
+            startIcon={<CachedIcon />}
+          >
+            Refersh
+          </StyledButton>
+        </Grid>
+      </Grid>   
+      <DeleteAlert
+        title="Asset Type Delete"
+        alertText="Are you sure, You want delete this Asset Type?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+export default Header;

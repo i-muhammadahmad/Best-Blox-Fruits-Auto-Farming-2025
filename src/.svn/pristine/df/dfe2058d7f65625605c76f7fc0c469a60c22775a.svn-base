@@ -1,0 +1,72 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  Grid
+} from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import { Results } from './bindingComponents';
+import {
+  quizBindingListFetch
+} from 'actions';
+import { isEmpty, forEach } from 'lodash';
+
+const useStyles = makeStyles((theme) => ({
+  root: {},
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const QuizBindingView = props => {
+  const { ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const quizSetupState = useSelector(state => state.quizSetupState);
+  const [bindingList, setBindingList] = useState([]);
+
+  useEffect(() => {
+    dispatch(quizBindingListFetch(quizSetupState.quizSetupRecord.id));
+  },[quizSetupState.quizSetupRecord]);
+
+  useEffect(() => {
+    let quizBinding_list = [];
+    forEach(quizSetupState.quizBindingList, function (value, key) {
+      value['created_by_user_name'] = (value.created_by_user) ? value.created_by_user.email : ''
+      value['description_html'] = (value.description) ? value.description.replace(/(<([^>]+)>)/gi, "").substring(0, 200) : '';
+      value['updated_by_user_name'] = (value.updated_by_user) ? value.updated_by_user.email : ''
+      value['user_name'] = (value.binding_user) ? value.binding_user.name : ''
+      value['role_name'] = (value.binding_role) ? value.binding_role.name : ''
+      if (value.binded_with === 'User') {
+        value['assign_to'] = value['user_name'];
+      }
+      else {
+        value['assign_to'] = value['role_name'];
+      }
+      quizBinding_list[key] = value
+    });
+    setBindingList(quizBinding_list);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.quizBindingList]);
+
+  return (
+    <div>
+      <div className={classes.formGroup}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            {bindingList ?
+              <Results
+                className={classes.results}
+                bindingList={bindingList}
+              />
+              : ''
+            }
+
+          </Grid>
+        </Grid>
+      </div>
+    </div>
+  );
+};
+
+export default QuizBindingView;

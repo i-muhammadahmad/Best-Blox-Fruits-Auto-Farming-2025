@@ -1,0 +1,159 @@
+import React, {useEffect} from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ClientView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const clientState = useSelector(state => state.clientState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if(clientState.redirect_to_list){
+      router.history.push('/client');
+    } 
+  }, [clientState.redirect_to_list, router.history]);
+
+  useEffect(()=> {
+    if(!clientState.showViewPage){
+      router.history.push('/client');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[clientState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Client View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Client View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Name </TableCell>
+                  <TableCell>{clientState.clientRecord.client_name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Campaingn Manager </TableCell>
+                  <TableCell>{
+                    !isEmpty(clientState.clientRecord.client_manager_details)?
+                    clientState.clientRecord.client_manager_details.firstname+' '+clientState.clientRecord.client_manager_details.lastname:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Company </TableCell>
+                  <TableCell>{
+                    !isEmpty(clientState.clientRecord.company_record)?
+                    clientState.clientRecord.company_record.name : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Start Date </TableCell>
+                  <TableCell>{clientState.clientRecord.start_date}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > End Date </TableCell>
+                  <TableCell>{clientState.clientRecord.end_date}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Client Offices </TableCell>
+                  <TableCell>{
+                    !isEmpty(clientState.clientRecord.client_offices)?
+                    <div>
+                    {clientState.clientRecord.client_offices.map(offices => (
+                      <div key={offices.id}>
+                        {offices.location_name+' ('+offices.total_seats+')'}
+                      </div>
+                    ))}
+                    </div> 
+                    :''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Invoices Per Month </TableCell>
+                  <TableCell>{clientState.clientRecord.invoices_per_month}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Cut Off Day </TableCell>
+                  <TableCell>{clientState.clientRecord.cut_off_day}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(clientState.clientRecord.created_by_user)?
+                    clientState.clientRecord.created_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{clientState.clientRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(clientState.clientRecord.updated_by_user)?
+                    clientState.clientRecord.updated_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{clientState.clientRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card> 
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Activity Category Description" />
+        <CardContent>
+            <div
+              className="ck-content" dangerouslySetInnerHTML={{ __html: clientState.clientRecord.description }}
+            />
+        </CardContent>  
+      </Card>   
+    </Page> 
+  );
+}
+
+export default ClientView;

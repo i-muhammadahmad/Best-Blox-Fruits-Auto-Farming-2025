@@ -1,0 +1,6 @@
+export { default as AssetTypesReducer } from './AssetTypesReducer';
+export { default as AssetAttributeReducer } from './AssetAttributeReducer';
+export { default as AssetsReducer } from './AssetsReducer';
+export { default as AssetsReportReducer} from './AssetsReportReducer';
+export { default as AssetApprovalsReducer } from './AssetApprovalsReducer';
+

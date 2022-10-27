@@ -1,0 +1,102 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardActions,
+  CardHeader,
+  CardContent,
+  Divider
+} from '@material-ui/core';
+import {
+  contactBoardListFetch
+} from 'actions';
+import { AdvisoryBoardItem } from './components';
+import Carousel from 'react-material-ui-carousel';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    paddingBottom: '0px'
+  },
+  content: {
+    padding: '15px',
+    paddingBottom: '0px !important'
+  },
+  inner: {
+    minWidth: 400
+  },
+}));
+
+const AdvisoryBoard = props => {
+  const { className, ...rest } = props;
+  const dispatch = useDispatch();
+  const classes = useStyles();
+  const [advisoryBoards, setAdvisoryBoards] = useState([]);
+
+  const contactBoardState = useSelector(state => state.contactBoardState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!isEmpty(localStorage.getItem("token"))) {
+      dispatch(contactBoardListFetch(session.current_page_permissions.object_id));
+    }  
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setAdvisoryBoards(contactBoardState.contactBoardList);
+  }, [contactBoardState.contactBoardList]);
+
+  return (
+    <Card
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <CardHeader
+        title="Advisory Board"
+      />
+      <Divider />
+      <CardContent className={classes.content}>
+        <div className={classes.inner}>
+          <Carousel
+            fullHeightHover={false}     // We want the nav buttons wrapper to only be as big as the button element is
+            navButtonsWrapperProps={{   // Move the buttons to the bottom. Unsetting top here to override default style.
+              style: {
+                bottom: '-15px',
+                top: 'unset'
+              }
+            }} 
+            indicatorContainerProps={{   // Move the buttons to the bottom. Unsetting top here to override default style.
+              style: {
+                paddingBottom: '20px',
+                paddingTop: '20px'
+              }
+            }} 
+            navButtonsAlwaysVisible={true}
+        >
+            {advisoryBoards.map((advisoryBoard, i) => (
+              <AdvisoryBoardItem
+                key={advisoryBoard.id}
+                advisoryBoard={advisoryBoard}
+              />
+            ))}
+          </Carousel>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+AdvisoryBoard.propTypes = {
+  className: PropTypes.string
+};
+
+export default AdvisoryBoard;

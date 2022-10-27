@@ -1,0 +1,161 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import { TextField, IconButton, Tooltip } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import AddIcon from '@material-ui/icons/Add';
+import { documentsDropdownListFetch } from 'actions';
+import { isEmpty, includes, find, isArray, forEach } from 'lodash';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+	root: {},
+	addBtn: {
+		position: 'relative',
+		top: '-34px',
+		left: '374px'
+	}
+}));
+
+const useStylesBootstrap = makeStyles((theme) => ({
+  arrow: {
+    color: theme.palette.common.black,
+  },
+  tooltip: {
+    backgroundColor: theme.palette.common.black,
+  },
+}));
+
+function BootstrapTooltip(props) {
+  const classes = useStylesBootstrap();
+
+  return <Tooltip arrow classes={classes} {...props} />;
+}
+
+const DocumentDropdown = props => {
+	const {
+		DocumentValue,
+		setDocumentValue,
+		selectedId,
+		documentOnChange,
+		id,
+		name,
+		size,
+		renderInput,
+		showSelectAllOption,
+		...attr
+	} = props;
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const session = useSelector(state => state.session);
+
+	const documentsState = useSelector(state => state.documentsState);
+	const [documentList, setDocumentList] = useState([]);
+
+	useEffect(() => {
+		dispatch(documentsDropdownListFetch(session.current_page_permissions.object_id));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	useEffect(() => {
+		if (documentsState.documentsDropdownList) {
+			if (!isEmpty(selectedId)) {
+				if (isArray(selectedId)) {
+					let sdoc = [];
+					forEach(selectedId, function(value, key) {
+						let item = find(documentsState.documentsDropdownList, [
+							'id',
+							value
+						]);
+						if (!isEmpty(item)) {
+							sdoc.push(item);
+						}
+					});
+					setDocumentValue(sdoc);
+				} else {
+					let selected_doc = find(documentsState.documentsDropdownList, [
+						'id',
+						selectedId
+					]);
+					if (!isEmpty(selected_doc)) {
+						setDocumentValue(selected_doc);
+					} else {
+						setDocumentValue(null);
+					}
+				}
+			}
+			let document_list = {
+				...documentsState.documentsDropdownList
+			};
+			document_list = Object.values(document_list);
+
+			if (
+				attr.multiple === true &&
+				!isEmpty(document_list) &&
+				showSelectAllOption === true
+			) {
+				let first = {
+					id: 'all',
+					name: 'All'
+				};
+				document_list.unshift(first);
+			}
+
+			setDocumentList(Object.values(document_list));
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [documentsState.documentsDropdownList]);
+
+	return (
+		<>
+			{documentList ? (
+				<>
+					<Autocomplete
+						value={DocumentValue}
+						onChange={(event, newValue) => {
+							documentOnChange(event, newValue);
+						}}
+						options={documentList}
+						getOptionLabel={option => option.name}
+						id={id}
+						size={size}
+						name={name}
+						renderInput={renderInput}
+						{...attr}
+					/>
+					<BootstrapTooltip title="Add New Document">
+						<IconButton
+							className={classes.addBtn}
+							size="small"
+							color="primary"
+							aria-label="add new document"
+							onClick={() => {
+								window.open('/documents/add', '_blank');
+							}}>
+							<AddIcon />
+						</IconButton>
+					</BootstrapTooltip>
+				</>
+			) : (
+				''
+			)}
+		</>
+	);
+};
+
+DocumentDropdown.propTypes = {
+	documentOnChange: PropTypes.any.isRequired,
+	renderInput: PropTypes.any.isRequired
+};
+
+DocumentDropdown.defaultProps = {
+	DocumentValue: [],
+	id: 'document_id',
+	name: 'document_id',
+	size: 'small',
+	selectedId: '',
+	showSelectAllOption: true
+};
+
+export default DocumentDropdown;

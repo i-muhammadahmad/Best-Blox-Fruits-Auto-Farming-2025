@@ -1,0 +1,268 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const DESIGNATION_REQUEST = 'DESIGNATION_REQUEST'
+export const DESIGNATION_SUCCESS = 'DESIGNATION_SUCCESS'
+export const DESIGNATION_VALIDATION_ERROR = 'DESIGNATION_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_DESIGNATION_FEILD_VALIDATION_ERROR = "HIDE_DESIGNATION_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_DESIGNATION_LIST = 'REDIRECT_TO_DESIGNATION_LIST'
+export const DESIGNATION_GET_SUCCESS = 'DESIGNATION_GET_SUCCESS'
+export const DESIGNATION_SERVER_SUCCESS = 'DESIGNATION_SERVER_SUCCESS'
+export const DESIGNATIONS_DROPDOWN_LIST_SUCCESS = 'DESIGNATIONS_DROPDOWN_LIST_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const designationRequest = () => ({
+  type: DESIGNATION_REQUEST,
+})
+
+export const designationServerListSuccess = () => ({
+  type: DESIGNATION_SERVER_SUCCESS,
+})
+
+const designationListSuccess = designationList => ({
+  type: DESIGNATION_SUCCESS,
+  designationList: designationList,
+})
+
+const designationFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: DESIGNATION_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const designationAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(designationSuccessNotification(message))
+  dispatch(redirectToDesignationList())
+}
+
+export const redirectToDesignationList = () => ({
+  type: REDIRECT_TO_DESIGNATION_LIST,
+})
+
+const getDesignationSuccess = (response, action) => ({
+  type: DESIGNATION_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const designationSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const hideDesignationValidationError = (feild_key) => ({
+  type: HIDE_DESIGNATION_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+
+export const designationListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(designationRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "designation/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(designationListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const addDesignation = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(designationRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "designation/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+    .then((response) => {
+      designationAddUpadteSuccess('Activity Setup Added Successfully', 'create', dispatch)
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const updateDesignation = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(designationRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "designation/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+    .then((response) => {
+      designationAddUpadteSuccess('Activity Setup Updated Successfully', 'update', dispatch)
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const getDesignationById = (id, action, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(designationRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "designation/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(getDesignationSuccess(response.data, action))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const deleteDesignation = (designationId, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(designationRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "designation/delete/" + designationId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(designationSuccessNotification('Activity Setup deleted successfully'))
+      dispatch(designationListFetch())
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+  }
+
+}
+
+/*
+* designations dropdown list fetch methods
+*/
+const designationsDropdownListSuccess = designationsDropdownList => ({
+  type: DESIGNATIONS_DROPDOWN_LIST_SUCCESS,
+  designationsDropdownList: designationsDropdownList,
+})
+
+export const designationsDropdownListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(designationRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "designation/getAllDesignationsForDropdown", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(designationsDropdownListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(designationFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(designationFailure('Unable to perform action.Something went wrong'))
+  }
+}   

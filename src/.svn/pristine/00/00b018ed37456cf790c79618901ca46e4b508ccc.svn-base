@@ -1,0 +1,349 @@
+import React, { useEffect } from 'react';
+import clsx from 'clsx';
+import { useSelector } from 'react-redux';
+import PropTypes from 'prop-types';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Paper,
+  Checkbox,
+  MenuItem,
+  FormHelperText,
+  FormControl
+} from '@material-ui/core';
+import CloseIcon from '@material-ui/icons/Close';
+import { StyledFab, StyledButton } from 'components';
+import QuestionAnswerIcon from '@material-ui/icons/QuestionAnswer';
+import { isEmpty, times, forEach } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {},
+  content: {
+    padding: 0
+  },
+  inner: {
+    minWidth: 700
+  },
+  nameCell: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  avatar: {
+    height: 42,
+    width: 42,
+    marginRight: theme.spacing(1)
+  },
+  actions: {
+    padding: theme.spacing(1),
+    justifyContent: 'flex-end'
+  },
+  large: {
+    width: theme.spacing(6),
+    height: theme.spacing(6),
+  },
+}));
+
+
+const SlideAnswers = props => {
+  const { 
+    slidesAns,
+    setSlidesAns,
+    correctAnsCount,
+    setCorrectAnsCount,
+    ansError,
+    setAnsError,
+    slidesFormState,
+    setslidesFormState,
+    schema, 
+    setSchema,
+    resetValidationSchema,
+    hasError,
+    ...rest 
+  } = props;
+
+  const classes = useStyles();
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    if(slidesAns.answers.length > 6 || slidesAns.answers.length < 2 ){
+      setAnsError('Min 2 and Max 6 answer allowed');
+    }
+    else if(correctAnsCount < 1){
+      setAnsError('Please select atleast one correct answer');
+    }
+    else{
+      setAnsError('');
+    }
+  }, [slidesAns, correctAnsCount]);  
+
+  useEffect(() => {
+    //reseting validation schema 
+    resetValidationSchema();
+
+    //reseting formstate
+    setslidesFormState(slidesFormState => ({
+      isValid: false,
+      values: {
+        'object_viewed_id': session.current_page_permissions.object_id,
+        'slide_type': slidesFormState.values.slide_type,
+        'content_type': slidesFormState.values.content_type,
+        'name': isEmpty(slidesFormState.values.name)?'':slidesFormState.values.name,
+        'parent_id': isEmpty(slidesFormState.values.parent_id)?'':slidesFormState.values.parent_id,
+        'id': isEmpty(slidesFormState.values.id)?'':slidesFormState.values.id,
+        'text_content': isEmpty(slidesFormState.values.text_content)?'':slidesFormState.values.text_content,
+        'media_path': isEmpty(slidesFormState.values.media_path)?'':slidesFormState.values.media_path,
+        'slide_order': isEmpty(slidesFormState.values.slide_order)?'':slidesFormState.values.slide_order
+      },
+      touched: {
+        'object_viewed_id': slidesFormState.touched.object_viewed_id,
+        'slide_type': slidesFormState.touched.slide_type,
+        'content_type': slidesFormState.touched.content_type,
+        'name': slidesFormState.touched.name,
+        'parent_id': slidesFormState.touched.parent_id,
+        'id': slidesFormState.touched.id,
+        'text_content': slidesFormState.touched.text_content,
+        'media_path': slidesFormState.touched.media_path,
+        'slide_order': slidesFormState.touched.slide_order
+      },
+      errors: {}
+    }));
+
+    //adding slides ans validation
+    forEach(slidesAns.answers, function(ans, key) {
+      setSchema(schema => ({
+        ...schema,
+        ['answer_'+key]: {
+          presence: { allowEmpty: false, message: '^Answer is required' },
+        },
+      }));
+
+      setslidesFormState(slidesFormState => ({
+        ...slidesFormState,
+        values: {
+          ...slidesFormState.values,
+          ['answer_'+key]: ans.answer,
+        }
+      }));
+
+    });  
+    
+  }, [slidesAns.answers.length]);  
+
+  const handleAnsChange = (event, index) => {
+    let ans = slidesAns.answers;
+    ans[index].answer = event.target.value;
+
+    setSlidesAns(prvStateValue => ({
+      ...prvStateValue,
+      answers: ans,
+    }));
+
+    setslidesFormState(slidesFormState => ({
+      ...slidesFormState,
+      values: {
+        ...slidesFormState.values,
+        ['answer_'+index]: ans[index].answer,
+      },
+      touched: {
+        ...slidesFormState.touched,
+        ['answer_'+index]: true,
+      },
+    }));
+
+  }
+
+  const handleAnsWeightChange = (event, index) => {
+    let ans = slidesAns.answers;
+    ans[index].priority = event.target.value;
+
+    setSlidesAns(prvStateValue => ({
+      ...prvStateValue,
+      answers: ans,
+    }));
+  }
+
+  const isCorrectAnsChange = (event, index) => {
+    let ans = slidesAns.answers;
+    if(event.target.checked){
+      ans[index].is_correct_answer = '1';
+      setCorrectAnsCount((correctAnsCount + 1));
+    }
+    else{
+      ans[index].is_correct_answer = '0';
+      setCorrectAnsCount((correctAnsCount - 1))
+    }
+      
+    setSlidesAns(prvStateValue => ({
+      ...prvStateValue,
+      answers: ans,
+    }));
+  }
+
+  const removeSlideAns = (index) => {
+
+    //deleting slide answers
+    let ans = slidesAns.answers;
+    let rm_answer = slidesAns.removed_ans;
+    if(!isEmpty(ans[index].ans_id)){
+      rm_answer.push(ans[index].ans_id);
+    }
+    delete ans[index];
+    ans = Object.values(ans);
+    setSlidesAns(prvStateValue => ({
+      ...prvStateValue,
+      answers: ans,
+      removed_ans:rm_answer
+    }));
+  }
+
+  const addSlideAns = () => {
+    let ans = slidesAns.answers;
+    ans.push(
+      {
+        'ans_id': '',
+        'answer': '',
+        'is_correct_answer': '0',
+        'priority': '0'
+      },
+    );
+    setSlidesAns(prvStateValue => ({
+      ...prvStateValue,
+      answers: ans,
+    })); 
+  }
+
+  return (
+    <div
+      {...rest}
+      className={classes.root}
+    >
+      <Typography
+        color="textSecondary"
+        gutterBottom
+        variant="body2"
+      >
+      </Typography>
+      <Card>
+        <CardHeader
+          title="Slide Answers"
+          action={
+            <StyledButton
+              color="bsuccess"
+              size="small"
+              type="button"
+              variant="contained"
+              startIcon={<QuestionAnswerIcon />}
+              onClick={()=>{ addSlideAns() }}
+              disabled={(slidesAns.answers.length >= 6)}
+            >
+              Add Answers
+            </StyledButton>
+          }
+          subheader={
+            <div>
+              <FormControl error={!isEmpty(ansError)} >
+                <FormHelperText component='div' id="component-error-text">{!isEmpty(ansError) ? ansError : null}</FormHelperText>
+              </FormControl>
+            </div>
+          }
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+          <TableContainer component={Paper} style={{ marginBottom: "5px" }}>
+            <Table className={classes.table} aria-label="Slide Answers">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Answer</TableCell>
+                  <TableCell>Is Correct Ans</TableCell>
+                  <TableCell>Ans Weight</TableCell>
+                  <TableCell align="right"></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {slidesAns.answers.map((ans, index) => (
+                  <TableRow key={index}>
+                    <TableCell component="th" scope="row">
+                      <TextField
+                        error={hasError('answer_' + index)}
+                        helperText={hasError('answer_' + index) ? slidesFormState.errors['answer_' + index][0] : null}
+                        fullWidth
+                        label="Slide Answer"
+                        name={'answer_' + index}
+                        onChange={(event) => { handleAnsChange(event, index) }}
+                        value={(ans.answer) ? ans.answer : ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell >
+                      <Checkbox
+                        color="primary"
+                        inputProps={{ 'aria-label': 'Is Correct Ans' }}
+                        checked={(ans.is_correct_answer == '1') ? true:false}
+                        onChange={(event) => { isCorrectAnsChange(event, index) }}
+                        value={index}
+                        name={"is_correct_answer"+index}
+                      />
+                    </TableCell>
+                    <TableCell >
+                      {(ans.is_correct_answer == '1') ?
+                        <TextField
+                          select
+                          fullWidth
+                          name={'answer_weight_' + index}
+                          onChange={(event) => { handleAnsWeightChange(event, index) }}
+                          value={(ans.priority) ? ans.priority : ''}
+                          variant="outlined"
+                          size="small"
+                        >
+                          {times(correctAnsCount, (i) => (
+                            <MenuItem key={(i+1)} value={(i+1)}>
+                              {(i+1)}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      :''}  
+                    </TableCell>
+                    <TableCell align="right">
+                      <StyledFab
+                        color="bdanger" aria-label="edit"
+                        size="small"
+                        onClick={()=>{ removeSlideAns(index) }}
+                        disabled={(slidesAns.answers.length <= 2)}
+                      >
+                        <CloseIcon />
+                      </StyledFab>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+SlideAnswers.propTypes = {
+  className: PropTypes.string,
+  slidesAns: PropTypes.object.isRequired
+};
+
+SlideAnswers.defaultProps = {
+  slidesAns: []
+};
+
+export default SlideAnswers;

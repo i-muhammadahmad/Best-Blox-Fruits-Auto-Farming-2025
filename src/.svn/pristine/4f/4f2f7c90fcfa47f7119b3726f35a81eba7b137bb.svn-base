@@ -1,0 +1,467 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import AssetAttributesList from '../../../commonComponents/AssetAttributesList'
+import {
+  updateAssets,
+  hideAssetsValidationError,
+  redirectToAssetsList,
+  assetTypesListFetch,
+  getAssetsById
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography,
+  Button
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find, join } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown } from 'commonDropdowns';
+import uuid from 'uuid/v1';
+import RefreshIcon from '@material-ui/icons/Refresh';
+
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const AssetsUpdateForm = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const assetsState = useSelector(state => state.assetsState);
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const session = useSelector(state => state.session);
+
+  const [AssetTypeValue, setAssetTypeValue] = useState(null);
+  const [OfficeValue, setOfficeValue] = useState(null);
+
+  //setting default form state
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'control_no': uuid(),
+      'asset_attributes': []
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  //setting default schema state
+  const [schema, setSchema] = useState({
+    name: {
+      presence: { allowEmpty: false, message: '^Assets is required' },
+    },
+    atype_id: {
+      presence: { allowEmpty: false, message: '^Please Select Asset Type' },
+    },
+    office_id: {
+      presence: { allowEmpty: false, message: '^Please Select Office' },
+    },
+    serial_no: {
+      presence: { allowEmpty: false, message: 'is required' },
+    },
+    control_no: {
+      presence: { allowEmpty: false, message: 'is required' },
+    }
+  });
+
+  //papulating asset value to formState
+  useEffect(() => {
+    let record = assetsState.assetsRecord;
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'name': record.name,
+        'id': record.id,
+        'atype_id': record.atype_id,
+        'office_id': record.allocated_office,
+        'description': record.description,
+        'serial_no': record.serial_no,
+        'control_no': !isEmpty(record.control_no)? record.control_no : uuid(),
+      },
+      touched: {
+        ...formState.touched,
+        'name': true,
+        'id': true,
+        'atype_id': true,
+        'office_id': true,
+        'description': true,
+        'serial_no': true,
+        'control_no': true,
+      }
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetsState.assetsRecord]);
+
+  //selecting asset type 
+  useEffect(() => {
+    let record = assetsState.assetsRecord
+    const item = find(assetTypesState.assetTypesList, ['id', record.atype_id])
+    setAssetTypeValue(item);
+
+    //papolating asset attributes
+    if(!isEmpty(item)){
+      let asset_attr = item.asset_attributes; 
+      if(!isEmpty(item.asset_attributes)){
+        let attr_list = {};
+        
+        forEach(item.asset_attributes, function (val, key) {
+          
+          attr_list[key] = {
+            attr_id: val.id,
+            field_name: val.field_name,
+            field_tip: val.field_tip,
+            is_required: val.is_required
+          }
+
+          //getting asset detail
+          let asset_dtl = find(assetsState.assetsRecord.asset_details, ['attr_id', val.id]);
+          if(!isEmpty(asset_dtl)){
+            attr_list[key] = {
+              ...attr_list[key],
+              id: asset_dtl.id,
+              attr_value: asset_dtl.attr_value
+            }
+
+            setFormState(formState => ({
+              ...formState,
+              values: {
+                ...formState.values,
+                [val.id]: asset_dtl.attr_value,
+              },
+              touched: {
+                ...formState.touched,
+                [val.id]: true
+              }
+            }));
+          }
+
+        })
+        asset_attr = Object.values(attr_list);
+      }  
+
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          'asset_attributes': asset_attr
+        },
+      }));
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetTypesState.assetTypesList]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.values]);
+
+  //this will revalidate fromstate on schema change
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema]);
+
+  useEffect(() => {
+    if (!isEmpty(assetsState.validation_error)) {
+      const errors = assetsState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [assetsState.validation_error]);
+
+  useEffect(() => {
+    if (assetsState.redirect_to_list) {
+      //router.history.push('/assets');
+    }
+  }, [assetsState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    //dispatch(getAssetsById(assetsState.assetsRecord.id, 'update'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    dispatch(assetTypesListFetch())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const regenrateControlNo = (e) => {
+    e.preventDefault();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'control_no': uuid()
+      },
+      touched: {
+        ...formState.touched,
+        'control_no': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('control_no'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('description'))
+  }
+
+  const getBinderWithHTML = (value) => {
+    let binder_with_arr = [];
+    if(value.is_binded_with_employee == 1){
+      binder_with_arr.push('Employee');
+    }
+    if(value.is_binded_with_office == 1){
+      binder_with_arr.push('Office');
+    }
+    if(value.is_binded_with_workstation == 1){
+      binder_with_arr.push('Workstation');
+    }
+    return(
+      <span> 
+        { join(binder_with_arr, [', ']) }
+      </span>
+    );
+  }
+
+  const officeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue)
+      setOfficeId(newValue.id)
+    }
+    else {
+      setOfficeValue(newValue)
+      setOfficeId('')
+    }
+  }
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'office_id': office_id
+      },
+      touched: {
+        ...formState.touched,
+        'office_id': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('office_id'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideAssetsValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(updateAssets(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+ 
+  return (
+    
+    <Card
+      className={classes.projectDetails}
+    >
+      <CardContent>
+        <form
+          onSubmit={handleSubmit}
+        >
+          <div className={classes.formGroup}>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={4}>
+                <Typography component="p">
+                  <b>Asset Type: </b> {!isEmpty(AssetTypeValue)?AssetTypeValue.name:''}
+                </Typography>
+                <Typography component="p">
+                  (<b> Bound With: </b> {!isEmpty(AssetTypeValue)?getBinderWithHTML(AssetTypeValue):'' })
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <TextField
+                  error={hasError('name')}
+                  fullWidth
+                  helperText={hasError('name') ? formState.errors.name[0] : null}
+                  label="Name"
+                  name="name"
+                  onChange={handleChange}
+                  value={formState.values.name || ''}
+                  variant="outlined"
+                  size="small"
+                  required
+                />
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <OfficesDropdown
+                  OfficeValue={OfficeValue}
+                  setOfficeValue={setOfficeValue}
+                  selectedId={assetsState.assetsRecord.allocated_office}
+                  id="office_id"
+                  name="office_id"
+                  officeOnChange={officeOnChange}
+                  renderInput={(params) => <TextField {...params} label="Select Office" variant="outlined" error={hasError('office_id')} helperText={hasError('office_id') ? formState.errors.office_id[0] : null} />}
+                />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                  <TextField
+                    error={hasError('serial_no')}
+                    fullWidth
+                    helperText={hasError('serial_no') ? formState.errors.serial_no[0] : null}
+                    label="Serial No"
+                    name="serial_no"
+                    onChange={handleChange}
+                    value={formState.values.serial_no || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={4} sm={4} style={{paddingRight: '5px'}}>
+                  <TextField
+                    error={hasError('control_no')}
+                    fullWidth
+                    helperText={hasError('control_no') ? formState.errors.control_no[0] : null}
+                    label="Control No"
+                    name="control_no"
+                    onChange={handleChange}
+                    value={formState.values.control_no || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                  />
+                </Grid>  
+                <Grid item xs={2} sm={2} style={{paddingLeft: '0px'}}>
+                  <Button
+                    color="primary"
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<RefreshIcon />}
+                    style={{height: "36px", backgroundColor: 'rgb(0, 123, 255)'}}
+                    onClick={(e) => regenrateControlNo(e)}
+                  >
+                    Regenrate
+                  </Button>
+                </Grid>
+            </Grid>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={8}>
+                <AssetAttributesList
+                  formState={formState}
+                  setFormState={setFormState}
+                  schema={schema}
+                  setSchema={setSchema}
+                  hasError={hasError}
+                />
+              </Grid>
+            </Grid>
+          </div>
+          <div className={classes.formGroup}>
+            <CKEditor
+              editor={ClassicEditor}
+              config={CK_CONFIGS(localStorage.getItem("token"))}
+              data={assetsState.assetsRecord.description || ''}
+              onChange={(event, editor) => {
+                const data = editor.getData();
+                setDescription(data)
+              }}
+            />
+            <FormControl error={hasError('description')} >
+              <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+            </FormControl>
+          </div>
+          <StyledButton
+            color="bprimary"
+            disabled={!formState.isValid}
+            size="small"
+            type="submit"
+            variant="contained"
+            startIcon={<SaveIcon />}
+          >
+            Update Assets
+          </StyledButton> &nbsp; &nbsp;
+
+        </form>
+
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AssetsUpdateForm;

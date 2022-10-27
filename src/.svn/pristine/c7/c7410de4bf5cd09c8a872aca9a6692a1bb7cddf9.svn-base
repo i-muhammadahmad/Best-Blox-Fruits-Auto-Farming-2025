@@ -1,0 +1,244 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableHead,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty, join, find } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const DetailView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const assetsState = useSelector(state => state.assetsState);
+  const dispatch = useDispatch();
+
+  const getBinderWithHTML = (value) => {
+    let binder_with_arr = [];
+    if (value.is_binded_with_employee == 1) {
+      binder_with_arr.push('Employee');
+    }
+    if (value.is_binded_with_office == 1) {
+      binder_with_arr.push('Office');
+    }
+    if (value.is_binded_with_workstation == 1) {
+      binder_with_arr.push('Workstation');
+    }
+    return (
+      <span>
+        {join(binder_with_arr, [', '])}
+      </span>
+    );
+  }
+
+  const getAllocatedToHTML = (value) => {
+    let alloc_to_arr = [];
+    if (!isEmpty(value.employee)) {
+      let emp_name =  value.employee.firstname+" "+value.employee.middlename+" "+value.employee.lastname
+      alloc_to_arr.push(emp_name);
+    }
+    if (!isEmpty(value.office)) {
+      alloc_to_arr.push(value.office.name);
+    }
+    if (!isEmpty(value.workstation)) {
+      alloc_to_arr.push(value.workstation.name);
+    }
+    return (
+      <span>
+        {join(alloc_to_arr, [', '])}
+      </span>
+    );
+  }
+
+  const getAssetAttributeValue = (attr) => {
+    //getting asset detail
+    let asset_dtl = find(assetsState.assetsRecord.asset_details, ['attr_id', attr.id]);
+    return (
+      <span>
+        {(!isEmpty(asset_dtl))? asset_dtl.attr_value : ''}
+      </span>
+    );
+  }
+
+  return (
+    <div>
+    <Card
+      className={classes.projectDetails}
+    >
+      <CardHeader title="Assets View" />
+      <CardContent>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <TableContainer component={Paper} >
+              <Table className={classes.table} size="small" aria-label="simple table">
+                <TableBody>
+                  <TableRow>
+                    <TableCell variant="head" > Name </TableCell>
+                    <TableCell>{assetsState.assetsRecord.name}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Asset Type </TableCell>
+                    <TableCell>{
+                      !isEmpty(assetsState.assetsRecord.asset_type) ?
+                        assetsState.assetsRecord.asset_type.name : ''
+                    }</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Bound With </TableCell>
+                    <TableCell>{
+                      !isEmpty(assetsState.assetsRecord.asset_type) ?
+                        getBinderWithHTML(assetsState.assetsRecord.asset_type) : ''
+                    }</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Allocated To </TableCell>
+                    <TableCell>{
+                      getAllocatedToHTML(assetsState.assetsRecord) 
+                    }</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Assign From </TableCell>
+                    <TableCell>{assetsState.assetsRecord.asset_assigned_from}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Assign To </TableCell>
+                    <TableCell>{assetsState.assetsRecord.asset_assigned_to}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                      <TableCell variant="head"> Is Unreturned </TableCell>
+                      <TableCell>
+                        {(assetsState.assetsRecord.is_unreturned == 1) ? 'Yes' : 'No'}
+                      </TableCell>
+                    </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Created By </TableCell>
+                    <TableCell>{
+                      !isEmpty(assetsState.assetsRecord.created_by_user) ?
+                        assetsState.assetsRecord.created_by_user.email : ''
+                    }</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Created At </TableCell>
+                    <TableCell>{assetsState.assetsRecord.date_created}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Last Updated By </TableCell>
+                    <TableCell>{
+                      !isEmpty(assetsState.assetsRecord.updated_by_user) ?
+                        assetsState.assetsRecord.updated_by_user.email : ''
+                    }</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head" > Last Updated At </TableCell>
+                    <TableCell>{assetsState.assetsRecord.date_last_modified}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+          {(!isEmpty(assetsState.assetsRecord.asset_type) && !isEmpty(assetsState.assetsRecord.asset_type.asset_attributes)) ?
+            <TableContainer component={Paper}>
+              <Table className={classes.table} size="small" aria-label="Asset Attributes Tables">
+                <TableHead>
+                  <TableRow>
+                    <TableCell >
+                      Name
+                  </TableCell>
+                    <TableCell >
+                      Value
+                  </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {assetsState.assetsRecord.asset_type.asset_attributes.map((attr, index) => (
+                    <TableRow key={attr.attr_id} >
+                      <TableCell >
+                        {attr.field_name}
+                        <span style={{color:'red'}}> {(attr.is_required == 1)? '*':''} </span>
+                      </TableCell>
+                      <TableCell >
+                        {getAssetAttributeValue(attr)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            : ""}
+          </Grid>
+        </Grid>    
+      </CardContent>
+    </Card>
+    <Card
+      className={classes.projectDetails}
+    >
+      <CardHeader title="Assets Description" />
+      <CardContent>
+        <div
+          className="ck-content" dangerouslySetInnerHTML={{ __html: assetsState.assetsRecord.description }}
+        />
+      </CardContent>
+    </Card>
+    <Card
+      className={classes.projectDetails}
+    >
+      <CardHeader title="Binding Notes" />
+      <CardContent>
+        <div
+          className="ck-content" dangerouslySetInnerHTML={{ __html: assetsState.assetsRecord.binding_notes }}
+        />
+      </CardContent>
+    </Card>
+    <Card
+      className={classes.projectDetails}
+    >
+      <CardHeader title="Discard Notes" />
+      <CardContent>
+        <div
+          className="ck-content" dangerouslySetInnerHTML={{ __html: assetsState.assetsRecord.discard_notes }}
+        />
+      </CardContent>
+    </Card>
+    <Card className={classes.projectDetails}>
+      <CardHeader title="Unreturned Notes" />
+      <CardContent>
+        <div
+          className="ck-content"
+          dangerouslySetInnerHTML={{
+            __html: assetsState.assetsRecord.unreturned_notes
+          }}
+        />
+      </CardContent>
+    </Card>
+    </div>
+  );
+}
+
+export default DetailView;

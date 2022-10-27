@@ -1,0 +1,481 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import AssetAttributesList from '../commonComponents/AssetAttributesList'
+import {
+  addAssets,
+  hideAssetsValidationError,
+  redirectToAssetsList,
+  assetTypesListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Button
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown } from 'commonDropdowns';
+import uuid from 'uuid/v1';
+import RefreshIcon from '@material-ui/icons/Refresh';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const AssetsAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const assetsState = useSelector(state => state.assetsState);
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const session = useSelector(state => state.session);
+
+  const [AssetTypeValue, setAssetTypeValue] = useState(null);
+  const [OfficeValue, setOfficeValue] = useState(null);
+
+  //setting default form state
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'control_no': uuid(),
+      'asset_attributes': []
+    },
+    touched: {
+      'object_viewed_id': true,
+      'control_no': true
+    },
+    errors: {}
+  });
+
+  //setting default schema state
+  const [schema, setSchema] = useState({
+    name: {
+      presence: { allowEmpty: false, message: '^Assets is required' },
+    },
+    atype_id: {
+      presence: { allowEmpty: false, message: '^Please Select Asset Type' },
+    },
+    office_id: {
+      presence: { allowEmpty: false, message: '^Please Select Office' },
+    },
+    serial_no: {
+      presence: { allowEmpty: false, message: 'is required' },
+    },
+    control_no: {
+      presence: { allowEmpty: false, message: 'is required' },
+    }
+  });
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.values]);
+
+  //this will revalidate fromstate on schema change
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema]);
+
+  useEffect(() => {
+    if (!isEmpty(assetsState.validation_error)) {
+      const errors = assetsState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [assetsState.validation_error]);
+
+  useEffect(() => {
+    if (assetsState.redirect_to_list) {
+      router.history.push('/assets');
+    }
+  }, [assetsState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    dispatch(assetTypesListFetch(session.current_page_permissions.object_id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const regenrateControlNo = (e) => {
+    e.preventDefault();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'control_no': uuid()
+      },
+      touched: {
+        ...formState.touched,
+        'control_no': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('control_no'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('description'))
+  }
+
+  const officeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue)
+      setOfficeId(newValue.id)
+    }
+    else {
+      setOfficeValue(newValue)
+      setOfficeId('')
+    }
+  }
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'office_id': office_id
+      },
+      touched: {
+        ...formState.touched,
+        'office_id': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('office_id'))
+  }
+
+  const setAssetTypeId = atype_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'atype_id': atype_id
+      },
+      touched: {
+        ...formState.touched,
+        'atype_id': true
+      }
+    }));
+    dispatch(hideAssetsValidationError('atype_id'))
+  }
+
+  const handleAssetTypeChange = newValue => {
+    setAssetTypeValue(newValue)
+
+    //reset the formState and validation schema
+    resetFormState();
+    resetSchema();
+
+    if(!isEmpty(newValue)){
+      let asset_attr = newValue.asset_attributes; 
+      if(!isEmpty(newValue.asset_attributes)){
+        let attr_list = {};
+        forEach(newValue.asset_attributes, function (val, key) {
+          attr_list[key] = {
+            attr_id: val.id,
+            field_name: val.field_name,
+            field_tip: val.field_tip,
+            is_required: val.is_required
+          }
+        })
+        asset_attr = Object.values(attr_list);
+      }  
+
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          'asset_attributes': asset_attr
+        },
+      }));
+    }
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideAssetsValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(addAssets(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  //reset form state  
+  const resetFormState = () => {
+    setFormState({
+      isValid: false,
+      values: {
+        'object_viewed_id': session.current_page_permissions.object_id,
+        'name': formState.values.name,
+        'atype_id': formState.values.atype_id,
+        'office_id': formState.values.office_id,
+        'description': formState.values.description,
+        'serial_no': formState.values.serial_no,
+        'control_no': formState.values.control_no,
+        'asset_attributes': []
+      },
+      touched: {
+        'object_viewed_id': true,
+        'name': formState.touched.name,
+        'atype_id': formState.touched.atype_id,
+        'office_id': formState.touched.office_id,
+        'description': formState.touched.description,
+        'serial_no': formState.touched.serial_no,
+        'control_no': formState.touched.control_no
+      },
+      errors: {}
+    })
+  }
+
+  //reset validation schema
+  const resetSchema = () => {
+    setSchema({
+      name: {
+        presence: { allowEmpty: false, message: '^Assets is required' },
+      },
+      atype_id: {
+        presence: { allowEmpty: false, message: '^Please Select Asset Type' },
+      },
+      office_id: {
+        presence: { allowEmpty: false, message: '^Please Select Office' },
+      },
+      serial_no: {
+        presence: { allowEmpty: false, message: 'is required' },
+      },
+      control_no: {
+        presence: { allowEmpty: false, message: 'is required' },
+      }
+    });
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Assets"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Assets" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  <Autocomplete
+                    id="atype_id"
+                    name="atype_id"
+                    value={AssetTypeValue}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        handleAssetTypeChange(newValue)
+                        setAssetTypeId(newValue.id)
+                      }
+                      else {
+                        handleAssetTypeChange(newValue)
+                        setAssetTypeId('')
+                      }
+
+                    }}
+                    options={assetTypesState.assetTypesList}
+                    getOptionLabel={(option) =>  option.name}
+                    size="small"
+                    renderInput={(params) => <TextField {...params} required size="small" label="Select Asset Type" variant="outlined" error={hasError('atype_id')} helperText={hasError('atype_id') ? formState.errors.atype_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <TextField
+                    error={hasError('name')}
+                    fullWidth
+                    helperText={hasError('name') ? formState.errors.name[0] : null}
+                    label="Name"
+                    name="name"
+                    onChange={handleChange}
+                    value={formState.values.name || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <OfficesDropdown
+                    OfficeValue={OfficeValue}
+                    setOfficeValue={setOfficeValue}
+                    id="office_id"
+                    name="office_id"
+                    officeOnChange={officeOnChange}
+                    renderInput={(params) => <TextField {...params} label="Select Office" variant="outlined" error={hasError('office_id')} helperText={hasError('office_id') ? formState.errors.office_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <TextField
+                    error={hasError('serial_no')}
+                    fullWidth
+                    helperText={hasError('serial_no') ? formState.errors.serial_no[0] : null}
+                    label="Serial No"
+                    name="serial_no"
+                    onChange={handleChange}
+                    value={formState.values.serial_no || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={4} sm={4} style={{paddingRight: '5px'}}>
+                  <TextField
+                    error={hasError('control_no')}
+                    fullWidth
+                    helperText={hasError('control_no') ? formState.errors.control_no[0] : null}
+                    label="Control No"
+                    name="control_no"
+                    onChange={handleChange}
+                    value={formState.values.control_no || ''}
+                    variant="outlined"
+                    size="small"
+                    required
+                  />
+                </Grid>  
+                <Grid item xs={2} sm={2} style={{paddingLeft: '0px'}}>
+                  <Button
+                    color="primary"
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<RefreshIcon />}
+                    style={{height: "36px", backgroundColor: 'rgb(0, 123, 255)'}}
+                    onClick={(e) => regenrateControlNo(e)}
+                  >
+                    Regenrate
+                  </Button>
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={8}>
+                    <AssetAttributesList
+                      formState={formState}
+                      setFormState={setFormState}
+                      schema={schema}
+                      setSchema={setSchema}
+                      hasError={hasError}
+                    />
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={formState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Create Assets
+            </StyledButton> &nbsp; &nbsp;
+            <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToAssetsList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+            </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default AssetsAdd;

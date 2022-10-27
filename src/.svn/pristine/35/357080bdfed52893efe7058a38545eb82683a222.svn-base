@@ -1,0 +1,273 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const CLIENT_INVOICES_REQUEST = 'CLIENT_INVOICES_REQUEST'
+export const CLIENT_INVOICES_SUCCESS = 'CLIENT_INVOICES_SUCCESS'
+export const CLIENT_INVOICES_VALIDATION_ERROR = 'CLIENT_INVOICES_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_CLIENT_INVOICES_FEILD_VALIDATION_ERROR = "HIDE_CLIENT_INVOICES_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_CLIENT_INVOICES_LIST = 'REDIRECT_TO_CLIENT_INVOICES_LIST'
+export const CLIENT_INVOICES_GET_SUCCESS = 'CLIENT_INVOICES_GET_SUCCESS'
+export const CLIENT_INVOICE_ADD_UPDATE_STATUS = 'CLIENT_INVOICE_ADD_UPDATE_STATUS'
+export const CLIENT_INVOICES_SERVER_SUCCESS = 'CLIENT_INVOICES_SERVER_SUCCESS'
+export const SHOW_CLIENT_INVOICES_ADD_FORM = 'SHOW_CLIENT_INVOICES_ADD_FORM'
+export const GET_CUR_PERIOD_INVOICE_SUCCESS = 'GET_CUR_PERIOD_INVOICE_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const clientInvoicesRequest = () => ({
+  type: CLIENT_INVOICES_REQUEST,
+})
+
+const clientInvoicesListSuccess = (clientInvoicesList) => ({
+  type: CLIENT_INVOICES_SUCCESS,
+  clientInvoicesList: clientInvoicesList,
+})
+
+const getCurPeriodInvoiceSuccess = (curPeriodInvoice) => ({
+  type: GET_CUR_PERIOD_INVOICE_SUCCESS,
+  curPeriodInvoice: curPeriodInvoice,
+})
+
+export const clientInvoicesServerListSuccess = () => ({
+  type: CLIENT_INVOICES_SERVER_SUCCESS,
+})
+
+const clientInvoicesFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: CLIENT_INVOICES_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const clientInvoiceAddUpdateStatus = (status) => ({
+  type: CLIENT_INVOICE_ADD_UPDATE_STATUS,
+  add_update_status: status
+});
+
+const clientInvoicesAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(clientInvoicesSuccessNotification(message))
+  dispatch(clientInvoiceAddUpdateStatus(true))
+}
+
+export const redirectToClientInvoicesList = () => ({
+  type: REDIRECT_TO_CLIENT_INVOICES_LIST,
+})
+
+export const showClientInvoiceAddForm = () => ({
+  type: SHOW_CLIENT_INVOICES_ADD_FORM,
+})
+
+const getClientInvoicesSuccess = (response, action) => ({
+  type: CLIENT_INVOICES_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const clientInvoicesSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideClientInvoicesValidationError = (feild_key) => ({
+  type: HIDE_CLIENT_INVOICES_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const getCurPeriodInvoice = (client_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(clientInvoicesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "client_invoices/getCurPeriodInvoice", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        "client_id": client_id
+      }
+    })
+    .then((response) => {
+      dispatch(getCurPeriodInvoiceSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const clientInvoicesListFetch = (client_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(clientInvoicesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "client_invoices/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        "client_id": client_id
+      }
+    })
+    .then((response) => {
+      dispatch(clientInvoicesListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const addClientInvoices = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(clientInvoicesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "client_invoices/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        clientInvoicesAddUpadteSuccess('Meeting Note Added Successfully', 'create', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const updateClientInvoices = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(clientInvoicesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "client_invoices/update/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+    .then((response) => {
+      clientInvoicesAddUpadteSuccess('Meeting Note Updated Successfully', 'update', dispatch)
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const getClientInvoicesById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(clientInvoicesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "client_invoices/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      dispatch(getClientInvoicesSuccess(response.data, action))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+
+  }
+}
+
+export const deleteClientInvoices = (clientInvoicesId, object_viewed_id, client_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(clientInvoicesRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "client_invoices/delete/" + clientInvoicesId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data:{
+        object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(clientInvoicesSuccessNotification('Meeting Note deleted successfully'))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(clientInvoicesFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(clientInvoicesFailure('Unable to perform action.Something went wrong'))
+  }
+}   

@@ -1,0 +1,528 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import { Header } from './components';
+import {
+	addActivityLog,
+	hideActivityLogValidationError,
+	activitySetupByRoleListFetch,
+	getExtraFieldsConfigs,
+	redirectToActivityLogList,
+	activityAllParentCategoryDropdownListFetch
+} from 'actions';
+import {
+	Card,
+	CardHeader,
+	CardContent,
+	TextField,
+	Grid,
+	FormControl,
+	FormHelperText,
+	Paper,
+	FormControlLabel,
+	Checkbox,
+	InputLabel,
+	Input
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, each, some, includes } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { ActivityCategoryDropdown } from 'commonDropdowns';
+import MaskedInput from 'react-text-mask';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	}
+}));
+
+function TextMaskCustom(props) {
+	const { inputRef, ...other } = props;
+
+	return (
+		<MaskedInput
+			{...other}
+			ref={ref => {
+				inputRef(ref ? ref.inputElement : null);
+			}}
+			mask={[/[0-9]/, /[0-9]/, ':', /[0-5]/, /[0-9]/]}
+			placeholder="MM:SS"
+			showMask={false}
+		/>
+	);
+}
+
+const ActivityLogAdd = () => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const router = useRouter();
+	const activityLogState = useSelector(state => state.activityLogState);
+	const activitySetupState = useSelector(state => state.activitySetupState);
+	const session = useSelector(state => state.session);
+
+	const [ActivityCategoryValue, setActivityCategoryValue] = useState(null);
+	const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+	const [ActivityValue, setActivityValue] = useState(null);
+	const [addedExtraFeilds, setAddedExtraFeilds] = useState([]);
+	const [showManualTime, setShowManualTime] = useState(false);
+	const [schema, setSchema] = useState({
+		name: {
+			presence: { allowEmpty: false, message: 'is required' }
+		},
+		activity_units_logged: {
+			presence: { allowEmpty: false, message: 'is required' },
+			numericality: {
+				onlyInteger: true
+			}
+		},
+		activity_id: {
+			presence: { allowEmpty: false, message: 'is required' }
+		},
+		category_id: {
+			presence: { allowEmpty: false, message: '^Activity Category is required' }
+		}
+	});
+	const [formState, setFormState] = useState({
+		isValid: false,
+		values: {
+			object_viewed_id: session.current_page_permissions.object_id
+		},
+		touched: {
+			object_viewed_id: true
+		},
+		errors: {}
+	});
+
+	useEffect(() => {
+		const errors = validate(formState.values, schema);
+
+		setFormState(formState => ({
+			...formState,
+			isValid: errors ? false : true,
+			errors: errors || {}
+		}));
+	}, [formState.values, schema]);
+
+	useEffect(() => {
+		if (!isEmpty(activityLogState.validation_error)) {
+			const errors = activityLogState.validation_error;
+			setFormState(formState => ({
+				...formState,
+				isValid: errors ? false : true,
+				errors: errors || {}
+			}));
+		}
+	}, [activityLogState.validation_error]);
+
+	useEffect(() => {
+		if (activityLogState.redirect_to_list) {
+			router.history.push('/activity-log');
+		}
+	}, [activityLogState.redirect_to_list, router.history]);
+
+	useEffect(() => {
+		dispatch(
+			activitySetupByRoleListFetch(session.current_page_permissions.object_id)
+		);
+		dispatch(getExtraFieldsConfigs());
+		dispatch(
+			activityAllParentCategoryDropdownListFetch(
+				session.user.employee.client_id,
+				session.current_page_permissions.object_id
+			)
+		);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	useEffect(() => {
+		if (!isEmpty(selectedCategoryId)) {
+			dispatch(
+				activitySetupByRoleListFetch(
+					session.current_page_permissions.object_id,
+					selectedCategoryId
+				)
+			);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedCategoryId]);
+
+	useEffect(() => {
+		if (formState.values.chk_manual_time === true) {
+			setShowManualTime(true);
+			setSchema(schema => ({
+				...schema,
+				manual_time: {
+					presence: { allowEmpty: false, message: '^Please Enter Manual Time.' },
+					format: {
+						pattern: "^([0-9]+)?:?([0-9]+)?$", message: "^Please Enter Valid Time."
+					}
+				}
+			}));
+		} else {
+			setShowManualTime(false);
+			let schema_obj = {...schema};
+			delete schema_obj.manual_time;
+			setSchema(schema_obj);
+			
+		}
+	}, [formState.values]);
+
+	const activityCategoryOnChange = (event, newValue) => {
+		if (newValue) {
+			setActivityCategoryValue(newValue);
+			setCategoryId(newValue.id);
+			setSelectedCategoryId(newValue.id);
+		} else {
+			setActivityCategoryValue(newValue);
+			setCategoryId('');
+			setSelectedCategoryId('');
+		}
+	};
+
+	const setCategoryId = category_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				category_id: category_id
+			},
+			touched: {
+				...formState.touched,
+				category_id: true
+			}
+		}));
+		dispatch(hideActivityLogValidationError('category_id'));
+	};
+
+	const setActivityId = activity_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				activity_id: activity_id
+			},
+			touched: {
+				...formState.touched,
+				activity_id: true
+			}
+		}));
+		dispatch(hideActivityLogValidationError('activity_id'));
+	};
+
+	const setDescription = description => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				description: description
+			},
+			touched: {
+				...formState.touched,
+				description: true
+			}
+		}));
+		dispatch(hideActivityLogValidationError('description'));
+	};
+
+	const mapExtraFields = (activityRecord, availableExtraFeilds) => {
+		let av_feilds = availableExtraFeilds;
+		let ad_feilds = [];
+		//console.log(activitySetupState.availableExtraFeilds);
+		each(activityRecord, (val, key) => {
+			if (some(['field_'], el => includes(key, el))) {
+				if (!isEmpty(val)) {
+					const item = find(av_feilds, ['name', key]);
+					if (!isEmpty(item)) {
+						item['field_label'] = val;
+						ad_feilds.push(item);
+					}
+				}
+			}
+		});
+		setAddedExtraFeilds(ad_feilds);
+	};
+
+	const handleChange = event => {
+		event.persist();
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				[event.target.name]:
+					event.target.type === 'checkbox'
+						? event.target.checked
+						: event.target.value
+			},
+			touched: {
+				...formState.touched,
+				[event.target.name]: true
+			}
+		}));
+		dispatch(hideActivityLogValidationError(event.target.name));
+	};
+
+	const handleSubmit = async event => {
+		event.preventDefault();
+		dispatch(addActivityLog(formState.values));
+	};
+
+	const hasError = field =>
+		formState.touched[field] && formState.errors[field] ? true : false;
+
+	return (
+		<Page className={classes.root} title="Add Activity Log">
+			<Header />
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Add Activity Log" />
+				<CardContent>
+					<form onSubmit={handleSubmit}>
+						<div className={classes.formGroup}>
+							<Grid container spacing={3}>
+								<Grid item xs={6} sm={3}>
+									<ActivityCategoryDropdown
+										ActivityCategoryValue={ActivityCategoryValue}
+										setActivityCategoryValue={setActivityCategoryValue}
+										id="category_id"
+										name="category_id"
+										activityCategoryOnChange={activityCategoryOnChange}
+										// showNone={false}
+										// clientIds={session.user.employee.client_id}
+										renderInput={params => (
+											<TextField
+												{...params}
+												label="Select Activity Category"
+												variant="outlined"
+												error={hasError('category_id')}
+												helperText={
+													hasError('category_id')
+														? formState.errors.category_id[0]
+														: null
+												}
+											/>
+										)}
+									/>
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									{activitySetupState.activitySetupByRoleList ? (
+										<>
+											<Autocomplete
+												id="activity_id"
+												value={ActivityValue}
+												onChange={(event, newValue) => {
+													if (newValue) {
+														setActivityValue(newValue);
+														setActivityId(newValue.id);
+														mapExtraFields(
+															newValue,
+															activitySetupState.availableExtraFeilds
+														);
+													} else {
+														setActivityValue(newValue);
+														setActivityId('');
+													}
+												}}
+												disabled={isEmpty(selectedCategoryId)}
+												options={activitySetupState.activitySetupByRoleList}
+												getOptionLabel={option => option.name}
+												renderInput={params => (
+													<TextField
+														{...params}
+														size="small"
+														label="Select Activity"
+														variant="outlined"
+														error={hasError('activity_id')}
+														helperText={
+															hasError('activity_id')
+																? formState.errors.activity_id[0]
+																: null
+														}
+													/>
+												)}
+											/>
+											{!isEmpty(ActivityValue) ? (
+												<FormControl>
+													<FormHelperText id="component-error-text">
+														Unit Time:
+														{'[' +
+															ActivityValue.unit_processing_time +
+															' sec => ' +
+															(ActivityValue.unit_processing_time / 60).toFixed(
+																2
+															) +
+															' min]'}
+													</FormHelperText>
+												</FormControl>
+											) : (
+												''
+											)}
+										</>
+									) : (
+										''
+									)}
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									<TextField
+										error={hasError('name')}
+										fullWidth
+										helperText={
+											hasError('name') ? formState.errors.name[0] : null
+										}
+										label="Activity Reference/Name"
+										name="name"
+										onChange={handleChange}
+										value={formState.values.name || ''}
+										variant="outlined"
+										size="small"
+									/>
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									<TextField
+										error={hasError('activity_units_logged')}
+										fullWidth
+										helperText={
+											hasError('activity_units_logged')
+												? formState.errors.activity_units_logged[0]
+												: null
+										}
+										label="Units Processed"
+										name="activity_units_logged"
+										onChange={handleChange}
+										value={formState.values.activity_units_logged || ''}
+										variant="outlined"
+										InputProps={{ inputProps: { min: 0 } }}
+										type="number"
+										size="small"
+									/>
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									<FormControlLabel
+										control={
+											<Checkbox
+												checked={formState.values.chk_manual_time || false}
+												onChange={handleChange}
+												name="chk_manual_time"
+											/>
+										}
+										label="Add Manual Time"
+									/>
+									{showManualTime ? (
+										<>
+											<TextField
+											error={hasError('manual_time')}
+											fullWidth
+											helperText={
+												hasError('manual_time')
+													? formState.errors.manual_time[0]
+													: null
+											}
+											label="Manual Time"
+											name="manual_time"
+											onChange={handleChange}
+											value={formState.values.manual_time || ''}
+											variant="outlined"
+											InputLabelProps={{
+												shrink: true,
+											}}
+											size="small"
+											InputProps={{
+												inputComponent: TextMaskCustom
+											}}
+										/>
+										</>
+									) : (
+										''
+									)}
+								</Grid>
+							</Grid>
+
+							{!isEmpty(addedExtraFeilds) ? (
+								<Paper
+									elevation={3}
+									variant="outlined"
+									style={{ marginTop: '10px', padding: '10px' }}>
+									<p style={{ marginTop: '10px', marginBottom: '10px' }}>
+										<b> Extra Feilds </b>
+									</p>
+									<Grid container spacing={3}>
+										{addedExtraFeilds.map(afeild => (
+											<Grid key={afeild.id} item xs={12} sm={3}>
+												<TextField
+													fullWidth
+													label={afeild.field_label}
+													name={afeild.name}
+													onChange={handleChange}
+													value={formState.values[afeild.name] || ''}
+													variant="outlined"
+													type={afeild.type}
+													size="small"
+												/>
+											</Grid>
+										))}
+									</Grid>
+								</Paper>
+							) : (
+								''
+							)}
+						</div>
+						<div className={classes.formGroup}>
+							<CKEditor
+								editor={ClassicEditor}
+								config={CK_CONFIGS(localStorage.getItem('token'))}
+								data={formState.values.description || ''}
+								onChange={(event, editor) => {
+									const data = editor.getData();
+									setDescription(data);
+								}}
+							/>
+							<FormControl error={hasError('description')}>
+								<FormHelperText id="component-error-text">
+									{hasError('description')
+										? formState.errors.description[0]
+										: null}
+								</FormHelperText>
+							</FormControl>
+						</div>
+						<StyledButton
+							color="bprimary"
+							disabled={!formState.isValid}
+							size="small"
+							type="submit"
+							variant="contained"
+							startIcon={<SaveIcon />}>
+							Create Activity Log
+						</StyledButton>
+						&nbsp; &nbsp;
+						<StyledButton
+							variant="contained"
+							color="blight"
+							size="small"
+							onClick={() => {
+								dispatch(redirectToActivityLogList());
+							}}
+							startIcon={<CancelIcon />}>
+							CLOSE
+						</StyledButton>
+					</form>
+				</CardContent>
+			</Card>
+		</Page>
+	);
+};
+
+export default ActivityLogAdd;

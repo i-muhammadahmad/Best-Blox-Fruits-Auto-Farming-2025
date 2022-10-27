@@ -1,0 +1,478 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header,
+  Checkpoints
+} from './components';
+import {
+  addAuditForm,
+  auditFormSetupDropdownListFetch,
+  hideAuditFormValidationError,
+  auditSetupCheckpointsListFetch,
+  redirectToAuditFormList,
+  auditFormInfractionDropdownListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography,
+  Button
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { EmployeeDropdown } from 'commonDropdowns';
+import moment from 'moment';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const AuditFormAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const auditFormSetupState = useSelector(state => state.auditFormSetupState);
+  const auditFormState = useSelector(state => state.auditFormState);
+  const session = useSelector(state => state.session);
+
+  const [auditFormSetupValue, setAuditFormSetupValue] = useState(null);
+  const [employeeValue, setEmployeeValue] = useState(null);
+  const [checkpoints, setCheckpoints] = useState([]);
+  const [clientIds, setClientIds] = useState([]);
+  const [detections, setDetections] = useState([]);
+  const [auditSetupId, setAuditSetupId] = useState('');
+  const [files, setFiles] = useState([]);
+
+  const [schema, setSchema] = useState({
+    reference: {
+      presence: { allowEmpty: false, message: ' is required' },
+    },
+    employee_id: {
+      presence: { allowEmpty: false, message: '^Please select employee' },
+    },
+    audit_form_setup_id: {
+      presence: { allowEmpty: false, message: '^Please select audit form setup' },
+    },
+    date_processed: {
+      presence: { allowEmpty: false, message: ' is required' },
+    }
+  });
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'date_processed': moment(moment().toDate()).format('YYYY-MM-DD'),
+      'obtained_score': 100,
+      'audit_result': 'pass',
+      'passing_score': 100,
+    },
+    touched: {
+      'object_viewed_id': true,
+      'date_processed': true,
+      'obtained_score': true,
+      'audit_result': true,
+      'passing_score': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let checkpoints_arr = {};
+    let schema_arr = { ...schema };
+
+    if (!isEmpty(auditFormSetupState.auditFormSetupCheckpointsList)) {
+      forEach(auditFormSetupState.auditFormSetupCheckpointsList, function (value, key) {
+        let cid = value.id;
+
+        //setting chekcpoints
+        checkpoints_arr = {
+          ...checkpoints_arr,
+          [cid]: {
+            'cid': cid,
+            'id': '',
+            'is_checked': false,
+            'title': value.title,
+            'description': value.description,
+            'details': []
+          }
+        }
+
+        //setting schema
+        if (value.is_required == 1) {
+          schema_arr = {
+            ...schema_arr,
+            ['setup_checkpoint_' + cid]: {
+              presence: { allowEmpty: false, message: '^This feild is required' },
+            },
+          }
+        }
+      });
+    }
+    setCheckpoints(checkpoints_arr);
+    setSchema(schema_arr);
+  }, [auditFormSetupState.auditFormSetupCheckpointsList]);
+
+  useEffect(() => {
+    let dect_sum = 0;
+    forEach(detections, function (value, key) {
+      dect_sum = (dect_sum + parseFloat(value));
+    });
+
+    let obt_score = Math.max(0, 100 - dect_sum);
+    let adt_status = (obt_score >= formState.values.passing_score)? 'pass' : 'fail';
+
+    setFormState(formState => ({
+        ...formState,
+        values: {
+            ...formState.values,
+            'obtained_score': obt_score,
+            'audit_result': adt_status
+        },
+        touched: {
+            ...formState.touched,
+            'obtained_score': true,
+            'audit_result': true
+        }
+    }));
+
+  }, [detections]);
+
+  useEffect(() => {
+    dispatch(auditFormSetupDropdownListFetch(session.current_page_permissions.object_id));
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(auditFormState.validation_error)) {
+      const errors = auditFormState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [auditFormState.validation_error]);
+
+  useEffect(() => {
+    if (auditFormState.redirect_to_list) {
+      router.history.push('/audit-form');
+    }
+  }, [auditFormState.redirect_to_list, router.history]);
+
+  const employeeOnChange = (event, newValue) => {
+    if (newValue) {
+      setEmployeeValue(newValue)
+      setEmployeeId(newValue.id)
+    }
+    else {
+      setEmployeeValue(newValue)
+      setEmployeeId('')
+    }
+  }
+
+  const setEmployeeId = employee_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'employee_id': employee_id
+      },
+      touched: {
+        ...formState.touched,
+        'employee_id': true
+      }
+    }));
+    dispatch(hideAuditFormValidationError('employee_id'))
+  }
+
+  const auditFormSetupOnChange = (event, newValue) => {
+    if (newValue) {
+      setAuditFormSetupValue(newValue);
+      setAuditFormSetup(newValue.id, newValue.client_id, newValue.passing_score);
+      setClientIds([newValue.client_id]);
+      dispatch(auditSetupCheckpointsListFetch(session.current_page_permissions.object_id, newValue.id));
+      dispatch(auditFormInfractionDropdownListFetch(session.current_page_permissions.object_id, newValue.client_id));
+    }
+    else {
+      setAuditFormSetupValue(newValue);
+      setAuditFormSetup('', '', 100);
+      setClientIds([]);
+      dispatch(auditSetupCheckpointsListFetch(session.current_page_permissions.object_id, ''));
+      dispatch(auditFormInfractionDropdownListFetch(session.current_page_permissions.object_id, ''));
+    }
+  }
+
+  const setAuditFormSetup = (audit_form_setup_id, client_id, passing_score) => {
+    setAuditSetupId(audit_form_setup_id);
+    
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'audit_form_setup_id': audit_form_setup_id,
+        'client_id': client_id,
+        'passing_score': passing_score
+      },
+      touched: {
+        ...formState.touched,
+        'audit_form_setup_id': true,
+        'client_id': true,
+        'passing_score': true
+      }
+    }));
+    dispatch(hideAuditFormValidationError('audit_form_setup_id'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideAuditFormValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideAuditFormValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+
+    let data = new FormData();
+    //appending form state to data object
+    forEach(formState.values, function (value, key) {
+      data.append(key, value);
+    });
+
+    //appending checkpoints to formdata object
+    data.append('checkpoints', JSON.stringify(checkpoints));
+
+    //apending supporting doc
+    //appending approvalProfile values
+    forEach(files, function (detail_files, detail_id) {
+      forEach(detail_files, function (spdoc, spd_id) {
+        data.append(spd_id, spdoc);
+      })
+    });
+
+    dispatch(addAuditForm(data));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Audit Form"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Audit Form" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  {(auditFormSetupState.auditFormSetupDropdownList) ?
+                    <Autocomplete
+                      id="audit_form_setup_id"
+                      value={auditFormSetupValue}
+                      onChange={auditFormSetupOnChange}
+                      options={auditFormSetupState.auditFormSetupDropdownList}
+                      getOptionLabel={(option) => option.name}
+                      size="small"
+                      renderInput={(params) => <TextField {...params} size="small" label="Select Audit Form Setup" variant="outlined" error={hasError('audit_form_setup_id')} helperText={hasError('audit_form_setup_id') ? formState.errors.audit_form_setup_id[0] : null} />}
+                    />
+                    : ''}
+                </Grid>
+                <Grid item xs={6} sm={4} >
+                  {!isEmpty(clientIds)?
+                    <EmployeeDropdown
+                      EmployeeValue={employeeValue}
+                      setEmployeeValue={setEmployeeValue}
+                      disabled={isEmpty(clientIds)}
+                      clientIds={clientIds}
+                      id="employee_id"
+                      name="employee_id"
+                      employeeOnChange={employeeOnChange}
+                      renderInput={(params) => <TextField {...params} size="small" label="Select Employee" variant="outlined" error={hasError('employee_id')} helperText={hasError('employee_id') ? formState.errors.employee_id[0] : null} />}
+                    />
+                  :
+                    <Autocomplete
+                      id="audit_form_setup_id"
+                      value={employeeValue}
+                      onChange={employeeOnChange}
+                      disabled={true}
+                      options={[]}
+                      getOptionLabel={(option) => option.name}
+                      size="small"
+                      renderInput={(params) => <TextField {...params} size="small" label="Select Employee" variant="outlined" error={hasError('employee_id')} helperText={hasError('employee_id') ? formState.errors.employee_id[0] : null} />}
+                    />
+                }
+                </Grid>
+                <Grid item xs={6} sm={4} >
+                  <TextField
+                    error={hasError('reference')}
+                    fullWidth
+                    helperText={hasError('reference') ? formState.errors.reference[0] : null}
+                    label="Reference"
+                    name="reference"
+                    onChange={handleChange}
+                    value={formState.values.reference || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4} >
+                  <TextField
+                    error={hasError('date_processed')}
+                    type="date"
+                    fullWidth
+                    helperText={hasError('date_processed') ? formState.errors.date_processed[0] : null}
+                    label="Date Processed"
+                    name="date_processed"
+                    onChange={handleChange}
+                    value={formState.values.date_processed || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={8} style={{textAlign: 'right'}} >
+                  <Typography variant="body1" component="span">
+                    <b>Score:</b>  &nbsp;
+                  </Typography>
+                  <Button variant="contained" color="primary" disabled style={{ backgroundColor: '#1a237e', color: '#FFFFFF' }} >
+                    {formState.values.obtained_score}
+                  </Button> &nbsp; &nbsp; &nbsp;
+                  <Typography variant="body1" component="span">
+                    <b>Audit Result:</b>  &nbsp;
+                  </Typography>
+                  <Button variant="contained" color="primary" disabled style={{ backgroundColor: (formState.values.audit_result === 'pass')? '#28a745': '#dc3545' , color: '#FFFFFF' }} >
+                    {formState.values.audit_result}
+                  </Button>
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={12}>
+                  <Checkpoints
+                    checkpoints={checkpoints}
+                    setCheckpoints={setCheckpoints}
+                    hasError={hasError}
+                    formState={formState}
+                    setFormState={setFormState}
+                    schema={schema}
+                    setSchema={setSchema}
+                    files={files}
+                    setFiles={setFiles}
+                    setDetections={setDetections}
+                    detections={detections}
+                  />
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={formState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Create Audit Form
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToAuditFormList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default AuditFormAdd;

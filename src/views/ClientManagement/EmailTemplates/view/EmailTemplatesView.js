@@ -1,0 +1,258 @@
+import React, { useEffect } from 'react';
+import { Page, AttachmentsPreviewer } from 'components';
+import useRouter from 'utils/useRouter';
+import { Header } from './components';
+import {
+	makeStyles,
+	Paper,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableRow,
+	Card,
+	CardHeader,
+	CardContent,
+	Grid,
+  ButtonBase
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	},
+	noTopPad: {
+		paddingTop: '0px !important'
+	},
+	title: {
+		fontSize: 14
+	},
+	borderWhite: {
+		borderColor: 'white'
+	},
+	detailHead: {
+		color: 'grey'
+	},
+	detailBody: {
+		color: '#000'
+	},
+	img: {
+		margin: 'auto',
+		display: 'block',
+		maxWidth: '100%',
+		maxHeight: '100%'
+	}
+}));
+
+const EmailTemplatesView = () => {
+	const classes = useStyles();
+	const router = useRouter();
+	const emailTemplatesState = useSelector(state => state.emailTemplatesState);
+	const dispatch = useDispatch();
+
+	useEffect(() => {
+		if (emailTemplatesState.redirect_to_list) {
+			router.history.push('/email-template');
+		}
+	}, [emailTemplatesState.redirect_to_list, router.history]);
+
+	useEffect(() => {
+		if (
+			!emailTemplatesState.showUpdateForm &&
+			!emailTemplatesState.showViewPage
+		) {
+			router.history.push('/email-template');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [emailTemplatesState.showUpdateForm, emailTemplatesState.showViewPage]);
+
+  const downloadAttachment = (e, record_id) => {
+		window.location.href =
+			API_URL + 'email_templates/downloadEmailAttachment?id=' + record_id;
+	};
+
+	const getEmailTemplateClients = () => {
+    return(
+      <>
+        {!isEmpty(emailTemplatesState.emailTemplatesRecord.email_template_clients)?
+        <>
+          {Object.values(emailTemplatesState.emailTemplatesRecord.email_template_clients).map(camp => (
+            <div key={camp.client.id}>
+              {camp.client.client_name}
+            </div> 
+          ))}
+        </> 
+        :''}
+      </> 
+    )   
+  }
+
+	return (
+		<Page className={classes.root} title="Email Template View">
+			<Header />
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Email Template View" />
+				<CardContent>
+					<Grid container spacing={2}>
+						<Grid item xs={9}>
+							<TableContainer component={Paper}>
+								<Table className={classes.table} aria-label="a dense table">
+									<TableBody>
+										<TableRow>
+											<TableCell variant="head"> Name </TableCell>
+											<TableCell>
+												{emailTemplatesState.emailTemplatesRecord.name}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Client </TableCell>
+											<TableCell>
+											{(emailTemplatesState.emailTemplatesRecord.is_all === 1) ? 'All' : getEmailTemplateClients()}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> To Emails </TableCell>
+											<TableCell>
+												{emailTemplatesState.emailTemplatesRecord.to_emails}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> CC Emails </TableCell>
+											<TableCell>
+												{emailTemplatesState.emailTemplatesRecord.cc_emails !=
+												'null'
+													? emailTemplatesState.emailTemplatesRecord.cc_emails
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> BCC Emails </TableCell>
+											<TableCell>
+												{emailTemplatesState.emailTemplatesRecord.bcc_emails !=
+												'null'
+													? emailTemplatesState.emailTemplatesRecord.bcc_emails
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Subject </TableCell>
+											<TableCell>
+												{emailTemplatesState.emailTemplatesRecord.subject}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Created By </TableCell>
+											<TableCell>
+												{!isEmpty(
+													emailTemplatesState.emailTemplatesRecord
+														.created_by_user
+												)
+													? emailTemplatesState.emailTemplatesRecord
+															.created_by_user.email
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Created At </TableCell>
+											<TableCell>
+												{emailTemplatesState.emailTemplatesRecord.date_created}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Last Updated By </TableCell>
+											<TableCell>
+												{!isEmpty(
+													emailTemplatesState.emailTemplatesRecord
+														.updated_by_user
+												)
+													? emailTemplatesState.emailTemplatesRecord
+															.updated_by_user.email
+													: ''}
+											</TableCell>
+										</TableRow>
+										<TableRow>
+											<TableCell variant="head"> Last Updated At </TableCell>
+											<TableCell>
+												{
+													emailTemplatesState.emailTemplatesRecord
+														.date_last_modified
+												}
+											</TableCell>
+										</TableRow>
+									</TableBody>
+								</Table>
+							</TableContainer>
+						</Grid>
+						<Grid item xs={3}>
+							{!isEmpty(emailTemplatesState.emailTemplatesRecord) &&
+							emailTemplatesState.emailTemplatesRecord.is_image == 1 ? (
+								<ButtonBase className={classes.image}>
+									{!isEmpty(emailTemplatesState.emailTemplatesRecord) ? (
+										<img
+											className={classes.img}
+											alt="complex"
+											src={
+												!isEmpty(emailTemplatesState.emailTemplatesRecord.file_name)
+													? API_URL + emailTemplatesState.emailTemplatesRecord.file_path
+													: ''
+											}
+										/>
+									) : (
+										''
+									)}
+								</ButtonBase>
+							) : !isEmpty(emailTemplatesState.emailTemplatesRecord) &&
+							  emailTemplatesState.emailTemplatesRecord.is_image == 0 ? (
+								<AttachmentsPreviewer
+									attachmentList={
+										!isEmpty(emailTemplatesState.emailTemplatesRecord) && !isEmpty(emailTemplatesState.emailTemplatesRecord.file_path)
+											? [
+													{
+														id: emailTemplatesState.emailTemplatesRecord.id,
+														file_name: emailTemplatesState.emailTemplatesRecord.file_name,
+														file_path: emailTemplatesState.emailTemplatesRecord.file_path,
+														is_image: emailTemplatesState.emailTemplatesRecord.is_image
+													}
+											  ]
+											: []
+									}
+									setAttachmentList={() => {}}
+									showDeleteButton={false}
+                  noOfCols={1}
+									downloadCallback={downloadAttachment}
+								/>
+							) : (
+								''
+							)}
+						</Grid>
+					</Grid>
+				</CardContent>
+			</Card>
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Email Body" />
+				<CardContent>
+					<div
+						className="ck-content"
+						dangerouslySetInnerHTML={{
+							__html: emailTemplatesState.emailTemplatesRecord.body
+						}}
+					/>
+				</CardContent>
+			</Card>
+		</Page>
+	);
+};
+
+export default EmailTemplatesView;

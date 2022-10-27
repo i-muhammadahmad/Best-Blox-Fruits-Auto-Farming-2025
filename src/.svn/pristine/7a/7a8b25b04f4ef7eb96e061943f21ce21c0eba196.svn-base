@@ -1,0 +1,89 @@
+import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { Typography } from '@material-ui/core';
+import { useSelector } from 'react-redux';
+import moment from 'moment';
+import isEmpty from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {},
+  dates: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end'
+  },
+  startDateButton: {
+    marginRight: theme.spacing(1)
+  },
+  endDateButton: {
+    marginLeft: theme.spacing(1)
+  },
+  calendarTodayIcon: {
+    marginRight: theme.spacing(1)
+  }
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+
+  const classes = useStyles();
+  const session = useSelector(state => state.session);
+  const [greatingMessage, setGreatingMessage] = React.useState('Good Morning');
+  const [userName, setuserName] = React.useState('aaa--');
+
+  useEffect(() => {
+    if (session.user) {
+      //const emp_name = getEmployeeName();
+      setuserName(session.user.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.user]);
+
+  useEffect(() => {
+    let hour = moment(moment().toDate()).format('H')
+
+    if (hour >= 5 && hour < 12) {
+      setGreatingMessage('Good Morning');
+    }
+    else if (hour >= 12 && hour < 16) {
+      setGreatingMessage('Good Afternoon');
+    }
+    else if (hour >= 16 && hour < 5) {
+      setGreatingMessage('Good Evening');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Typography
+        component="h2"
+        gutterBottom
+        variant="overline"
+      >
+        Home
+      </Typography>
+      <Typography
+        component="h1"
+        gutterBottom
+        variant="h3"
+      >
+        {greatingMessage}, {userName}
+      </Typography>
+      <Typography variant="subtitle1">Here's what's happening</Typography>
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+Header.defaultProps = {};
+
+export default Header;

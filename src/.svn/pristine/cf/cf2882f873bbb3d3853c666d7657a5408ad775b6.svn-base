@@ -1,0 +1,631 @@
+import React from 'react';
+import CancelIcon from '@material-ui/icons/Cancel';
+import {
+	TextField,
+	makeStyles,
+	Grid,
+	FormControl,
+	FormHelperText,
+	InputLabel,
+	Paper,
+	FormGroup,
+	FormControlLabel,
+	Checkbox,
+	Badge,
+	Typography,
+	MenuItem
+} from '@material-ui/core';
+import { StyledFab } from 'components';
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import Nestable from 'react-nestable';
+import DeleteIcon from '@material-ui/icons/Delete';
+import { forEach, isEmpty, map, set } from 'lodash';
+import {
+	OfficesDropdown,
+	UserDropdown,
+	DepartmentDropdown,
+	RoleDropdown
+} from 'commonDropdowns';
+import { hideDocumentsValidationError } from 'actions';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+
+const useStylesModal = makeStyles(theme => ({
+	modal: {
+		display: 'flex',
+		alignItems: 'center',
+		justifyContent: 'center'
+	},
+	paper: {
+		backgroundColor: theme.palette.background.paper,
+		border: '2px solid #000',
+		boxShadow: theme.shadows[5],
+		padding: theme.spacing(2, 4, 3)
+	},
+	formControl: {
+		margin: theme.spacing(1),
+		width: '100%'
+	},
+	selectEmpty: {
+		marginTop: theme.spacing(2)
+	},
+	badgeStyle: {
+		height: '25px',
+		borderRadius: '15px',
+		padding: '0px',
+		top: '12px',
+		right: '12px'
+	}
+}));
+
+const LineItemsList = props => {
+	const {
+		lineItem,
+		lineItemsList,
+		setLineItemsList,
+		formState,
+		setFormState,
+		schema,
+		setSchema,
+		hasError
+	} = props;
+
+	const [OfficeValue, setOfficeValue] = useState(null);
+	const [RoleValue, setRoleValue] = useState([]);
+	const [DepartmentValue, setDepartmentValue] = useState([]);
+	const [UserValue, setUserValue] = useState([]);
+	const [accessType, setAccessType] = useState('');
+	const [selectedOfficeId, setSelectedOfficeId] = useState([]);
+
+	const accesstypes = [
+		{
+			value: 'all',
+			label: 'All'
+		},
+		{
+			value: 'role',
+			label: 'Role'
+		},
+		{
+			value: 'department',
+			label: 'Department'
+		},
+		{
+			value: 'user',
+			label: 'User'
+		}
+	];
+
+	const classes = useStylesModal();
+	const dispatch = useDispatch();
+
+	/* useEffect(() => {
+		if(accessType == 'user')
+		{
+			setSchema(schema => ({
+				...schema,
+				['user_id_' + lineItem.id]: {
+					presence: { allowEmpty: false, message: '^Please Select User' }
+				}
+			}));
+		}
+		if(accessType == 'department')
+		{
+			setSchema(schema => ({
+				...schema,
+				['department_id_' + lineItem.id]: {
+					presence: { allowEmpty: false, message: '^Please Select Department' }
+				}
+			}));
+		}
+		if(accessType == 'role')
+		{
+			setSchema(schema => ({
+				...schema,
+				['role_id_' + lineItem.id]: {
+					presence: { allowEmpty: false, message: '^Please Select Role' }
+				}
+			}));
+		}
+	}, accessType); */
+
+	useEffect(() => {
+		setAccessType(lineItem.type);
+	}, [lineItemsList[lineItem.id]]);
+
+	const officeOnChange = (id, event, newValue) => {
+		if (newValue) {
+			setOfficeValue(newValue);
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['office_id_' + id]: newValue.id
+				},
+				touched: {
+					...formState.touched,
+					['office_id_' + id]: true
+				}
+			}));
+			setOfficeId(newValue.id, id);
+		} else {
+			setOfficeValue(newValue, id);
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['office_id_' + id]: ''
+				},
+				touched: {
+					...formState.touched,
+					['office_id_' + id]: false
+				}
+			}));
+			setOfficeId('');
+		}
+
+		// Resetting state values on change of the access type
+		setAccessType('');
+		setRoleValue([]);
+		setRoleId('');
+		setDepartmentValue([]);
+		setDepartmentId('');
+		setUserValue([]);
+		setUserId('');
+		setLineItemsList(setLineItemsList => ({
+			...setLineItemsList,
+			[id]: {
+				...setLineItemsList[id],
+				type: '',
+				role_id: [],
+				department_id: [],
+				user_id: []
+			}
+		}));
+	};
+
+	const setOfficeId = (office_id, id) => {
+		setSelectedOfficeId([office_id]);
+		if (!isEmpty(lineItemsList[id])) {
+			setLineItemsList(setLineItemsList => ({
+				...setLineItemsList,
+				[id]: {
+					...setLineItemsList[id],
+					office_id: office_id,
+					selected_office_id: [office_id]
+				}
+			}));
+		}
+		dispatch(hideDocumentsValidationError('office_id_' + id));
+	};
+
+	const roleOnChange = (id, event, newValue) => {
+		if (newValue) {
+			setRoleValue(newValue);
+			let role_ids = map(newValue, 'id');
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['role_id_' + id]: role_ids
+				},
+				touched: {
+					...formState.touched,
+					['role_id_' + id]: true
+				}
+			}));
+			setRoleId(role_ids, id);
+		} else {
+			setRoleValue(newValue, id);
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['role_id_' + id]: ''
+				},
+				touched: {
+					...formState.touched,
+					['role_id_' + id]: false
+				}
+			}));
+			setRoleId('');
+		}
+	};
+
+	const setRoleId = (role_id, id) => {
+		if (!isEmpty(lineItemsList[id])) {
+			setLineItemsList(setLineItemsList => ({
+				...setLineItemsList,
+				[id]: {
+					...setLineItemsList[id],
+					role_id: role_id
+				}
+			}));
+		}
+		dispatch(hideDocumentsValidationError('role_id_' + id));
+	};
+
+	const departmentOnChange = (id, event, newValue) => {
+		if (newValue) {
+			setDepartmentValue(newValue);
+			let department_ids = map(newValue, 'id');
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['department_id_' + id]: department_ids
+				},
+				touched: {
+					...formState.touched,
+					['department_id_' + id]: true
+				}
+			}));
+			setDepartmentId(department_ids, id);
+		} else {
+			setDepartmentValue(newValue, id);
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['department_id_' + id]: ''
+				},
+				touched: {
+					...formState.touched,
+					['department_id_' + id]: false
+				}
+			}));
+			setDepartmentId('');
+		}
+	};
+
+	const setDepartmentId = (department_id, id) => {
+		if (!isEmpty(lineItemsList[id])) {
+			setLineItemsList(setLineItemsList => ({
+				...setLineItemsList,
+				[id]: {
+					...setLineItemsList[id],
+					department_id: department_id
+				}
+			}));
+		}
+		dispatch(hideDocumentsValidationError('department_id_' + id));
+	};
+
+	const userOnChange = (id, event, newValue) => {
+		if (newValue) {
+			setUserValue(newValue);
+			let user_ids = map(newValue, 'id');
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['user_id_' + id]: user_ids
+				},
+				touched: {
+					...formState.touched,
+					['user_id_' + id]: true
+				}
+			}));
+			setUserId(user_ids, id);
+		} else {
+			setUserValue(newValue, id);
+			// setting formState
+			setFormState(formState => ({
+				...formState,
+				values: {
+					...formState.values,
+					['user_id_' + id]: ''
+				},
+				touched: {
+					...formState.touched,
+					['user_id_' + id]: false
+				}
+			}));
+			setUserId('');
+		}
+	};
+
+	const setUserId = (user_id, id) => {
+		if (!isEmpty(lineItemsList[id])) {
+			setLineItemsList(setLineItemsList => ({
+				...setLineItemsList,
+				[id]: {
+					...setLineItemsList[id],
+					user_id: user_id
+				}
+			}));
+		}
+		dispatch(hideDocumentsValidationError('user_id_' + id));
+	};
+
+	const handleAccessTypeChange = (id, event) => {
+		setAccessType(event.target.value);
+		if (!isEmpty(lineItemsList[id])) {
+			setLineItemsList(setLineItemsList => ({
+				...setLineItemsList,
+				[id]: {
+					...setLineItemsList[id],
+					type: event.target.value
+				}
+			}));
+		}
+		// setting formState
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				['type_' + id]: event.target.value
+			},
+			touched: {
+				...formState.touched,
+				['type_' + id]: true
+			}
+		}));
+
+		// Adding schema on based of access type selection 
+		if (event.target.value == 'user') {
+			setSchema(schema => ({
+				...schema,
+				['user_id_' + id]: {
+					presence: { allowEmpty: false, message: '^Please Select User' }
+				}
+			}));
+		}
+		if (event.target.value == 'department') {
+			setSchema(schema => ({
+				...schema,
+				['department_id_' + id]: {
+					presence: { allowEmpty: false, message: '^Please Select Department' }
+				}
+			}));
+		}
+		if (event.target.value == 'role') {
+			setSchema(schema => ({
+				...schema,
+				['role_id_' + id]: {
+					presence: { allowEmpty: false, message: '^Please Select Role' }
+				}
+			}));
+		}
+
+		// Resetting all dropdown values on change of the access type
+		setRoleValue([]);
+		setRoleId('');
+		setDepartmentValue([]);
+		setDepartmentId('');
+		setUserValue([]);
+		setUserId('');
+		setLineItemsList(setLineItemsList => ({
+			...setLineItemsList,
+			[id]: {
+				...setLineItemsList[id],
+				role_id: [],
+				department_id: [],
+				user_id: []
+			}
+		}));
+		dispatch(hideDocumentsValidationError('type_' + id));
+	};
+
+	const deleteLineItem = async id => {
+		let schema_arr = { ...schema };
+		let formState_arr = { ...formState };
+		let lineItems_arr = { ...lineItemsList };
+
+		await delete lineItems_arr[id];
+		await setLineItemsList(lineItems_arr);
+
+		//resting schema for validations
+		await delete schema_arr['office_id_' + id];
+		await delete schema_arr['type_' + id];
+		await delete schema_arr['role_id_' + id];
+		await delete schema_arr['department_id_' + id];
+		await delete schema_arr['user_id_' + id];
+		await setSchema(schema_arr);
+
+		//resting form states
+		await delete formState_arr['values']['office_id_' + id];
+		await delete formState_arr['values']['type_' + id];
+		await delete formState_arr['values']['role_id_' + id];
+		await delete formState_arr['values']['department_id_' + id];
+		await delete formState_arr['values']['user_id_' + id];
+		await delete formState_arr['touched']['office_id_' + id];
+		await delete formState_arr['touched']['type_' + id];
+		await delete formState_arr['touched']['role_id_' + id];
+		await delete formState_arr['touched']['department_id_' + id];
+		await delete formState_arr['touched']['user_id_' + id];
+		await delete formState_arr['errors']['office_id_' + id];
+		await delete formState_arr['errors']['type_' + id];
+		await delete formState_arr['errors']['role_id_' + id];
+		await delete formState_arr['errors']['department_id_' + id];
+		await delete formState_arr['errors']['user_id_' + id];
+		await setFormState(formState => ({
+			...formState,
+			values: {
+				...formState_arr['values']
+			},
+			touched: {
+				...formState_arr['touched']
+			},
+			errors: {
+				...formState_arr['errors']
+			}
+		}));
+	};
+
+	return (
+		<div className={classes.root}>
+			<Paper
+				elevation={3}
+				style={{
+					width: '100%',
+					padding: '20px',
+					marginBottom: '20px',
+					backgroundColor: '#FFFFF6',
+					borderTopRightRadius: '17px'
+				}}>
+				<StyledFab
+					color="bdanger"
+					aria-label="edit"
+					size="small"
+					style={{ top: '0px', right: '0px', position: 'absolute' }}
+					onClick={() => deleteLineItem(lineItem.id)}>
+					<DeleteIcon size="small" />
+				</StyledFab>
+				<Grid container spacing={3}>
+					<Grid item xs={6} sm={6}>
+						<OfficesDropdown
+							OfficeValue={OfficeValue}
+							setOfficeValue={setOfficeValue}
+							id={'office_id_' + lineItem.id}
+							name={'office_id_' + lineItem.id}
+							selectedId={lineItemsList[lineItem.id].office_id || ''}
+							officeOnChange={(e, newValue) => {
+								officeOnChange(lineItem.id, e, newValue);
+							}}
+							renderInput={params => (
+								<TextField
+									{...params}
+									label="Select Office"
+									variant="outlined"
+									error={hasError('office_id_' + lineItem.id)}
+									helperText={
+										hasError('office_id_' + lineItem.id)
+											? formState.errors['office_id_' + lineItem.id][0]
+											: null
+									}
+								/>
+							)}
+						/>
+					</Grid>
+					<Grid item xs={6} sm={6}>
+						<TextField
+							id={'type_' + lineItem.id}
+							name={'type_' + lineItem.id}
+							select
+							error={hasError('type_'+ lineItem.id)}
+							fullWidth
+							helperText={hasError('type_' + lineItem.id) ? formState.errors['type_' + lineItem.id][0] : null}
+							label={'Select Access Type'}
+							onChange={e => {
+								handleAccessTypeChange(lineItem.id, e);
+							}}
+							value={lineItemsList[lineItem.id].type || ''}
+							variant="outlined"
+							size="small"
+							InputLabelProps={{ shrink: true }}>
+							{accesstypes.map(option => (
+								<MenuItem key={option.value} value={option.value}>
+									{option.label}
+								</MenuItem>
+							))}
+						</TextField>
+					</Grid>
+					{!isEmpty(OfficeValue) &&
+					!isEmpty(accessType) &&
+					accessType == 'role' ? (
+						<Grid item xs={6} sm={6}>
+							<RoleDropdown
+								RoleValue={RoleValue}
+								setRoleValue={setRoleValue}
+								id={'role_id_' + lineItem.id}
+								name={'role_id_' + lineItem.id}
+								selectedId={lineItemsList[lineItem.id].role_id || ''}
+								roleOnChange={(e, newValue) => {
+									roleOnChange(lineItem.id, e, newValue);
+								}}
+								showSelectAllOption={true}
+								multiple={true}
+								limitTags={2}
+								renderInput={params => (
+									<TextField
+										{...params}
+										label="Select Role"
+										variant="outlined"
+										error={hasError('role_id_' + lineItem.id)}
+										helperText={
+											hasError('role_id_' + lineItem.id) ? formState.errors['role_id_' + lineItem.id][0] : null
+										}
+									/>
+								)}
+							/>
+						</Grid>
+					) : !isEmpty(OfficeValue) &&
+					  !isEmpty(accessType) &&
+					  accessType == 'department' ? (
+						<Grid item xs={6} sm={6}>
+							<DepartmentDropdown
+								DepartmentValue={DepartmentValue}
+								setDepartmentValue={setDepartmentValue}
+								id={'department_id_' + lineItem.id}
+								name={'department_id_' + lineItem.id}
+								selectedId={lineItemsList[lineItem.id].department_id || ''}
+								departmentOnChange={(e, newValue) => {
+									departmentOnChange(lineItem.id, e, newValue);
+								}}
+								showSelectAllOption={true}
+								multiple={true}
+								limitTags={2}
+								officesIds={lineItemsList[lineItem.id].selected_office_id || []}
+								renderInput={params => (
+									<TextField
+										{...params}
+										label="Select Department"
+										variant="outlined"
+										error={hasError('department_id_' + lineItem.id)}
+										helperText={
+											hasError('department_id_' + lineItem.id)
+												? formState.errors['department_id_' + lineItem.id][0]
+												: null
+										}
+									/>
+								)}
+							/>
+						</Grid>
+					) : !isEmpty(OfficeValue) &&
+					  !isEmpty(accessType) &&
+					  accessType == 'user' ? (
+						<Grid item xs={6} sm={6}>
+							<UserDropdown
+								UserValue={UserValue}
+								setUserValue={setUserValue}
+								id={'user_id_' + lineItem.id}
+								name={'user_id_' + lineItem.id}
+								userOnChange={(e, newValue) => {
+									userOnChange(lineItem.id, e, newValue);
+								}}
+								selectedId={lineItemsList[lineItem.id].user_id || ''}
+								showSelectAllOption={true}
+								multiple={true}
+								limitTags={2}
+								officesIds={lineItemsList[lineItem.id].selected_office_id || []}
+								renderInput={params => (
+									<TextField
+										{...params}
+										label="Select User"
+										variant="outlined"
+										error={hasError('user_id_' + lineItem.id)}
+										helperText={
+											hasError('user_id_' + lineItem.id) ? formState.errors['user_id_' + lineItem.id][0] : null
+										}
+									/>
+								)}
+							/>
+						</Grid>
+					) : (
+						''
+					)}
+				</Grid>
+			</Paper>
+		</div>
+	);
+};
+
+export default LineItemsList;

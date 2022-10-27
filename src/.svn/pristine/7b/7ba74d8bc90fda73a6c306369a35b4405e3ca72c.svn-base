@@ -1,0 +1,457 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { StyledButton, DeleteAlert, StyledFab } from 'components';
+import { Results } from './components';
+import {
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel,
+} from '@material-ui/core';
+import {
+  hideEmployeeShiftsValidationError,
+  getShiftsByClient,
+  addEmployeeShifts,
+  employeeShiftsListFetch,
+  deleteEmployeeShifts,
+  updateEmployeeShifts,
+  showCommonLoader,
+  hideCommonLoader
+} from 'actions';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import SaveIcon from '@material-ui/icons/Save';
+import ClearIcon from '@material-ui/icons/Clear';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import { isEmpty, forEach, find, filter } from 'lodash';
+import { CK_CONFIGS } from 'configs';
+import moment from 'moment';
+
+const useStyles = makeStyles((theme) => ({
+  root: {},
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const schema = {
+  shift_id: {
+    presence: { allowEmpty: false, message: '^Please Select Shift' },
+  },
+  effective_from_date: {
+    presence: { allowEmpty: false, message: ' is required' },
+  }
+}
+
+const EmployeeShifts = props => {
+  const { activeTab, ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const employeeShiftsState = useSelector(state => state.employeeShiftsState);
+  const employeesState = useSelector(state => state.employeesState);
+  const shiftsState = useSelector(state => state.shiftsState);
+  const session = useSelector(state => state.session);
+
+  const [employeeShiftId, setEmployeeShiftId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const [ShiftValue, setShiftValue] = useState(null);
+  const [employeesShiftList, setEmployeesShiftList] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'employee_id': employeesState.employeesRecord.id,
+      'effective_from_date': moment(moment().toDate()).format('YYYY-MM-DD')
+    },
+    touched: {
+      'object_viewed_id': true,
+      'employee_id': true,
+      'effective_from_date': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let employeeShifts_list = [];
+    forEach(employeeShiftsState.employeeShiftsList, function (value, key) {
+      let actions = getActions(value);
+      value['Actions'] = actions
+      value['created_by_user_name'] = (value.created_by_user) ? value.created_by_user.email : ''
+      value['description_html'] = (value.description) ? value.description.replace(/(<([^>]+)>)/gi, "").substring(0, 200) : '';
+      value['updated_by_user_name'] = (value.updated_by_user) ? value.updated_by_user.email : ''
+      value['shift_name'] = (value.shift) ? value.shift.name : ''
+      employeeShifts_list[key] = value
+    });
+    setEmployeesShiftList(employeeShifts_list);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeShiftsState.employeeShiftsList]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(employeeShiftsState.validation_error)) {
+      const errors = employeeShiftsState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [employeeShiftsState.validation_error]);
+
+  useEffect(() => {
+    if (
+      isEmpty(shiftsState.shiftsByClientList) 
+      && !isEmpty(employeesState.employeesRecord)
+    ) {
+      dispatch(getShiftsByClient(employeesState.employeesRecord.client_id))
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isEmpty(employeesState.employeesRecord)) {
+      dispatch(employeeShiftsListFetch(employeesState.employeesRecord.id));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (employeeShiftsState.employee_shift_add_update_status === true) {
+      resetForm();
+      dispatch(employeeShiftsListFetch(employeesState.employeesRecord.id));
+    }
+  }, [employeeShiftsState.employee_shift_add_update_status]);
+
+  //reseting
+  useEffect(() => {
+    if(activeTab === 2){
+      resetForm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(session.current_page_permissions.rights_edit == '1') ?
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(session.current_page_permissions.rights_delete == '1') ?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  const deleteRecord = () => {
+    dispatch(deleteEmployeeShifts(employeeShiftId, session.current_page_permissions.object_id, employeesState.employeesRecord.id))
+  }
+
+  const showDeleteModal = (id) => {
+    setEmployeeShiftId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setEmployeeShiftId('')
+  }
+
+  const updateRecord = (id) => {
+    //dispatch(showCommonLoader())
+    let item = find(employeeShiftsState.employeeShiftsList, ['id', id]);
+    if (!isEmpty(item)) {
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          'object_viewed_id': session.current_page_permissions.object_id,
+          'id': item.id,
+          'shift_id': item.shift_id,
+          'description': item.description,
+          'effective_from_date': item.effective_from_date,
+          'effective_to_date': item.effective_to_date
+        },
+        touched: {
+          ...formState.touched,
+          'object_viewed_id': true,
+          'id': true,
+          'shift_id': true,
+          'description': true,
+          'effective_from_date': true,
+          'effective_to_date': true
+        },
+      }));
+
+      let shift_val = find(shiftsState.shiftsByClientList, ['id', item.shift_id]);
+      setShiftValue(shift_val);
+
+      var elmnt = document.getElementById("employee_shift_form");
+      elmnt.scrollIntoView();
+    }
+    //dispatch(hideCommonLoader());
+
+  }
+
+  const setShiftId = shift_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'shift_id': shift_id
+      },
+      touched: {
+        ...formState.touched,
+        'shift_id': true
+      }
+    }));
+    dispatch(hideEmployeeShiftsValidationError('shift_id'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideEmployeeShiftsValidationError(event.target.name))
+  }
+
+
+  const handleSubmit = () => {
+
+    //event.preventDefault();
+    if (!isEmpty(employeesState.employeesRecord.id)) {
+      let data = formState.values;
+      data['employee_id'] = employeesState.employeesRecord.id;
+
+      if (isEmpty(formState.values.id)) {
+        dispatch(addEmployeeShifts(data));
+      }
+      else {
+        dispatch(updateEmployeeShifts(data));
+      }
+    }
+    else {
+      alert('Please Select Employee');
+    }
+  }
+
+  const resetForm = () => {
+    setFormState(formState => ({
+      isValid: false,
+      values: {
+        'object_viewed_id': session.current_page_permissions.object_id,
+        'employee_id': employeesState.employeesRecord.id,
+        'effective_from_date': moment(moment().toDate()).format('YYYY-MM-DD')
+      },
+      touched: {
+        'object_viewed_id': true,
+        'employee_id': true,
+        'effective_from_date': true,
+      },
+      errors: {}
+    }));
+    setShiftValue(null);
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideEmployeeShiftsValidationError('description'))
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <div style={{ marginTop: '25px' }}>
+      <div className={classes.formGroup}>
+        <Grid container spacing={3} id="employee_shift_form">
+          <Grid item xs={12} sm={12}>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={4}>
+                {(shiftsState.shiftsByClientList) ?
+                  <Autocomplete
+                    id="shift_id"
+                    name="shift_id"
+                    value={ShiftValue}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        setShiftValue(newValue)
+                        setShiftId(newValue.id)
+                      }
+                      else {
+                        setShiftValue(newValue)
+                        setShiftId('')
+                      }
+
+                    }}
+                    options={shiftsState.shiftsByClientList}
+                    getOptionLabel={(option) => option.name}
+                    size="small"
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Shift" InputLabelProps={{ shrink: true, }} variant="outlined" error={hasError('shift_id')} helperText={hasError('shift_id') ? formState.errors.shift_id[0] : null} />}
+                  />
+                  : ''
+                }
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <TextField
+                  error={hasError('effective_from_date')}
+                  fullWidth
+                  helperText={hasError('effective_from_date') ? formState.errors.effective_from_date[0] : null}
+                  label="Effective From Date"
+                  name="effective_from_date"
+                  onChange={handleChange}
+                  value={formState.values.effective_from_date || ''}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <TextField
+                  error={hasError('effective_to_date')}
+                  fullWidth
+                  helperText={hasError('effective_to_date') ? formState.errors.effective_to_date[0] : null}
+                  label="Effective To Date"
+                  name="effective_to_date"
+                  onChange={handleChange}
+                  value={formState.values.effective_to_date || ''}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+            </Grid>
+            <br />
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={formState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText component='div' id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={12}>
+                <div style={{ float: 'right' }} >
+                  <StyledButton
+                    color="bprimary"
+                    disabled={!formState.isValid}
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSubmit}
+                  >
+                    Save Binding
+                  </StyledButton>&nbsp; &nbsp;
+                  <StyledButton
+                    variant="contained"
+                    color="blight"
+                    size="small"
+                    onClick={() => { resetForm() }}
+                    startIcon={<ClearIcon />}
+                  >
+                    RESET
+                  </StyledButton>
+                </div>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            {employeesShiftList ?
+              <Results
+                className={classes.results}
+                employeesShiftList={employeesShiftList}
+              />
+              : ''
+            }
+
+          </Grid>
+        </Grid>
+        <DeleteAlert
+          title="Delete Employee Shift"
+          alertText="Are you sure, You want delete this employee shift?"
+          deleteCallback={deleteRecord}
+          modalOpen={openDeleteModel}
+          handleModalOpen={setOpenDeleteModel}
+          onModelClose={hideDeleteModel}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default EmployeeShifts;

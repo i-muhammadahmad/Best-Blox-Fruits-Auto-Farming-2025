@@ -1,0 +1,390 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const PURCHASE_ORDERS_REQUEST = 'PURCHASE_ORDERS_REQUEST'
+export const PURCHASE_ORDERS_SUCCESS = 'PURCHASE_ORDERS_SUCCESS'
+export const PURCHASE_ORDERS_VALIDATION_ERROR = 'PURCHASE_ORDERS_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_PURCHASE_ORDERS_FEILD_VALIDATION_ERROR = "HIDE_PURCHASE_ORDERS_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_PURCHASE_ORDERS_LIST = 'REDIRECT_TO_PURCHASE_ORDERS_LIST'
+export const PURCHASE_ORDERS_GET_SUCCESS = 'PURCHASE_ORDERS_GET_SUCCESS'
+export const PURCHASE_ORDERS_SERVER_SUCCESS = 'PURCHASE_ORDERS_SERVER_SUCCESS'
+export const PURCHASE_ORDERS_STATUS_DROPDOWN_LIST_SUCCESS = 'PURCHASE_ORDERS_STATUS_DROPDOWN_LIST_SUCCESS'
+export const ADD_REMOVE_PURCHASE_ORDER_DETAILS = 'ADD_REMOVE_PURCHASE_ORDER_DETAILS';
+export const PURCHASE_ORDERS_DETAILS_LIST_SUCCESS = 'PURCHASE_ORDERS_DETAILS_LIST_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const purchaseOrdersRequest = () => ({
+  type: PURCHASE_ORDERS_REQUEST,
+})
+
+export const purchaseOrdersServerListSuccess = () => ({
+  type: PURCHASE_ORDERS_SERVER_SUCCESS,
+})
+
+const purchaseOrdersListSuccess = purchaseOrdersList => ({
+  type: PURCHASE_ORDERS_SUCCESS,
+  purchaseOrdersList: purchaseOrdersList,
+})
+
+const purchaseOrdersFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: PURCHASE_ORDERS_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const purchaseOrdersAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(purchaseOrdersSuccessNotification(message))
+  dispatch(redirectToPurchaseOrdersList())
+}
+
+const commentAddSuccess = (message, action, dispatch) => {
+  dispatch(purchaseOrdersSuccessNotification(message))
+}
+
+const ticketDetailsUpdateSuccess = (message, action, dispatch) => {
+  dispatch(purchaseOrdersSuccessNotification(message))
+}
+
+export const redirectToPurchaseOrdersList = () => ({
+  type: REDIRECT_TO_PURCHASE_ORDERS_LIST,
+})
+
+export const addRemovePODetails = ( added_asset_details, removed_asset_details = []) => ({
+  type: ADD_REMOVE_PURCHASE_ORDER_DETAILS,
+  added_asset_details: added_asset_details,
+  removed_asset_details: removed_asset_details,
+})
+
+const purchaseOrdersDetailsListSuccess = purchaseOrdersDetailsList => ({
+  type: PURCHASE_ORDERS_DETAILS_LIST_SUCCESS,
+  purchaseOrdersDetailsList: purchaseOrdersDetailsList,
+})
+
+const getPurchaseOrdersSuccess = (response, action) => ({
+  type: PURCHASE_ORDERS_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const purchaseOrdersSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hidePurchaseOrdersValidationError = (feild_key) => ({
+  type: HIDE_PURCHASE_ORDERS_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const purchaseOrdersListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      dispatch(purchaseOrdersListSuccess(response.data))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+
+  }
+}
+
+export const purchaseOrdersDetailsListFetch = (purchase_order_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/getAllPurchaseOrdersDetailsList", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        purchase_order_id: purchase_order_id
+      }
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader()) 
+      dispatch(purchaseOrdersDetailsListSuccess(response.data))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+  }
+}
+
+export const addPurchaseOrders = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        purchaseOrdersAddUpadteSuccess('Ticket Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addComment = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/addComment/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        commentAddSuccess('Comment Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updatePurchaseOrders = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/update/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        purchaseOrdersAddUpadteSuccess('Ticket Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+// For updating ticket status
+export const updateTicketStatus = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/updateTicketStatus/" + data.id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        ticketDetailsUpdateSuccess('Ticket Status Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+// For updating ticket Category
+export const updateTicketCategory = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/updateTicketCategory/" + data.id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        ticketDetailsUpdateSuccess('Ticket Category Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getPurchaseOrdersById = (id, action, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getPurchaseOrdersSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deletePurchaseOrders = (purchaseOrdersId, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/delete/" + purchaseOrdersId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(purchaseOrdersSuccessNotification('Ticket deleted successfully'))
+        dispatch(purchaseOrdersListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+/*
+* PurchaseOrders Status dropdown list fetch methods
+*/
+const purchaseOrdersStatusDropdownListSuccess = purchaseOrdersStatusDropdownList => ({
+  type: PURCHASE_ORDERS_STATUS_DROPDOWN_LIST_SUCCESS,
+  purchaseOrdersStatusDropdownList: purchaseOrdersStatusDropdownList,
+})
+
+export const purchaseOrdersStatusDropdownListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(purchaseOrdersRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "purchaseOrders/getAllStatusForDropdown", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+    .then((response) => {
+      dispatch(purchaseOrdersStatusDropdownListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(purchaseOrdersFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(purchaseOrdersFailure('Unable to perform action.Something went wrong'))
+  }
+}   

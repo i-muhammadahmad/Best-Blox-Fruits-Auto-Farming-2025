@@ -1,0 +1,408 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { StyledButton, DeleteAlert, StyledFab } from 'components';
+import { Results } from './attributesComponents';
+import {
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  FormGroup,
+  FormControlLabel,
+  Checkbox
+} from '@material-ui/core';
+import {
+  hidevalidationError,
+  addAssetAttribute,
+  assetAttributeListFetch,
+  deleteAssetAttribute,
+  updateAssetAttribute,
+  showCommonLoader,
+  hideCommonLoader
+} from 'actions';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import SaveIcon from '@material-ui/icons/Save';
+import ClearIcon from '@material-ui/icons/Clear';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import { isEmpty, forEach, find } from 'lodash';
+import { CK_CONFIGS } from 'configs';
+
+const useStyles = makeStyles((theme) => ({
+  root: {},
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const schema = {
+  field_name: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  field_tip: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  priority: {
+    presence: { allowEmpty: false, message: ' is required' },
+    numericality: {
+      greaterThanOrEqualTo: 0,
+    }
+  }
+}
+
+const AssetAttributes = props => {
+  const { ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const assetAttributeState = useSelector(state => state.assetAttributeState);
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const session = useSelector(state => state.session);
+
+  const [assetAttributeId, setAssetAttributeId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const [assetAttributeList, setAssetAttributeList] = useState([]);
+
+  const [assetAttributeFormState, setassetAttributeFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'is_required': 0,
+    },
+    touched: {
+      'object_viewed_id': true,
+      'is_required': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let assetAttributes_list = [];
+    forEach(assetAttributeState.assetAttributeList, function (value, key) {
+      let actions = getActions(value);
+      value['Actions'] = actions
+      value['created_by_user_name'] = (value.created_by_user) ? value.created_by_user.email : ''
+      value['description_html'] = (value.description) ? value.description.replace(/(<([^>]+)>)/gi, "").substring(0, 200) : '';
+      value['updated_by_user_name'] = (value.updated_by_user) ? value.updated_by_user.email : ''
+      value['is_required_html'] = (value.is_required) ? 'Yes': 'No'
+      assetAttributes_list[key] = value
+    });
+    setAssetAttributeList(assetAttributes_list);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetAttributeState.assetAttributeList]);
+
+  useEffect(() => {
+    const errors = validate(assetAttributeFormState.values, schema);
+
+    setassetAttributeFormState(assetAttributeFormState => ({
+      ...assetAttributeFormState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [assetAttributeFormState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(assetAttributeState.asset_attribute_validation_error)) {
+      const errors = assetAttributeState.asset_attribute_validation_error;
+      setassetAttributeFormState(assetAttributeFormState => ({
+        ...assetAttributeFormState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [assetAttributeState.asset_attribute_validation_error]);
+
+  useEffect(() => {
+    if (assetAttributeState.asset_attribute_add_update_status === true) {
+      resetForm();
+      dispatch(assetAttributeListFetch(assetTypesState.asset_type_id, session.current_page_permissions.object_id));
+    }
+  }, [assetAttributeState.asset_attribute_add_update_status]);
+
+  useEffect(() => {
+    dispatch(assetAttributeListFetch(assetTypesState.asset_type_id, session.current_page_permissions.object_id));
+  }, []);
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(session.current_page_permissions.rights_edit == '1') ?
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(session.current_page_permissions.rights_delete == '1') ?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  const deleteRecord = () => {
+    dispatch(deleteAssetAttribute(assetAttributeId, session.current_page_permissions.object_id, assetTypesState.asset_type_id))
+  }
+
+  const showDeleteModal = (id) => {
+    setAssetAttributeId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setAssetAttributeId('')
+  }
+
+  const updateRecord = (id) => {
+    //dispatch(showCommonLoader())
+    let item = find(assetAttributeState.assetAttributeList, ['id', id]);
+    if (!isEmpty(item)) {
+      setassetAttributeFormState(assetAttributeFormState => ({
+        ...assetAttributeFormState,
+        values: {
+          ...assetAttributeFormState.values,
+          'object_viewed_id': session.current_page_permissions.object_id,
+          'id': item.id,
+          'field_name': item.field_name,
+          'field_tip': item.field_tip,
+          'priority': item.priority,
+          'is_required': item.is_required
+        },
+        touched: {
+          ...assetAttributeFormState.touched,
+          'object_viewed_id': true,
+          'id': true,
+          'field_name': true,
+          'field_tip': true,
+          'priority': true,
+          'is_required': true
+        },
+      }));
+
+      var elmnt = document.getElementById("asset_attribute_form");
+      elmnt.scrollIntoView();
+    }
+    //dispatch(hideCommonLoader());
+
+  }
+
+
+  const handleChange = event => {
+    event.persist();
+    setassetAttributeFormState(assetAttributeFormState => ({
+      ...assetAttributeFormState,
+      values: {
+        ...assetAttributeFormState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...assetAttributeFormState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hidevalidationError(event.target.name))
+  }
+
+  const handleSubmit = () => {
+
+    //event.preventDefault();
+    if (!isEmpty(assetTypesState.asset_type_id)) {
+      let data = assetAttributeFormState.values;
+      data['atype_id'] = assetTypesState.asset_type_id;
+
+      if (isEmpty(assetAttributeFormState.values.id)) {
+        dispatch(addAssetAttribute(data));
+      }
+      else {
+        dispatch(updateAssetAttribute(data)); 
+      }
+    }
+    else {
+      alert('Please Select Asset Type');
+    }
+  }
+
+  const resetForm = () => {
+    setassetAttributeFormState(assetAttributeFormState => ({
+      isValid: false,
+      values: {
+        'object_viewed_id': session.current_page_permissions.object_id,
+        'is_required': 0
+      },
+      touched: {
+        'object_viewed_id': true,
+        'is_required': true
+      },
+      errors: {}
+    }));
+  }
+
+  const setDescription = description => {
+    setassetAttributeFormState(assetAttributeFormState => ({
+      ...assetAttributeFormState,
+      values: {
+        ...assetAttributeFormState.values,
+        'description': description
+      },
+      touched: {
+        ...assetAttributeFormState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hidevalidationError('description'))
+  }
+
+  const hasError = field =>
+    assetAttributeFormState.touched[field] && assetAttributeFormState.errors[field] ? true : false;
+
+  return (
+    <div>
+      <div className={classes.formGroup} id="asset_attribute_form">
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={4}>
+                <TextField
+                  error={hasError('field_name')}
+                  fullWidth
+                  helperText={hasError('field_name') ? assetAttributeFormState.errors.field_name[0] : null}
+                  label="Field Name"
+                  name="field_name"
+                  onChange={handleChange}
+                  value={assetAttributeFormState.values.field_name || ''}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <TextField
+                  error={hasError('field_tip')}
+                  fullWidth
+                  helperText={hasError('field_tip') ? assetAttributeFormState.errors.field_tip[0] : null}
+                  label="Field Tip"
+                  name="field_tip"
+                  onChange={handleChange}
+                  value={assetAttributeFormState.values.field_tip || ''}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={3} sm={2}>
+                <TextField
+                  error={hasError('priority')}
+                  fullWidth
+                  helperText={hasError('priority') ? assetAttributeFormState.errors.priority[0] : null}
+                  label="Priority"
+                  name="priority"
+                  onChange={handleChange}
+                  value={assetAttributeFormState.values.priority || ''}
+                  variant="outlined"
+                  size="small"
+                  type="number"
+                />
+              </Grid>   
+              <Grid item xs={3} sm={2}>
+                <FormControl component="fieldset" className={classes.formControl} error={hasError('is_required')}>
+                  <FormGroup row>
+                    <FormControlLabel
+                      control={<Checkbox checked={assetAttributeFormState.values.is_required} onChange={handleChange} name="is_required" />}
+                      label="Is Required"
+                    />
+                  </FormGroup>
+                  <FormHelperText component="div" id="bound-error-text">{hasError('is_required') ? assetAttributeFormState.errors.is_required[0] : null}</FormHelperText> 
+                </FormControl>
+              </Grid>
+            </Grid>
+            <br />
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={assetAttributeFormState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText component='div' id="component-error-text">{hasError('description') ? assetAttributeFormState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={12}>
+                <div style={{ float: 'right' }} >
+                  <StyledButton
+                    color="bprimary"
+                    disabled={!assetAttributeFormState.isValid}
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSubmit}
+                  >
+                    Save Asset Attribute
+                  </StyledButton>&nbsp; &nbsp;
+                  <StyledButton
+                    variant="contained"
+                    color="blight"
+                    size="small"
+                    onClick={() => { resetForm() }}
+                    startIcon={<ClearIcon />}
+                  >
+                    RESET
+                  </StyledButton>
+                </div>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            {assetAttributeList ?
+              <Results
+                className={classes.results}
+                assetAttributeList={assetAttributeList}
+              />
+              : ''
+            }
+
+          </Grid>
+        </Grid>
+        <DeleteAlert
+          title="Attribute Delete"
+          alertText="Are you sure, You want delete this Attribute?"
+          deleteCallback={deleteRecord}
+          modalOpen={openDeleteModel}
+          handleModalOpen={setOpenDeleteModel}
+          onModelClose={hideDeleteModel}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default AssetAttributes;

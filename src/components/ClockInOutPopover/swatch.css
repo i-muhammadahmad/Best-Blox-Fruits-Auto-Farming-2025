@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i');
+@import url('https://fonts.googleapis.com/css?family=Orbitron');
+
+@font-face{
+    font-family: 'DS-DIGITAL';
+    src: url('fonts/DS-DIGIT.TTF');
+    src: url('fonts/DS-DIGIB.TTF');
+    src: url('fonts/DS-DIGII.TTF');
+    src: url('fonts/DS-DIGI.TTF');
+}
+
+#appContainer{
+  width: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: 1rem;
+}
+
+.time{
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+/*   grid-gap: 0.5rem; */
+  text-align: center;
+  font-size: 3.3rem;
+  width: auto;
+  font-family: 'DS-DIGITAL',sans-serif;
+}
+.seconds_class{
+  font-size: 2.0rem;
+  vertical-align: bottom;
+  margin-top: 17px;
+}
+.tsection{
+  display: grid;
+  grid-template-row: repeat(2,1fr);
+  width: 90px;
+  height: 90px;
+}
+
+
+
+.tsection > span{
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.25rem;
+}
+
+.tsection > .tnum{
+  font-family: 'DS-DIGITAL',sans-serif;
+  font-size: 1.75rem;
+}
+
+.tsection > .tlabel{
+  font-size: 1rem;
+  font-family: 'lato',sans-serif;
+  font-weight: 400;
+  color: rgba(255,255,255,0.7);
+}
+
+.time > span:first-child > .tnum{
+  border-top-left-radius: 6px;
+  background: hsl(24,100%,41%);
+}
+
+.time > span:first-child > .tlabel{
+  border-bottom-left-radius: 6px;
+  background: hsl(24,100%,31%);
+}
+
+.time > span:nth-child(2) > .tnum{
+  background: hsl(48,89%,50%);
+}
+
+.time > span:nth-child(2) > .tlabel{
+  border-radius: inherit;
+  background: hsl(48,89%,40%);
+}
+
+.time > span:nth-child(3) > .tnum{
+  background: hsl(145,63%,42%);
+}
+
+.time > span:nth-child(3) > .tlabel{
+  background: hsl(145,63%,32%);
+}
+
+.time > span:last-child > .tnum{
+  border-top-right-radius: 6px;
+  background: hsl(204,64%,44%);
+}
+
+.time > span:last-child > .tlabel{
+  border-bottom-right-radius: 6px;
+  background: hsl(204,64%,34%);
+}
+
+.controls{
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2,auto);
+  grid-gap: 0.5rem;
+/*   border: 1px solid rgba(0,0,0,0.1); */
+}
+
+.btn{
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  border: none;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: center;  
+  align-items:center;
+  color: rgba(0,0,0,0.6);
+  cursor: pointer;
+  outline: transparent;
+  box-shadow: 0px 1px 3px rgba(0,0,0,0.6);
+}
+
+.btn:active{
+  font-size: 0.80rem;
+  box-shadow: 0px 1px 1px rgba(0,0,0,0.6);
+}
+
+#start_stop{
+  margin-left: auto;
+}

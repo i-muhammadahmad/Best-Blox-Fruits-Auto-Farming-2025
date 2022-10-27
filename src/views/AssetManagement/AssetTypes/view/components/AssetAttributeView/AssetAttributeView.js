@@ -1,0 +1,67 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  Grid
+} from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import { Results } from './attributesComponents';
+import {
+  assetAttributeListFetch
+} from 'actions';
+import { isEmpty, forEach } from 'lodash';
+
+const useStyles = makeStyles((theme) => ({
+  root: {},
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const AssetAttributeView = props => {
+  const { ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const assetAttributeState = useSelector(state => state.assetAttributeState);
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const session = useSelector(state => state.session);
+  const [assetAttributeArray, setAssetAttributeList] = useState([]);
+
+  useEffect(() => {
+    dispatch(assetAttributeListFetch(assetTypesState.assetTypesRecord.id, session.current_page_permissions.object_id));
+  },[assetTypesState.assetTypesRecord]);
+
+  useEffect(() => {
+    let assetAttributes_list = [];
+    forEach(assetAttributeState.assetAttributeList, function (value, key) {
+      value['created_by_user_name'] = (value.created_by_user) ? value.created_by_user.email : ''
+      value['description_html'] = (value.description) ? value.description.replace(/(<([^>]+)>)/gi, "").substring(0, 200) : '';
+      value['updated_by_user_name'] = (value.updated_by_user) ? value.updated_by_user.email : ''
+      value['is_required_html'] = (value.is_required) ? 'Yes': 'No'
+      assetAttributes_list[key] = value
+    });
+    setAssetAttributeList(assetAttributes_list);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetAttributeState.assetAttributeList]);
+
+  return (
+    <div>
+      <div className={classes.formGroup}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            {assetAttributeArray ?
+              <Results
+                className={classes.results}
+                assetAttributeArray={assetAttributeArray}
+              />
+              : ''
+            }
+
+          </Grid>
+        </Grid>
+      </div>
+    </div>
+  );
+};
+
+export default AssetAttributeView;

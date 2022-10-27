@@ -1,0 +1,268 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, DeleteAlert, StyledFab, StyledChip } from 'components';
+import { Header, Results, PublishModel, CloneModel } from './components';
+import {
+  deleteAuditForm,
+  getAuditFormById,
+  publishAuditForm,
+  cloneAuditForm,
+  downloadPdfReport
+} from 'actions';
+import { forEach } from 'lodash';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility'
+import PublishIcon from '@material-ui/icons/Publish';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
+import GetAppIcon from '@material-ui/icons/GetApp';
+import AccessRights from 'utils/AccessRights';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const AuditFormList = () => {
+  const classes = useStyles();
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [extraFiltersState, setExtraFiltersState] = useState({
+    isValid: false,
+    values: {},
+    touched: {},
+    errors: {}
+  });
+  const [auditFormId, setAuditFormId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const auditFormState = useSelector(state => state.auditFormState);
+  const session = useSelector(state => state.session);
+  // console.log(session)
+  const [openPublishModel, setOpenPublishModel] = React.useState(false);
+  const [openCloneModel, setOpenCloneModel] = React.useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (auditFormState.showUpdateForm) {
+      router.history.push('/audit-form/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditFormState.showUpdateForm]);
+
+  useEffect(() => {
+    if (auditFormState.showViewPage) {
+      router.history.push('/audit-form/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditFormState.showViewPage]);
+
+  const showPublishModel = (id) => {
+    setAuditFormId(id)
+    setOpenPublishModel(true);
+  };
+
+  const hidePublishModel = () => {
+    setAuditFormId('')
+    setOpenPublishModel(false);
+  };
+
+  const showCloneModel = (id) => {
+    setAuditFormId(id)
+    setOpenCloneModel(true);
+  };
+
+  const hideCloneModel = () => {
+    setAuditFormId('')
+    setOpenCloneModel(false);
+  };
+
+  const deleteRecord = async () => {
+    await dispatch(deleteAuditForm(auditFormId, session.current_page_permissions.object_id));
+    setRefershDataTable(true);
+  }
+
+  const showDeleteModal = (id) => {
+    setAuditFormId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setAuditFormId('')
+  }
+
+  const updateRecord = (id) => {
+    dispatch(getAuditFormById(id, 'update'))
+  }
+
+  const viewRecord = (id) => {
+    dispatch(getAuditFormById(id, 'view'))
+  }
+
+  const publishRecord = async () => {
+    await dispatch(publishAuditForm(auditFormId, session.current_page_permissions.object_id))
+    hidePublishModel()
+    setRefershDataTable(true);
+  }
+
+  const cloneRecord = async () => {
+    await dispatch(cloneAuditForm(auditFormId, session.current_page_permissions.object_id))
+    hideCloneModel()
+    setRefershDataTable(true);
+  }
+
+  const downloadPdfRecord = (auditId) => {
+		window.location.href =
+			API_URL + 'audit_form/downloadPdf?id=' + auditId;
+	};
+
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        { (AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n' && value.is_published === 'n')? 
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          :''
+        }
+        { (AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n' && value.is_published === 'y')? 
+          <><StyledFab
+            color="binfo"
+            aria-label="Clone"
+            size="small"
+            onClick={() => showCloneModel(value.id)}
+          >
+            <FileCopyIcon />
+          </StyledFab>&nbsp;</>
+          :''
+        }
+        { (AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n' && value.is_published === 'n')? 
+          <><StyledFab
+            color="bsuccess"
+            aria-label="Publish"
+            size="small"
+            onClick={() => showPublishModel(value.id)}
+          >
+            <PublishIcon />
+          </StyledFab>&nbsp;</>
+          :''
+        }  
+        {(AccessRights(session.current_page_permissions, 'view', value.created_by) && value.is_deleted == 'n' && value.is_published === 'y') ?
+          <><StyledFab
+            color="bsuccess"
+            aria-label="DownloadPdf"
+            size="small"
+            onClick={() => downloadPdfRecord(value.id)}
+          >
+            <GetAppIcon />
+          </StyledFab>&nbsp;</>
+          :''
+        }
+        {(AccessRights(session.current_page_permissions, 'view', value.created_by)) ?
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewRecord(value.id)}
+          >
+            <VisibilityIcon />
+          </StyledFab>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</>
+          :''
+        }
+        { (AccessRights(session.current_page_permissions, 'delete', value.created_by) && value.is_deleted == 'n' && (value.is_published === 'n' || session.user.is_super_admin === 'y'))?
+          <StyledFab
+            color="bdanger"
+            aria-label="delete"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab> 
+          : ''
+        }  
+      </div>
+    )
+  }
+
+  const getDeletedStatus = value => {
+    if (value.is_deleted === 'n') {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bsuccess" label="Active" />
+        </div>
+      )
+    }
+    else {
+      return (
+        <div className={'actionClass'} style={{ whiteSpace: 'nowrap' }}>
+          <StyledChip color="bdanger" label="Deleted" />
+        </div>
+      )
+    }
+  }
+
+  return (
+    <>
+      <Page
+        className={classes.root}
+        title="Audit Form List"
+      >
+        <Header />
+        <Results
+          className={classes.results}
+          refershDataTable={refershDataTable}
+          setRefershDataTable={setRefershDataTable}
+          actionsCol={getActions}
+          extraFiltersState={extraFiltersState}
+          setExtraFiltersState={setExtraFiltersState}
+          getDeletedStatus={getDeletedStatus}
+        />
+        <DeleteAlert
+          title="Audit Form Delete"
+          alertText="Are you sure, You want delete this Audit Form?"
+          deleteCallback={deleteRecord}
+          modalOpen={openDeleteModel}
+          handleModalOpen={setOpenDeleteModel}
+          onModelClose={hideDeleteModel}
+        />
+      </Page>
+      <PublishModel 
+        openPublishModel={openPublishModel}
+        showPublishModel={showPublishModel}
+        hidePublishModel={hidePublishModel}
+        publishRecord={publishRecord}
+      />  
+      <CloneModel 
+        openCloneModel={openCloneModel}
+        showCloneModel={showCloneModel}
+        hideCloneModel={hideCloneModel}
+        cloneRecord={cloneRecord}
+      />    
+    </>
+  );
+};
+
+export default AuditFormList;

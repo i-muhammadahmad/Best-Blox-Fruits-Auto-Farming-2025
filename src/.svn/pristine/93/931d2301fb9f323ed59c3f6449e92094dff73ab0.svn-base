@@ -1,0 +1,204 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, DeleteAlert, StyledFab, StyledChip } from 'components';
+import { Header, Results } from './components';
+import {
+  Avatar
+} from '@material-ui/core';
+import { 
+  deleteClient,
+  getClientById,
+  toggleViewClientModel,
+  getAvailableOffices
+} from 'actions';
+import { forEach, isEmpty, filter } from 'lodash';
+import {Fab, IconButton} from '@material-ui/core';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import { API_URL } from 'configs';
+import AccessRights from 'utils/AccessRights';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+  fab: {
+    
+  },
+  large: {
+    width: theme.spacing(7),
+    height: theme.spacing(7),
+  },
+}));
+
+const ClientList = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [extraFiltersState, setExtraFiltersState] = useState({
+    isValid: false,
+    values: {},
+    touched: {},
+    errors: {}
+  });
+  const [clientId, setClientId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const clientState = useSelector(state => state.clientState);
+  const session = useSelector(state => state.session);
+
+  //finding meeting notes permissions against code
+  const meeting_note_per = filter(session.user_permissions_raw, function(item){
+    if(!isEmpty(item.permission_object)){
+      return item.permission_object.object_code === 'meeting_notes';
+    }
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(()=> {
+    if(clientState.showUpdateForm){
+      router.history.push('/client/update');
+    }
+  },[clientState.showUpdateForm]);
+
+  useEffect(()=> {
+    if(clientState.showViewPage){
+      router.history.push('/client/view');
+    }
+  },[clientState.showViewPage]);
+
+  const getClientImageAvator  = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(value.client_image) ?
+          <Avatar alt="Avator" src={API_URL + value.client_image} className={classes.large} />
+          :
+          ''
+        }
+      </div>
+    );
+  }
+
+  const officesHtml = (value) => {
+    const camOffices = Object.values(value.client_offices)
+    return(
+      <div> {
+        !isEmpty(camOffices)?
+        <div> 
+        {camOffices.map(offices => (
+          <div key={offices.id}>
+            {offices.location_name+' ('+offices.total_seats+')'}
+          </div> 
+        ))}
+        </div> 
+        :''
+      }</div>
+    );
+  }
+
+  const deleteRecord = async () => {
+    await dispatch(deleteClient(clientId, session.current_page_permissions.object_id));
+    setRefershDataTable(true);
+  }
+
+  const showDeleteModal = (id) => {
+    setClientId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setClientId('')
+  }
+
+  const updateRecord = (id) => {
+    dispatch(getAvailableOffices(session.current_page_permissions.object_id))
+    dispatch(getClientById(id, 'update'))
+  }
+
+  const viewRecord = (id) => {
+    dispatch(getClientById(id, 'view'))
+  }
+
+  const getActions = value => {
+    return(
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        
+        { (
+          (AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n')
+          || AccessRights(meeting_note_per[0], 'view', value.created_by) )? 
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          :''
+        }  
+        {(AccessRights(session.current_page_permissions, 'view', value.created_by)) ?
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewRecord(value.id)}
+          >
+            <VisibilityIcon />
+          </StyledFab>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</>
+          :''
+        }
+        {(AccessRights(session.current_page_permissions, 'delete', value.created_by) && value.is_deleted == 'n') ?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab> 
+          : ''
+        }
+      </div>  
+    )
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Client List"
+    >
+      <Header />
+      <Results
+        className={classes.results}
+        refershDataTable={refershDataTable}
+        setRefershDataTable={setRefershDataTable}
+        actionsCol={getActions}
+        getClientImageAvator={getClientImageAvator}
+      />
+      <DeleteAlert 
+        title="Client Delete"
+        alertText="Are you sure, You want delete this Client?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel} 
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}  
+      />
+    </Page>
+  );
+};
+
+export default ClientList;

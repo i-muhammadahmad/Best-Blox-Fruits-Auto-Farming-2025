@@ -1,0 +1,159 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid,
+  ButtonBase
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  image: {
+    width: '100%',
+    height: 'auto',
+  },
+  img: {
+    margin: 'auto',
+    display: 'block',
+    maxWidth: '100%',
+    maxHeight: '100%',
+  },
+}));
+
+const CompanyView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const companyState = useSelector(state => state.companyState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (companyState.redirect_to_list) {
+      router.history.push('/company');
+    }
+  }, [companyState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!companyState.showUpdateForm && !companyState.showViewPage) {
+      router.history.push('/company');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyState.showUpdateForm, companyState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Company View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Company View" />
+        <CardContent>
+          <Grid container spacing={3}>
+            <Grid item xs={8} sm={8}>
+              <TableContainer component={Paper}>
+                <Table className={classes.table} aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head" > Name </TableCell>
+                      <TableCell>{companyState.companyRecord.name}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Company Type </TableCell>
+                      <TableCell>{
+                        !isEmpty(companyState.companyRecord.companyType) ?
+                          companyState.companyRecord.companyType.opt_display : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Website </TableCell>
+                      <TableCell>{companyState.companyRecord.website}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Phone No </TableCell>
+                      <TableCell>{companyState.companyRecord.phoneno}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Is Client </TableCell>
+                      <TableCell>{
+                        !isEmpty(companyState.companyRecord.is_client == 1) ?
+                          'Yes' : 'No'
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Created By </TableCell>
+                      <TableCell>{
+                        !isEmpty(companyState.companyRecord.created_by_user) ?
+                          companyState.companyRecord.created_by_user.email : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Created At </TableCell>
+                      <TableCell>{companyState.companyRecord.date_created}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Last Updated By </TableCell>
+                      <TableCell>{
+                        !isEmpty(companyState.companyRecord.created_by_user) ?
+                          companyState.companyRecord.updated_by_user.email : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Last Updated At </TableCell>
+                      <TableCell>{companyState.companyRecord.date_last_modified}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+            <Grid item xs={4} sm={4}>
+              <ButtonBase className={classes.image}>
+                <img className={classes.img} alt="complex" src={API_URL + companyState.companyRecord.logo} />
+              </ButtonBase>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Company Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: companyState.companyRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default CompanyView;

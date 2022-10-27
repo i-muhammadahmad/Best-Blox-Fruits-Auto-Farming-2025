@@ -1,0 +1,47 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("parent_name", {
+    dataType: ColumnDataType.String,
+    label: "Parent Name",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("holiday_cat_name", {
+    dataType: ColumnDataType.String,
+    label: "Name",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("description_html", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    label: "Description",
+    searchable: true,
+  }),
+  createColumn("date_created", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Created At",
+    sortDirection: ColumnSortDirection.Ascending,
+    sortOrder: 1,
+  }),
+  createColumn("date_last_modified", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Last Modified At",
+  }),
+  createColumn("Actions"),
+];
+export default Columns;

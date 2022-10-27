@@ -1,0 +1,350 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import {
+  updateAuditFormInfraction,
+  hideAuditFormInfractionValidationError,
+  redirectToAuditFormInfractionList
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { ClientDropdown, AuditFormInfractionCategoryDropdown } from 'commonDropdowns';
+
+const schema = {
+  opt_display: {
+    presence: { allowEmpty: false, message: '^Audit Form Infraction is required' },
+  },
+  client_id: {
+    presence: { allowEmpty: false, message: '^Client is required' },
+  },
+  infraction_category:{
+    presence: { allowEmpty: false, message: '^Category is required' },
+  },
+  deduction_percentage: {
+    presence: { allowEmpty: false, message: ' is required' },
+    numericality: {
+      greaterThanOrEqualTo: 0,
+      lessThanOrEqualTo: 100,
+    }
+  }
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const AuditFormInfractionUpdate = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const auditFormInfractionState = useSelector(state => state.auditFormInfractionState);
+  const session = useSelector(state => state.session);
+  const [ClientValue, setClientValue] = useState([]);
+  const [InfractionCategoryValue, setInfractionCategoryValue] = useState(null);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = auditFormInfractionState.auditFormInfractionRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': record.description,
+        'opt_display': record.opt_display,
+        'client_id': record.client_id,
+        'deduction_percentage': record.extra_col1,
+        'id': record.id
+      },
+      touched: {
+        ...formState.touched,
+        'description': true,
+        'opt_display': true,
+        'client_id': true,
+        'deduction_percentage': true,
+        'id': true
+      }
+    }));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(()=> {
+    if(!auditFormInfractionState.showViewPage && !auditFormInfractionState.showUpdateForm){
+      router.history.push('/audit-form-infraction');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[auditFormInfractionState.showViewPage, auditFormInfractionState.showUpdateForm]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(auditFormInfractionState.validation_error)) {
+      const errors = auditFormInfractionState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [auditFormInfractionState.validation_error]);
+
+  useEffect(() => {
+    if (auditFormInfractionState.redirect_to_list) {
+      router.history.push('/audit-form-infraction');
+    }
+  }, [auditFormInfractionState.redirect_to_list, router.history]);
+
+  const clientOnChange = (event, newValue) => {
+    if (newValue) {
+      setClientValue(newValue)
+      setClientId(newValue.id)
+    }
+    else {
+      setClientValue(newValue)
+      setClientId('')
+    }
+  }
+
+  const setClientId = client_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'client_id': client_id
+      },
+      touched: {
+        ...formState.touched,
+        'client_id': true
+      }
+    }));
+    dispatch(hideAuditFormInfractionValidationError('client_id'))
+  }
+
+  const infractionCategoryOnChange = (event, newValue) => {
+    if(newValue){
+      setInfractionCategoryValue(newValue)
+      setInfractionCategoryId(newValue.id)
+    }
+    else{
+      setInfractionCategoryValue(newValue)
+      setInfractionCategoryId('')
+    }
+  }
+
+  const setInfractionCategoryId = infraction_category => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'infraction_category': infraction_category
+      },
+      touched: {
+        ...formState.touched,
+        'infraction_category': true
+      }
+    }));
+    dispatch(hideAuditFormInfractionValidationError('infraction_category'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideAuditFormInfractionValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideAuditFormInfractionValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(updateAuditFormInfraction(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Audit Form Infraction"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Update Audit Form Infraction" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  <AuditFormInfractionCategoryDropdown
+                    InfractionCategoryValue={InfractionCategoryValue}
+                    setInfractionCategoryValue={setInfractionCategoryValue}
+                    selectedId={auditFormInfractionState.auditFormInfractionRecord.parent_id}
+                    id="audit_form_infraction_category_id"
+                    name="infraction_category"
+                    infractionCategoryOnChange={infractionCategoryOnChange}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Category" variant="outlined" error={hasError('infraction_category')} helperText={hasError('infraction_category') ? formState.errors.infraction_category[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <TextField
+                    error={hasError('opt_display')}
+                    fullWidth
+                    helperText={hasError('opt_display') ? formState.errors.opt_display[0] : null}
+                    label="Infrcation Name"
+                    name="opt_display"
+                    onChange={handleChange}
+                    value={formState.values.opt_display || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <ClientDropdown
+                    ClientValue={ClientValue}
+                    setClientValue={setClientValue}
+                    selectedId={auditFormInfractionState.auditFormInfractionRecord.client_id}
+                    id="client_id"
+                    name="client_id"
+                    clientOnChange={clientOnChange}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Client" variant="outlined" error={hasError('client_id')} helperText={hasError('client_id') ? formState.errors.client_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <TextField
+                    error={hasError('deduction_percentage')}
+                    fullWidth
+                    helperText={hasError('deduction_percentage') ? formState.errors.deduction_percentage[0] : null}
+                    label="Score Deduction Percentage"
+                    name="deduction_percentage"
+                    onChange={handleChange}
+                    value={formState.values.deduction_percentage || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={auditFormInfractionState.auditFormInfractionRecord.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Update Audit Form Infraction
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToAuditFormInfractionList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default AuditFormInfractionUpdate;

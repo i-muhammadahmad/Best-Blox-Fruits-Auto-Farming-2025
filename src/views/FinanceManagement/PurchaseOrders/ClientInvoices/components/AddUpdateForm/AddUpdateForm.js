@@ -1,0 +1,456 @@
+import React from 'react';
+import CancelIcon from '@material-ui/icons/Cancel';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import InvoiceAttachment from '../InvoiceAttachment';
+import { 
+  TextField,
+  makeStyles,
+  Backdrop,
+  Grid,
+  FormControl,
+  Select,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Card,
+  CardContent,
+  CardHeader, 
+  Divider
+} from '@material-ui/core';
+import { StyledButton } from 'components';
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { 
+  addClientInvoices,
+  updateClientInvoices,
+  hideClientInvoicesValidationError,
+  redirectToClientInvoicesList,
+  getCurPeriodInvoice
+} from 'actions';
+import SaveIcon from '@material-ui/icons/Save';
+import ClearIcon from '@material-ui/icons/Clear';
+import validate from 'validate.js';
+import { isEmpty, filter, forEach } from 'lodash';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { CK_CONFIGS } from 'configs';
+import moment from 'moment';
+
+const schema = {
+  invoice_no: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  invoice_date: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  status: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+}
+
+const useStylesModal = makeStyles((theme) => ({
+    root: {},
+    paper: {
+      backgroundColor: theme.palette.background.paper,
+      border: '2px solid #000',
+      boxShadow: theme.shadows[5],
+      padding: theme.spacing(2, 4, 3),
+    },
+    formControl: {
+      margin: theme.spacing(1),
+      width: '100%',
+    },
+    selectEmpty: {
+      marginTop: theme.spacing(2),
+    },
+  }));
+
+const AddUpdateModel = (props) => {
+
+  const { 
+    formAction,
+    setFormAction,
+    ...rest
+  } = props;
+  const classes = useStylesModal();
+
+  const [files, setFiles] = useState([]);
+  const clientInvoicesState = useSelector(state => state.clientInvoicesState);
+  const clientState = useSelector(state => state.clientState);
+  const session = useSelector(state => state.session);
+  const dispatch = useDispatch();
+  //finding client invoices permissions against code
+  const client_invoice_per = filter(session.user_Permissions, function(item){
+    if(!isEmpty(item.permission_object)){
+      return item.permission_object.object_code === 'client_invoices';
+    }
+  });
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': client_invoice_per[0].object_id,
+      'client_id': clientState.clientRecord.id,
+      'invoice_date': moment(moment().toDate()).format('YYYY-MM-DD'),
+    },
+    touched: {
+      'object_viewed_id': true,
+      'client_id': true,
+      'invoice_date': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    if(formAction === 'Add'){
+      let period_start;
+      let period_end;
+      if(clientState.clientRecord.invoices_per_month === 1){
+        period_start = moment().startOf('month').format('YYYY-MM-DD');
+        period_end = moment().endOf('month').format('YYYY-MM-DD');
+      }
+      else{
+        let cur_date = moment(moment().toDate());
+        let cut_off_day = parseInt(clientState.clientRecord.cut_off_day);
+        if((cur_date.date()) <= cut_off_day){
+          period_start = moment().startOf('month').format('YYYY-MM-DD');
+          period_end = (cur_date.format('YYYY-MM-')) + (cut_off_day);
+        }
+        else{
+          period_start = (cur_date.format('YYYY-MM-') )+ (cut_off_day+1);
+          period_end = moment().endOf('month').format('YYYY-MM-DD');
+        }
+      }
+
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          'invoice_period_start': period_start,
+          'invoice_period_end': period_end
+        },
+        touched: {
+          ...formState.touched,
+          'invoice_period_start': true,
+          'invoice_period_end': true
+        }
+      }));
+
+    }  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if(formAction === 'Update'){
+      let record = clientInvoicesState.clientInvoicesRecord;
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          'description': record.description,
+          'invoice_no': record.invoice_no,
+          'status': record.status,
+          'invoice_date': record.invoice_date,
+          'invoice_period_start': record.invoice_period_start,
+          'invoice_period_end': record.invoice_period_end,
+          'id': record.id
+        },
+        touched: {
+          ...formState.touched,
+          'description': true,
+          'invoice_no': true,
+          'status': true,
+          'invoice_date': true,
+          'invoice_period_start': true,
+          'invoice_period_end': true,
+          'id': true
+        }
+      }));
+    }  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(clientInvoicesState.validation_error)) {
+      const errors = clientInvoicesState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [clientInvoicesState.validation_error]);
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideClientInvoicesValidationError(event.target.name))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!isEmpty(clientState.clientRecord.id)) {
+
+      const form_data = new FormData();
+      if(!isEmpty(files[0])){
+        form_data.append('attachment', files[0]);
+      }  
+
+      //appending form state to data object
+      forEach(formState.values, function(value, key) {
+        form_data.append(key, value);
+      });
+
+      form_data.append('client_id', clientState.clientRecord.id);
+
+      if (isEmpty(formState.values.id)) {
+        await dispatch(addClientInvoices(form_data));
+      }
+      else {
+        await dispatch(updateClientInvoices(form_data));
+      }
+      await dispatch(getCurPeriodInvoice(clientState.clientRecord.id, client_invoice_per[0].object_id));
+    }
+    else {
+      alert('Please Select Client');
+    }
+
+    resetForm();
+
+  }
+
+  const handleClose = () => {
+    dispatch(redirectToClientInvoicesList());
+    resetForm();
+  }
+
+  const resetForm = () => {
+    setFormState(formState => ({
+      isValid: false,
+      values: {
+        'object_viewed_id': client_invoice_per[0].object_id,
+        'client_id': clientState.clientRecord.id,
+        'invoice_date': moment(moment().toDate()).format('YYYY-MM-DD'),
+      },
+      touched: {
+        'object_viewed_id': true,
+        'client_id': true,
+        'invoice_date': true,
+      },
+      errors: {}
+    }));
+    setFormAction('Add');
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideClientInvoicesValidationError('description'))
+  }
+
+  const getDescriptionDefaultValue = () => {
+    if(formAction === 'Update'){ 
+      let record = clientInvoicesState.clientInvoicesRecord;
+      return (record.description || '');
+    }  
+    return (formState.values.description || '');
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <div>
+      <Card>
+        <CardHeader
+          title={formAction + " Client Invoices"}
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+            <form
+              onSubmit={handleSubmit}
+              style={{marginTop: '6px'}}
+            >
+              <div className={classes.formGroup}>
+                <Grid container spacing={3} id="client_invoice_form">
+                  <Grid item xs={8} sm={8}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={6} sm={4}>
+                        <TextField
+                          error={hasError('invoice_no')}
+                          fullWidth
+                          helperText={hasError('invoice_no') ? formState.errors.invoice_no[0] : null}
+                          label="Invoice No"
+                          name="invoice_no"
+                          onChange={handleChange}
+                          value={formState.values.invoice_no || ''}
+                          disabled={formAction === 'Update'}
+                          variant="outlined"
+                          size="small"
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={4}>
+                        <TextField
+                          error={hasError('invoice_date')}
+                          fullWidth
+                          helperText={hasError('invoice_date') ? formState.errors.invoice_date[0] : null}
+                          label="Invoice Date"
+                          name="invoice_date"
+                          onChange={handleChange}
+                          value={formState.values.invoice_date || ''}
+                          type="invoice_date"
+                          variant="outlined"
+                          disabled={formAction === 'Update'}
+                          size="small"
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={4}>
+                        <TextField
+                          id="status"
+                          name="status"
+                          error={hasError('status')}
+                          fullWidth
+                          helperText={hasError('status') ? formState.errors.status[0] : null}
+                          label="Please select Status"
+                          select
+                          value={formState.values.status || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          size="small"
+                        >
+                          <MenuItem key={'processed'} value={'processed'}>{'Processed'}</MenuItem>
+                          <MenuItem key={'billed'} value={'billed'}>{'Billed'}</MenuItem>
+                          <MenuItem key={'paid'} value={'paid'}>{'Paid'}</MenuItem>
+                        </TextField>
+                      </Grid>
+                      <Grid item xs={6} sm={4}>
+                        <TextField
+                          error={hasError('invoice_period_start')}
+                          fullWidth
+                          helperText={hasError('invoice_period_start') ? formState.errors.invoice_period_start[0] : null}
+                          label="Invoice Period Start"
+                          name="invoice_period_start"
+                          onChange={handleChange}
+                          value={formState.values.invoice_period_start || ''}
+                          type="invoice_period_start"
+                          variant="outlined"
+                          size="small"
+                          disabled={true}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={6} sm={4}>
+                        <TextField
+                          error={hasError('invoice_period_end')}
+                          fullWidth
+                          helperText={hasError('invoice_period_end') ? formState.errors.invoice_period_end[0] : null}
+                          label="Invoice Period End"
+                          name="invoice_period_end"
+                          onChange={handleChange}
+                          value={formState.values.invoice_period_end || ''}
+                          type="invoice_period_end"
+                          variant="outlined"
+                          size="small"
+                          disabled={true}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                    <br />
+                    <div className={classes.formGroup}>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={CK_CONFIGS(localStorage.getItem("token"))}
+                        data={getDescriptionDefaultValue()}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data)
+                        }}
+                      />
+                      <FormControl error={hasError('description')} >
+                        <FormHelperText component='div' id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                      </FormControl>
+                    </div>
+                  </Grid>
+                  <Grid item xs={4} sm={4}>
+                    <FormControl error={hasError('attachment')} >
+                      <FormHelperText id="attachment-error">{hasError('attachment') ? formState.errors.attachment[0] : null}</FormHelperText>
+                    </FormControl>
+                    <InvoiceAttachment
+                      files={files}
+                      setFiles={setFiles}
+                    />
+                  </Grid>  
+                  <Grid item xs={12} sm={12}>
+                    <StyledButton
+                      color="bprimary"
+                      disabled={!formState.isValid}
+                      size="small"
+                      type="button"
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      onClick={handleSubmit}
+                    >
+                      {formAction+" Client Invoices"}
+                    </StyledButton> &nbsp; &nbsp;
+                    <StyledButton
+                      variant="contained"
+                      color="blight"
+                      size="small"
+                      startIcon={<CancelIcon />}
+                      onClick={() => { handleClose() }}
+                    >
+                      CLOSE
+                    </StyledButton>
+                  </Grid>
+                </Grid>
+              </div>
+            </form>
+        </CardContent>
+      </Card>  
+      
+    </div>
+  );
+}
+
+export default AddUpdateModel;

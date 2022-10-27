@@ -1,0 +1,113 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, DeleteAlert, StyledFab } from 'components';
+import { Header, Results } from './components';
+import {
+  Avatar
+} from '@material-ui/core'
+import {
+  getEmployeesById,
+} from 'actions';
+import { forEach, isEmpty } from 'lodash';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility'
+import { API_URL } from 'configs'
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+  large: {
+    width: theme.spacing(7),
+    height: theme.spacing(7),
+  },
+}));
+
+const UnreturnedAssetsEmployeesList = () => {
+  const classes = useStyles();
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [employeesId, setEmployeesId] = useState('');
+  const employeesState = useSelector(state => state.employeesState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (employeesState.showSeparatedViewPage) {
+      router.history.push('/unreturned-assets-employees/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.showSeparatedViewPage]);
+
+
+  const getProfilePicAvator = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(value.profile_pic) ?
+          <Avatar alt="Avator" src={API_URL + value.profile_pic} className={classes.large} />
+          :
+          ''
+        }
+      </div>
+    );
+  }
+
+  const viewRecord = (id) => {
+    dispatch(getEmployeesById(id, 'view'))
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        
+        {(session.current_page_permissions.rights_view == '1') ?
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewRecord(value.id)}
+          >
+            <VisibilityIcon />
+          </StyledFab>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</>
+          : ''
+        }
+        
+      </div>
+    )
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Unreturned Assets Employees List"
+    >
+      <Header />
+      <Results
+        className={classes.results}
+        getProfilePicAvator={getProfilePicAvator}
+        actionsCol={getActions}
+        refershDataTable={refershDataTable}
+        setRefershDataTable={setRefershDataTable}
+      />
+    </Page>
+  );
+};
+
+export default UnreturnedAssetsEmployeesList;

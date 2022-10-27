@@ -1,0 +1,343 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import {
+  updateLeaveSchedule,
+  hideLeaveScheduleValidationError,
+  redirectToLeaveScheduleList,
+  leaveTypeDropdownListFetch,
+  getEmployeesLatestShift,
+  getEmployeeHolidays
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, includes, map } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import moment from 'moment';
+
+const schema = {
+  leave_type_id: {
+    presence: { allowEmpty: false, message: '^Please Select Leave Type' },
+  },
+  start_date: {
+    presence: { allowEmpty: false, message: '^Start date is required' },
+  },
+  end_date: {
+    presence: { allowEmpty: false, message: '^End date is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const LeaveScheduleUpdate = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const leaveScheduleState = useSelector(state => state.leaveScheduleState);
+  const leaveTypeState = useSelector(state => state.leaveTypeState);
+  const session = useSelector(state => state.session);
+
+  const [leaveType, setLeaveType] = useState(null);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'start_date': moment(moment().toDate()).format('YYYY-MM-DD'),
+      'end_date': moment(moment().toDate()).format('YYYY-MM-DD'),
+      'office_id': !isEmpty(session.user) ? session.user.employee.office_id : '',
+      'no_of_leaves': 0,
+      'leave_dates': []
+    },
+    touched: {
+      'object_viewed_id': true,
+      'start_date': true,
+      'end_date': true,
+      'office_id': true
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = leaveScheduleState.leaveScheduleRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'id': record.id,
+        'description': record.description,
+        'start_date': record.start_date,
+        'end_date': record.end_date,
+        'office_id': record.office_id,
+        'no_of_leaves': record.no_of_leaves,
+        'leave_dates': record.leave_dates
+      },
+      touched: {
+        ...formState.touched,
+        'id': true,
+        'description': true,
+        'start_date': true,
+        'end_date': true,
+        'office_id': true
+      }
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaveScheduleState.leaveScheduleRecord]);
+
+  useEffect(() => {
+    if (!isEmpty(leaveTypeState.leaveTypeDropdownList)) {
+      let record = leaveScheduleState.leaveScheduleRecord;
+      const item = find(leaveTypeState.leaveTypeDropdownList, ['id', record.leave_type_id])
+      setLeaveType(item);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaveTypeState.leaveTypeDropdownList]);
+
+  useEffect(() => {
+    if (!isEmpty(session.user.employee)) {
+      dispatch(leaveTypeDropdownListFetch([session.user.employee.office_id]));
+      dispatch(getEmployeesLatestShift(session.user.employee_id, session.current_page_permissions.object_id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(leaveScheduleState.validation_error)) {
+      const errors = leaveScheduleState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [leaveScheduleState.validation_error]);
+
+  useEffect(() => {
+    if (!leaveScheduleState.showUpdateForm) {
+      router.history.push('/leave-schedule');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaveScheduleState.showUpdateForm]);
+
+  useEffect(() => {
+    if (leaveScheduleState.redirect_to_list) {
+      router.history.push('/leave-schedule');
+    }
+  }, [leaveScheduleState.redirect_to_list, router.history]);
+
+  const setLeaveTypeId = leave_type_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'leave_type_id': leave_type_id
+      },
+      touched: {
+        ...formState.touched,
+        'leave_type_id': true
+      }
+    }));
+    dispatch(hideLeaveScheduleValidationError('leave_type_id'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideLeaveScheduleValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideLeaveScheduleValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(updateLeaveSchedule(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Leave Schedule"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Update Leave Schedule" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  {(leaveTypeState.leaveTypeDropdownList) ?
+                    <Autocomplete
+                      id="leave_type_id"
+                      limitTags={2}
+                      value={leaveType}
+                      onChange={(event, newValue) => {
+                        if (newValue) {
+                          setLeaveType(newValue)
+                          setLeaveTypeId(newValue.id)
+                        }
+                        else {
+                          setLeaveType(newValue)
+                          setLeaveTypeId('')
+                        }
+
+                      }}
+                      size="small"
+                      options={leaveTypeState.leaveTypeDropdownList}
+                      getOptionLabel={(option) => option.name}
+                      renderInput={(params) => <TextField {...params} label="Select Leave Type" variant="outlined" error={hasError('leave_type_id')} helperText={hasError('leave_type_id') ? formState.errors.leave_type_id[0] : null} />}
+                    />
+                    : ''}
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    className={classes.field}
+                    defaultValue={moment(moment().toDate()).format('YYYY-MM-DD')}
+                    fullWidth
+                    label="Start Date"
+                    name="start_date"
+                    onChange={handleChange}
+                    value={formState.values.start_date || ''}
+                    error={hasError('start_date')}
+                    helperText={hasError('start_date') ? formState.errors.start_date[0] : null}
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    className={classes.field}
+                    defaultValue={moment(moment().toDate()).format('YYYY-MM-DD')}
+                    fullWidth
+                    label="End Date"
+                    name="end_date"
+                    onChange={handleChange}
+                    value={formState.values.end_date || ''}
+                    error={hasError('end_date')}
+                    helperText={hasError('end_date') ? formState.errors.end_date[0] : null}
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={leaveScheduleState.leaveScheduleRecord.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Update Leave Schedule
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToLeaveScheduleList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default LeaveScheduleUpdate;

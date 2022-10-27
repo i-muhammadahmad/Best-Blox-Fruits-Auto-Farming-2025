@@ -1,0 +1,135 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ObjectsView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const objectsState = useSelector(state => state.objectsState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (objectsState.redirect_to_list) {
+      router.history.push('/objects');
+    }
+  }, [objectsState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!objectsState.showViewPage) {
+      router.history.push('/objects');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objectsState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Objects View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Objects View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Parent </TableCell>
+                  <TableCell>{(objectsState.objectsRecord.parent_objects) ? objectsState.objectsRecord.parent_objects.name : ''}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Name </TableCell>
+                  <TableCell>{objectsState.objectsRecord.name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Object Type Name </TableCell>
+                  <TableCell>{(objectsState.objectsRecord.object_type) ? objectsState.objectsRecord.object_type.opt_display : ''}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Object URL </TableCell>
+                  <TableCell>{objectsState.objectsRecord.object_url}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Menu Order </TableCell>
+                  <TableCell>{objectsState.objectsRecord.menu_order}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Menu Icone </TableCell>
+                  <TableCell>{objectsState.objectsRecord.menu_icon}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(objectsState.objectsRecord.created_by_user) ?
+                      objectsState.objectsRecord.created_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{objectsState.objectsRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(objectsState.objectsRecord.created_by_user) ?
+                      objectsState.objectsRecord.updated_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{objectsState.objectsRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Objects Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: objectsState.objectsRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default ObjectsView;

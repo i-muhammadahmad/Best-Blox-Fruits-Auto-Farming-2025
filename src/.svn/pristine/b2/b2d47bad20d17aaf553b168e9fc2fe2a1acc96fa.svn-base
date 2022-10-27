@@ -1,0 +1,83 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { Typography, Grid } from '@material-ui/core';
+import useRouter from 'utils/useRouter';
+import { StyledButton } from 'components';
+import { redirectToAssetsList } from 'actions';
+import CancelIcon from '@material-ui/icons/Cancel';
+
+const useStyles = makeStyles(() => ({
+  root: {}
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  const assetsState = useSelector(state => state.assetsState);
+  useEffect(() => {
+    if (assetsState.redirect_to_list) {
+      router.history.push('/assets');
+    }
+  }, [assetsState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!assetsState.showUpdateForm) {
+      router.history.push('/assets');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetsState.showUpdateForm]);
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Grid
+        alignItems="flex-end"
+        container
+        justify="space-between"
+        spacing={3}
+      >
+        <Grid item>
+          <Typography
+            component="h2"
+            gutterBottom
+            variant="overline"
+          >
+            Assets Management
+          </Typography>
+          <Typography
+            component="h1"
+            variant="h3"
+          >
+            Assets
+          </Typography>
+        </Grid>
+        <Grid item>  
+          <StyledButton
+            variant="contained"
+            color="blight"
+            size="small"
+            onClick={() => { dispatch(redirectToAssetsList()) }}
+            startIcon={<CancelIcon />}
+          >
+            CLOSE
+          </StyledButton>
+        </Grid>
+      </Grid>    
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+export default Header;

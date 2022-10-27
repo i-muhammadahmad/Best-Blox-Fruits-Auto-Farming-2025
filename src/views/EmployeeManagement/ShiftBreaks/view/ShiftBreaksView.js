@@ -1,0 +1,145 @@
+import React, { useEffect, useState } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty, map } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ShiftBreaksView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const shiftBreaksState = useSelector(state => state.shiftBreaksState);
+  const dispatch = useDispatch();
+  const [employeeNames, setEmployeeNames] = useState([]);
+
+  useEffect(() => {
+    let record = shiftBreaksState.shiftBreaksRecord;
+    let employee_names = [];
+    if (!isEmpty(record.shift_break_employees)){
+      employee_names = (map(record.shift_break_employees, 'employee_name'));
+    }
+    setEmployeeNames(employee_names);
+  }, [shiftBreaksState.shiftBreaksRecord]);
+
+  useEffect(() => {
+    if (shiftBreaksState.redirect_to_list) {
+      router.history.push('/shift-breaks');
+    }
+  }, [shiftBreaksState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!shiftBreaksState.showViewPage && !shiftBreaksState.showUpdateForm) {
+      router.history.push('/shift-breaks');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shiftBreaksState.showViewPage, shiftBreaksState.showUpdateForm]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Shift Breaks View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Shift Breaks View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Shift </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.shift.name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Break Type </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.break_type ? shiftBreaksState.shiftBreaksRecord.break_type.opt_display : ''}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Start Time </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.start_time}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > End Time </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.end_time}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Break Applied To </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.break_applied_to}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Employees </TableCell>
+                  <TableCell>{(employeeNames) ? employeeNames.join(', ') : ''}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(shiftBreaksState.shiftBreaksRecord.created_by_user) ?
+                      shiftBreaksState.shiftBreaksRecord.created_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(shiftBreaksState.shiftBreaksRecord.updated_by_user) ?
+                      shiftBreaksState.shiftBreaksRecord.updated_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{shiftBreaksState.shiftBreaksRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Shift Breaks Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: shiftBreaksState.shiftBreaksRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default ShiftBreaksView;

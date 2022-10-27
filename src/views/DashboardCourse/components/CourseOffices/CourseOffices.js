@@ -1,0 +1,112 @@
+import React, { useState, useEffect } from 'react';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { makeStyles } from '@material-ui/styles';
+import { Card, Typography, Avatar, LinearProgress } from '@material-ui/core';
+import DoneIcon from '@material-ui/icons/Done';
+import { useSelector, useDispatch } from 'react-redux';
+import { API_URL, APP_URL } from 'configs';
+import gradients from 'utils/gradients';
+import { StyledFab } from 'components';
+import CachedIcon from '@material-ui/icons/Cached';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		padding: theme.spacing(3),
+		display: 'flex',
+		alignItems: 'center',
+		justifyContent: 'space-between'
+	},
+	content: {
+		flexGrow: 1
+	},
+	details: {
+		display: 'flex',
+		alignItems: 'center',
+		flexWrap: 'wrap'
+	},
+	progress: {
+		margin: theme.spacing(0, 1),
+		flexGrow: 1
+	},
+	avatar: {
+		backgroundImage: gradients.orange,
+		height: 48,
+		width: 48
+	}
+}));
+
+const CourseOffices = props => {
+	const {
+		showCompliance,
+		refreshOfficeWiseSummary,
+		className,
+		...rest
+	} = props;
+
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const dashboardCourseState = useSelector(state => state.dashboardCourseState);
+	const [complienceData, setComplienceData] = useState([]);
+
+	useEffect(() => {
+		setComplienceData(dashboardCourseState.courseDashboardOfficeSummary);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [dashboardCourseState.courseDashboardOfficeSummary]);
+
+	return (
+		<div style={{ position: 'relative' }}>
+			<StyledFab
+				color="bsuccess"
+				aria-label="edit"
+				size="small"
+				style={{ top: '-16px', right: '-8px', position: 'absolute' }}
+				onClick={() => refreshOfficeWiseSummary(showCompliance)}>
+				<CachedIcon size="small" />
+			</StyledFab>
+			{complienceData.map(row_d => (
+				<Card {...rest} className={clsx(classes.root, className)}>
+					<div className={classes.content}>
+						<Typography component="h3" gutterBottom variant="overline">
+							{row_d.office_name}
+						</Typography>
+						<div className={classes.details}>
+							<Typography variant="h3">
+								{row_d.completed_per === 'N/A' ? (
+									row_d.completed_per
+								) : (
+									<a
+										target="_blank"
+										href={
+											APP_URL +
+											'course-report?office_id=' +
+											row_d.id +
+											'&is_complience='+showCompliance
+										}>
+										{row_d.completed_per + '%'}
+									</a>
+								)}
+							</Typography>
+							<LinearProgress
+								className={classes.progress}
+								value={row_d.completed_per === 'N/A' ? 0 : row_d.completed_per}
+								variant="determinate"
+							/>
+						</div>
+					</div>
+					<Avatar
+						alt="Flag"
+						className={classes.avatar}
+						src={API_URL + row_d.flag_image}
+					/>
+				</Card>
+			))}
+		</div>
+	);
+};
+
+CourseOffices.propTypes = {
+	className: PropTypes.string
+};
+
+export default CourseOffices;

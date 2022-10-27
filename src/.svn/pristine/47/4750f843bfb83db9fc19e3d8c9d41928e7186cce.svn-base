@@ -1,0 +1,47 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("field_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    label: "Field Name",
+  }),
+  createColumn("field_tip", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    label: "Field Tip",
+  }),
+  createColumn("is_required_html", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    label: "Is Required",
+  }),
+  createColumn("description_html", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    label: "Description",
+  }),
+  createColumn("date_last_modified", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    label: "Last Modified At",
+    sortDirection: ColumnSortDirection.Descending,
+    sortOrder: 1,
+  }),
+  createColumn("updated_by_user_name", {
+    dataType: ColumnDataType.String,
+    filterable: true,
+    sortable: true,
+    label: "Modified By",
+  }),
+];
+export default Columns;

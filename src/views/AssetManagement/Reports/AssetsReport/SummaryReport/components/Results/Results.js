@@ -1,0 +1,209 @@
+import React from 'react';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography,
+  Paper,
+  Grid,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@material-ui/core';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {},
+  content: {
+    padding: 0
+  },
+  table: {
+    minWidth: 700,
+		borderCollapse: 'collapse'
+  },
+  secondHeaderRow:{
+    "& > *": {
+      top: '37px',
+    }
+  },
+  tableCol: {
+    border: '1px solid #eeeeee',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    textAlign: 'center',
+    padding: '5px'
+  },
+  textCol:{
+    fontSize: '10px',
+  },
+  tableVerticalCol:{
+    border: '1px solid #eeeeee',
+    borderCollapse: 'collapse',
+    lineHeight: '50px',
+    padding: '10px',
+    width: '6px',
+    height: '62px'
+  },
+  textVerticalltCol:{
+    transform: 'rotate(270deg)',
+    fontSize: '10px',
+    whiteSpace: 'nowrap',
+    width: '0px',
+    position: 'absolute'
+  },
+  tableContainer:{
+    maxHeight: 440,
+  },
+  stickyCol: {
+    position: '-webkit-sticky',
+    position: 'sticky',
+    left: '0'
+  },
+  office1:{
+    backgroundColor: '#98FB98',
+    fontSize: '13px',
+    border: '1px solid #98FB98',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    textAlign: 'center',
+    padding: '5px'
+  },
+  office2:{
+    backgroundColor: '#7FFFFF',
+    fontSize: '13px',
+    border: '1px solid #7FFFFF',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    textAlign: 'center',
+    padding: '5px'
+  },
+  office3:{
+    backgroundColor: '#ADD8E6',
+    fontSize: '13px',
+    border: '1px solid #ADD8E6',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    textAlign: 'center',
+    padding: '5px'
+  },
+  office4:{
+    backgroundColor: 'aliceblue',
+    fontSize: '13px',
+    border: '1px solid aliceblue',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    textAlign: 'center',
+    padding: '5px'
+  },
+  office5:{
+    backgroundColor: '#B3CCF5',
+    fontSize: '13px',
+    border: '1px solid #B3CCF5',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    textAlign: 'center',
+    padding: '5px'
+  }
+}));
+
+const Results = props => {
+  const { className, assetsSummaryReportRecords, officesRecords, ...rest } = props;
+  const classes = useStyles();
+
+  const getLocationWiseSummary = (row_data, index) => {
+    let locations_summary = Object.values(row_data.locations);
+    return(
+      <>
+        <TableCell key={'tbrc_'+index} className={classes.stickyCol} style={{ whiteSpace: 'nowrap' }} >{row_data.assets_type_name}</TableCell>
+        {locations_summary.map((loc, loc_i) => (
+        <React.Fragment key={'tbrcp_'+loc_i}>
+          <TableCell key={'tbrc_1_'+loc_i} className={classes.tableCol} style={{color: (loc.binded === 0)?'lightgray':'black'}} > <p className={classes.textCol}>{loc.binded} </p></TableCell>
+          <TableCell key={'tbrc_2_'+loc_i} className={classes.tableCol} style={{color: (loc.available === 0)?'lightgray':'black'}} > <p className={classes.textCol}>{loc.available} </p></TableCell>
+          <TableCell key={'tbrc_3_'+loc_i} className={classes.tableCol} style={{color: (loc.deprecated === 0)?'lightgray':'black'}} > <p className={classes.textCol}>{loc.deprecated} </p></TableCell>
+          <TableCell key={'tbrc_4_'+loc_i} className={classes.tableCol} style={{color: (loc.unreturned === 0)?'lightgray':'black'}} > <p className={classes.textCol}>{loc.unreturned} </p></TableCell>
+        </React.Fragment>
+        ))}   
+      </>
+    );
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Card>
+        <CardHeader
+          title="Summary Report"
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+          <TableContainer className={classes.tableContainer} component={Paper}>
+            <Table stickyHeader className={classes.table} size="small" aria-label="a dense table">
+              <TableHead>
+                <TableRow key={'h_1'} >
+                  <TableCell className={classes.stickyCol} key={'office_1'} > &nbsp; </TableCell>
+                  {officesRecords.map((office, index) => (
+                    <TableCell className={classes['office'+(index+1)]} colSpan={4} key={office.id}> {office.name} </TableCell>
+                  ))}
+                </TableRow>
+                <TableRow key={'h_2'} class={classes.secondHeaderRow} >
+                  <TableCell className={classes.stickyCol} key={'office_2'} >Asset Type</TableCell>
+                  {officesRecords.map((office, index) => (
+                    <React.Fragment key={index}>
+                      <TableCell className={classes.tableCol} key={'hc1_'+office.id}>
+                        <p className={classes.textCol}>Binded</p>
+                      </TableCell>
+                      <TableCell className={classes.tableCol} key={'hc2_'+office.id}>
+                        <p className={classes.textCol}>Available</p>
+                      </TableCell>
+                      <TableCell className={classes.tableCol} key={'hc3_'+office.id}>
+                        <p className={classes.textCol}>Deprecated</p>
+                      </TableCell>
+                      <TableCell className={classes.tableCol} key={'hc4_'+office.id}>
+                        <p className={classes.textCol}>Unreturned</p>
+                      </TableCell>
+                    </React.Fragment>  
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {!isEmpty(assetsSummaryReportRecords)?
+                <>
+                  {assetsSummaryReportRecords.map((row, index) => (
+                  <TableRow key={'tbr_'+index}>
+                    {getLocationWiseSummary(row, index)}
+                  </TableRow>
+                  ))}
+                </>
+                :''
+                }
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+Results.propTypes = {
+  className: PropTypes.string,
+  assetsSummaryReportRecords: PropTypes.array.isRequired,
+  officesRecords: PropTypes.array.isRequired
+};
+
+Results.defaultProps = {
+  assetsSummaryReportRecords: [],
+  officesRecords: [],
+};
+
+export default Results;

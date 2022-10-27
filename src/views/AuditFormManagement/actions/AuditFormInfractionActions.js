@@ -1,0 +1,304 @@
+import axios from 'axios';
+import {API_URL} from 'configs'
+import {isEmpty} from 'lodash'
+
+export const AUDIT_FORM_INFRACTION_REQUEST = 'AUDIT_FORM_INFRACTION_REQUEST'
+export const AUDIT_FORM_INFRACTION_SUCCESS = 'AUDIT_FORM_INFRACTION_SUCCESS'
+export const AUDIT_FORM_INFRACTION_VALIDATION_ERROR = 'AUDIT_FORM_INFRACTION_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_AUDIT_FORM_INFRACTION_FEILD_VALIDATION_ERROR = "HIDE_AUDIT_FORM_INFRACTION_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_AUDIT_FORM_INFRACTION_LIST = 'REDIRECT_TO_AUDIT_FORM_INFRACTION_LIST'
+export const AUDIT_FORM_INFRACTION_BY_CLIENT_SUCCESS = 'AUDIT_FORM_INFRACTION_BY_CLIENT_SUCCESS'
+export const AUDIT_FORM_INFRACTION_GET_SUCCESS = 'AUDIT_FORM_INFRACTION_GET_SUCCESS'
+export const AUDIT_FORM_INFRACTION_SERVER_SUCCESS = 'AUDIT_FORM_INFRACTION_SERVER_SUCCESS'
+export const AUDIT_FORM_INFRACTION_DROPDOWN_SUCCESS = 'AUDIT_FORM_INFRACTION_DROPDOWN_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+  const auditFormInfractionRequest = () => ({
+      type: AUDIT_FORM_INFRACTION_REQUEST,
+  })
+
+  export const auditFormInfractionServerListSuccess = () => ({
+    type: AUDIT_FORM_INFRACTION_SERVER_SUCCESS,
+  }) 
+
+  const auditFormInfractionListSuccess = auditFormInfractionList => ({
+    type: AUDIT_FORM_INFRACTION_SUCCESS,
+    auditFormInfractionList: auditFormInfractionList,
+  }) 
+
+  const auditFormInfractionByClientSuccess = auditFormInfractionByClientList => ({
+    type: AUDIT_FORM_INFRACTION_BY_CLIENT_SUCCESS,
+    auditFormInfractionByClientList: auditFormInfractionByClientList,
+  }) 
+
+  const auditFormInfractionDropdownListSuccess = auditFormInfractionDropdownList => ({
+    type: AUDIT_FORM_INFRACTION_DROPDOWN_SUCCESS,
+    auditFormInfractionDropdownList: auditFormInfractionDropdownList
+  })
+  
+  const auditFormInfractionFailure = notification => ({
+      type: SHOW_SNACKBAR,
+      snackbar_notification: notification,
+      snackbar_notification_type: 'general_error'
+  })
+  const validationError = notification => ({
+    type: AUDIT_FORM_INFRACTION_VALIDATION_ERROR,
+    validation_error: notification,
+  })
+  const tokenError = notification => ({
+    type: SHOW_SNACKBAR,
+    snackbar_notification: notification,
+    snackbar_notification_type: 'token_expire'
+  })
+  
+  const auditFormInfractionAddUpadteSuccess = (message,action,dispatch) => {
+    dispatch(auditFormInfractionSuccessNotification(message))
+    dispatch(redirectToAuditFormInfractionList())
+  }
+
+  export const redirectToAuditFormInfractionList = () => ({
+    type: REDIRECT_TO_AUDIT_FORM_INFRACTION_LIST,
+  })
+
+  const getAuditFormInfractionSuccess = (response,action) => ({
+    type: AUDIT_FORM_INFRACTION_GET_SUCCESS,
+    record: response,
+    actionType: action
+  })
+
+  const auditFormInfractionSuccessNotification = message => ({
+    type: SHOW_SNACKBAR,
+    snackbar_notification: message,
+    snackbar_notification_type: 'success'
+  })
+
+  export const hideAuditFormInfractionValidationError = (feild_key) => ({
+    type: HIDE_AUDIT_FORM_INFRACTION_FEILD_VALIDATION_ERROR,
+    feild_key: feild_key
+  })
+
+  export const auditFormInfractionDropdownListFetch = (object_viewed_id = '', client_id) => {
+    var token = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"audit_form_infractions/getAllForDropdown", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        data:{
+          client_id: client_id,
+          object_viewed_id: object_viewed_id
+        }
+      })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(auditFormInfractionDropdownListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+    }
+  }
+
+  export const auditFormInfractionListFetch = (object_viewed_id = '') => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"audit_form_infractions/getAll", {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        params: {object_viewed_id: object_viewed_id}
+      })
+      .then((response) => {
+        dispatch(auditFormInfractionListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const auditFormInfractionByClientFetch = (object_viewed_id = '', client_id) => {
+
+    let r_data = [];
+    if(!isEmpty(client_id)){
+      r_data = [
+        {
+          "key": "client_id",
+          "value": client_id
+        }
+      ];
+    }
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"audit_form_infractions/getByAttributes", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data: {
+          request_data: r_data,
+          object_viewed_id: object_viewed_id
+        },
+      })
+      .then((response) => {
+        dispatch(auditFormInfractionByClientSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const addAuditFormInfraction = (data) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"audit_form_infractions/create", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data: data,
+      })
+      .then((response) => {
+        auditFormInfractionAddUpadteSuccess('Audit Form Infraction Added Successfully','create',dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const updateAuditFormInfraction = (data) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"audit_form_infractions/update/"+data.id, {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer  '+token
+        },
+        data: data
+      })
+      .then((response) => {
+        auditFormInfractionAddUpadteSuccess('Audit Form Infraction Updated Successfully','update',dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }  
+
+  export const getAuditFormInfractionById = (id,action) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"audit_form_infractions/getById/"+id, {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer  '+token
+        },
+      })
+      .then((response) => {
+        dispatch(getAuditFormInfractionSuccess(response.data,action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  } 
+
+  export const deleteAuditFormInfraction = (auditFormInfractionId, object_viewed_id) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(auditFormInfractionRequest())
+      dispatch(showCommonLoader())
+        return axios(API_URL+"audit_form_infractions/delete/"+auditFormInfractionId, {
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Authorization':'Bearer '+token
+          },
+          data:{
+            object_viewed_id
+          }
+        })
+        .then((response) => {
+            dispatch(auditFormInfractionSuccessNotification('Audit Form Infraction deleted successfully'))
+            dispatch(hideCommonLoader())
+        }, (error) => {
+          handleErrorResponse(error,dispatch)
+          dispatch(hideCommonLoader())
+        });
+      }  
+        
+  }
+ 
+// handling error reponse   
+const handleErrorResponse = (error,dispatch) => {
+  try{
+    if(error.response.status === 422 && error.response.data.error){
+      dispatch(validationError(error.response.data.error))
+    }
+    else if(error.response.status === 401 && error.response.data.error){
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else{
+      let err = '';
+      if(error.response.data.error){
+        err = error.response.data.error.toString()
+      }
+      else{
+        err = error.response.status+` `+error.response.statusText
+      }
+      dispatch(auditFormInfractionFailure(err))
+    }
+  }
+  catch(e){
+    dispatch(auditFormInfractionFailure('Unable to perform action.Something went wrong'))
+  }  
+}   

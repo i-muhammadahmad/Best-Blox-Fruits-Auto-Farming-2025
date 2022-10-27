@@ -1,0 +1,204 @@
+import React, { useState, useEffect } from 'react';
+import CancelIcon from '@material-ui/icons/Cancel';
+import {
+  makeStyles,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  TextField
+} from '@material-ui/core';
+import { StyledButton } from 'components';
+import { OfficesDropdown, ClientDropdown } from 'commonDropdowns';
+import { map, isEmpty } from 'lodash';
+
+const useStylesModal = makeStyles((theme) => ({
+  modal: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paper: {
+    backgroundColor: theme.palette.background.paper,
+    border: '2px solid #000',
+    boxShadow: theme.shadows[5],
+    padding: theme.spacing(2, 4, 3),
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    width: '100%',
+  },
+  selectEmpty: {
+    marginTop: theme.spacing(2),
+  },
+}));
+
+const ScopeModel = (props) => {
+
+  const { modalOpen, handleModalOpen, formState, setFormState, objectId } = props;
+  const [OfficeValue, setOfficeValue] = useState([]);
+  const [ClientValue, setClientValue] = useState([]);
+  const [ClientIds, setClientIds] = useState(null);
+  const [OfficeIds, setOfficeIds] = useState(null);
+
+  /*useEffect(() => {
+    setClientIds(formState.client_ids);
+  }, [formState.client_ids]);
+
+  useEffect(() => {
+    setOfficeIds(formState.office_ids);
+  }, [formState.office_ids]);*/
+
+  useEffect(() => {
+    if (!isEmpty(objectId)) {
+      let cam_ids = formState.values.role_access_rights[objectId]['client_ids'];
+      setClientIds(cam_ids);
+
+      let off_ids = formState.values.role_access_rights[objectId]['office_ids'];
+      setOfficeIds(off_ids);
+    }
+  }, [objectId]);
+
+  const classes = useStylesModal();
+
+  const handleClose = () => {
+    handleModalOpen(false);
+    setOfficeValue([])
+    setOfficeIds(null);
+    setClientValue([]);
+    setClientIds(null);
+  };
+
+  const handleSubmit = event => {
+    let office_ids = map(OfficeValue, 'id');
+    handleChange('office_ids', office_ids);
+
+    let camp_ids = map(ClientValue, 'id');
+    handleChange('client_ids', camp_ids);
+    handleModalOpen(false);
+  }
+
+  const officeOnChange = (event, newValue) => {
+
+    let office_ids = null;
+    if (newValue) {
+      setOfficeValue(newValue)
+      office_ids = map(newValue, 'id')
+      setOfficeIds(office_ids)
+    }
+    else {
+      setOfficeValue(newValue)
+      setOfficeIds(office_ids)
+    }
+
+  }
+
+  const clientOnChange = (event, newValue) => {
+    let camp_ids = null;
+    if (newValue) {
+      setClientValue(newValue);
+      camp_ids = map(newValue, 'id');
+      setClientIds(camp_ids);
+    }
+    else {
+      setClientValue(newValue);
+      setClientIds(camp_ids);
+    }
+
+  }
+
+  const handleChange = (field_name, field_val) => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        role_access_rights: {
+          ...formState.values.role_access_rights,
+          [objectId]: {
+            ...formState.values.role_access_rights[objectId],
+            [field_name]: field_val,
+          }
+        }
+      }
+    }));
+  }
+
+  return (
+    <div>
+      <Dialog
+        aria-labelledby="transition-modal-title"
+        aria-describedby="transition-modal-description"
+        className={classes.modal}
+        open={modalOpen}
+        onClose={handleClose}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          timeout: 500,
+        }}
+
+      >
+        <DialogTitle id="form-dialog-title">Office / Client Wise Access</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={12}>
+              <OfficesDropdown
+                OfficeValue={OfficeValue}
+                setOfficeValue={setOfficeValue}
+                selectedId={OfficeIds}
+                id="office_ids"
+                name="office_ids"
+                officeOnChange={officeOnChange}
+                limitTags={2}
+                multiple={true}
+                showSelectAllOption={true}
+                renderInput={(params) => <TextField {...params} label="Select Offices" variant="outlined" />}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12}>
+              <ClientDropdown
+                ClientValue={ClientValue}
+                setClientValue={setClientValue}
+                selectedId={ClientIds}
+                id="client_ids"
+                name="client_ids"
+                clientOnChange={clientOnChange}
+                limitTags={2}
+                multiple={true}
+                officesIds={OfficeIds}
+                renderInput={(params) => <TextField {...params} label="Select Clients" variant="outlined" />}
+              />
+            </Grid>
+          </Grid>
+
+        </DialogContent>
+        <DialogActions>
+          <StyledButton
+            variant="contained"
+            color="bsecondary"
+            size="small"
+            className={classes.button}
+            startIcon={<CancelIcon />}
+            onClick={handleClose}
+          >
+            CLOSE
+          </StyledButton>
+          <StyledButton
+            color="bprimary"
+            size="small"
+            type="Button"
+            variant="contained"
+            onClick={handleSubmit}
+          >
+            Add Scope
+          </StyledButton>
+        </DialogActions>
+      </Dialog>
+
+    </div>
+  );
+}
+
+export default ScopeModel;

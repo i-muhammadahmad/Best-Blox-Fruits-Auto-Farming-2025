@@ -1,0 +1,144 @@
+import React from 'react';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography
+} from '@material-ui/core';
+import { CustomDataGrid } from 'components';
+import Columns from '../Columns';
+import { GenericMoreButton, TableEditBar } from 'components';
+import ServerSideRequest from 'utils/ServerSideRequest';
+import { API_URL } from 'configs';
+import {
+  assetsReportServerSuccess,
+  showCommonLoader,
+  hideCommonLoader,
+  tokenError,
+  showGeneralError
+} from 'actions';
+import { useDispatch } from 'react-redux';
+import { isEmpty, forEach } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {},
+  content: {
+    padding: 0
+  },
+  inner: {
+    minWidth: 700
+  },
+  nameCell: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  avatar: {
+    height: 42,
+    width: 42,
+    marginRight: theme.spacing(1)
+  },
+  actions: {
+    padding: theme.spacing(1),
+    justifyContent: 'flex-end'
+  }
+}));
+
+const Results = props => {
+  const { className, refershDataTable, setRefershDataTable, extraFiltersState, actionsCol, getEmployeeStatus, ...rest } = props;
+  const dispatch = useDispatch();
+
+  //handle custom response for employees
+  const handleAssetsReportSuccessResponse = (responseObject) => {
+
+    if (
+      !isEmpty(responseObject)
+      && !isEmpty(responseObject.payload)
+      && (typeof actionsCol === 'function')
+    ) {
+      forEach(responseObject.payload, function (value, key) {
+        // appling action in try-catch block. so if any error occure it will not effect table rendring
+        try {
+          responseObject.payload[key]['Actions'] = actionsCol(value);
+          responseObject.payload[key]['employee_status'] = getEmployeeStatus(value);
+        }
+        catch (e) {
+          console.error(e);
+        }
+      });
+    }
+
+    return responseObject;
+  }
+
+  const call_backs = {
+    'serverSideSuccess': () => { dispatch(assetsReportServerSuccess()); },
+    'showLoding': () => { dispatch(showCommonLoader()); },
+    'hideLoding': () => { dispatch(hideCommonLoader()); setRefershDataTable(false); },
+    'tokenError': (errMsg) => { dispatch(tokenError(errMsg)) },
+    'genralError': (errMsg) => { dispatch(showGeneralError(errMsg)) },
+    'customResponse': (responseObject) => { return handleAssetsReportSuccessResponse(responseObject) }
+  }
+
+  const server_side_request = new Request(API_URL + "assets/getAssetsReportByEmployeeServerSide", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json;charset=utf-8',
+      'Authorization': 'Bearer ' + localStorage.getItem("token"),
+      'Accept': 'application/json'
+    }
+  });
+
+  const classes = useStyles();
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Typography
+        color="textSecondary"
+        gutterBottom
+        variant="body2"
+      >
+
+      </Typography>
+      <Card>
+        <CardHeader
+          action={<GenericMoreButton />}
+          title="Assets Report"
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+          <PerfectScrollbar>
+            <div className={classes.inner}>
+              <CustomDataGrid
+                columns={Columns}
+                dataSource={
+                  new ServerSideRequest(server_side_request, actionsCol, call_backs, extraFiltersState)
+                }
+                gridName="AssetReportGrid"
+              />
+            </div>
+          </PerfectScrollbar>
+        </CardContent>
+
+      </Card>
+    </div>
+  );
+};
+
+function areEqual(prevProps, nextProps) {
+  /* 
+  return true if passing nextProps to render would return
+  the same result as passing prevProps to render,
+  otherwise return false
+  */
+  return !nextProps.refershDataTable;
+}
+
+export default React.memo(Results, areEqual);

@@ -1,0 +1,228 @@
+import { combineReducers } from 'redux';
+import { persistReducer } from 'redux-persist'
+import storage from 'redux-persist/lib/storage'
+import sessionReducer from './sessionReducer';
+import notificationReducer from './notificationReducer';
+import commonReducer from './commonReducer';
+import clockInReducer from './clockInReducer';
+import dashboardProductionReducer from './dashboardProductionReducer';
+import dashboardCampaignReducer from './dashboardCampaignReducer';
+import dashboardCourseReducer from './dashboardCourseReducer';
+import {
+  ActivityCategoryReducer,
+  ActivityCategoryStatusReducer,
+  ActivitySetupReducer,
+  ActivityLogReducer,
+  ActivityAccessReducer,
+  AuditInfractionsReducer,
+  AuditErrorCategoryReducer,
+  AuditErrorSeverityReducer,
+  AuditReviewsReducer,
+} from 'views/ActivityManagement/reducers';
+import {
+  BulkActivitySetupReducer,
+  BulkActivityLogReducer,
+} from 'views/BulkActivityManagement/reducers';
+import {
+  HolidayCategoryReducer,
+  HolidayReducer
+} from 'views/HolidaysManagement/reducers';
+import {
+  UsersReducer,
+  UserReportReducer,
+  RolesReducer,
+  TimeZonesReducer,
+  ObjectsReducer,
+  ObjectTypesReducer,
+  RolesAccessReducer,
+  UserProfileReducer
+} from 'views/UserManagement/reducers';
+import {
+  ClientReducer,
+  ContactBoardReducer,
+  MeetingNotesReducer,
+  ClientHeadcountReducer,
+  ClientInvoicesReducer,
+  EmailTemplatesReducer
+} from 'views/ClientManagement/reducers';
+import {
+  DesignationReducer,
+  DesignationCategoryReducer,
+  EmployeeAttritionReasonReducer,
+  EmployeeAttritionReducer
+} from 'views/HRManagement/reducers';
+import {
+  OfficesReducer,
+  DepartmentsReducer,
+  WorkstationsReducer,
+  SettingsReducer
+} from 'views/Setups/reducers';
+import {
+  ShiftsReducer,
+  EmployeesReducer,
+  EmployeeShiftsReducer,
+  ShiftBreaksReducer,
+  BreakTypesReducer,
+} from 'views/EmployeeManagement/reducers';
+import {
+  TranscribeConfigReducer,
+  TranscribeJobReducer
+} from 'views/TranscribeManagement/reducers';
+import {
+  CompanyTypeReducer,
+  CompanyReducer,
+  CompanyContactReducer,
+} from 'views/BusinessDevelopment/reducers';
+import {
+  CourseCategoryReducer,
+  QuizSetupReducer,
+  QuizReducer
+} from 'views/QuizManagement/reducers';
+import {
+  AssetTypesReducer,
+  AssetAttributeReducer,
+  AssetsReducer,
+  AssetsReportReducer,
+  AssetApprovalsReducer,
+  AssetsHistoryReducer,
+  SetupFloorPlanReducer,
+  FloorPlanReducer
+} from 'views/AssetManagement/reducers';
+import {
+  LeaveTypeReducer,
+  LeaveScheduleReducer,
+  LeaveConfigsReducer
+} from 'views/AttendanceManagement/reducers';
+import {
+  ApprovalProfilesReducer
+} from 'views/Admin/reducers';
+import {
+  AuditFormInfractionReducer,
+  AuditFormSetupReducer,
+  AuditFormReducer,
+  AuditFormInfractionCategoryReducer,
+  AuditFormCategoryReducer
+} from 'views/AuditFormManagement/reducers';
+import {
+  HeadcountReportReducer
+} from 'views/PremierMenu/reducers';
+import {
+  TicketsCategoryReducer,
+  TicketsReducer
+} from 'views/TicketManagement/reducers';
+import {
+  VendorsReducer,
+  PurchaseOrdersReducer
+} from 'views/FinanceManagement/reducers';
+import {
+  DocumentsCategoryReducer, DocumentsReducer,
+} from 'views/DocumentManagement/reducers';
+import {
+  ComplianceReducer
+} from 'views/ComplianceManagement/reducers';
+
+const presistConfig = {
+  key: 'root',
+  storage,
+  whitelist: ['session', 'notificationState']
+}
+
+const appReducer = combineReducers({
+  session: sessionReducer,
+  notificationState: notificationReducer, 
+  activityCategoryState: ActivityCategoryReducer,
+  commonState: commonReducer,
+  activityCategoryStatusState: ActivityCategoryStatusReducer,
+  holidayCategoryState: HolidayCategoryReducer,
+  holidayState: HolidayReducer,
+  clientState: ClientReducer,
+  activitySetupState: ActivitySetupReducer,
+  activityLogState: ActivityLogReducer,
+  clockInState: clockInReducer,
+  activityAccessState: ActivityAccessReducer,
+  auditInfractionsState: AuditInfractionsReducer,
+  auditErrorCategoryState: AuditErrorCategoryReducer,
+  auditErrorSeverityState: AuditErrorSeverityReducer,
+  auditReviewsState: AuditReviewsReducer,
+  bulkActivitySetupState: BulkActivitySetupReducer,
+  bulkActivityLogState: BulkActivityLogReducer,
+  userReportState: UserReportReducer,
+  usersState: UsersReducer,
+  rolesState: RolesReducer,
+  timeZonesState: TimeZonesReducer,
+  objectsState: ObjectsReducer,
+  objectTypesState: ObjectTypesReducer,
+  designationState: DesignationReducer,
+  designationCategoryState: DesignationCategoryReducer,
+  rolesAccessState: RolesAccessReducer,
+  officesState: OfficesReducer,
+  departmentsState: DepartmentsReducer,
+  workstationsState: WorkstationsReducer,
+  settingsState: SettingsReducer,
+  shiftsState: ShiftsReducer,
+  shiftBreaksState: ShiftBreaksReducer,
+  breakTypesState: BreakTypesReducer,
+  employeesState: EmployeesReducer,
+  employeeShiftsState: EmployeeShiftsReducer,
+  transcribeConfigState: TranscribeConfigReducer,
+  transcribeJobState: TranscribeJobReducer,
+  companyTypeState: CompanyTypeReducer,
+  companyState: CompanyReducer,
+  companyContactState: CompanyContactReducer,
+  quizSetupState: QuizSetupReducer,
+  quizState: QuizReducer,
+  assetTypesState: AssetTypesReducer,
+  assetAttributeState: AssetAttributeReducer,
+  assetsState: AssetsReducer,
+  AssetsReportState: AssetsReportReducer,
+  assetApprovalsState: AssetApprovalsReducer,
+  contactBoardState: ContactBoardReducer,
+  meetingNotesState: MeetingNotesReducer,
+  clientInvoicesState: ClientInvoicesReducer,
+  leaveTypeState: LeaveTypeReducer,
+  leaveScheduleState: LeaveScheduleReducer,
+  leaveConfigsState: LeaveConfigsReducer,
+  approvalProfilesState: ApprovalProfilesReducer,
+  auditFormInfractionState: AuditFormInfractionReducer,
+  auditFormSetupState: AuditFormSetupReducer,
+  auditFormState: AuditFormReducer,
+  clientHeadcountState: ClientHeadcountReducer,
+  headcountReportState: HeadcountReportReducer,
+  assetsHistoryState: AssetsHistoryReducer,
+  setupFloorPlanState: SetupFloorPlanReducer,
+  floorPlanState: FloorPlanReducer,
+  employeeAttritionReasonState: EmployeeAttritionReasonReducer,
+  employeeAttritionState: EmployeeAttritionReducer,
+  ticketsCategoryState: TicketsCategoryReducer,
+  ticketsState: TicketsReducer,
+  userProfileState: UserProfileReducer,
+  dashboardProductionState: dashboardProductionReducer,
+  auditFormInfractionCategoryState: AuditFormInfractionCategoryReducer,
+  auditFormCategoryState: AuditFormCategoryReducer,
+  dashboardCampaignState: dashboardCampaignReducer,
+  vendorsState: VendorsReducer,
+  purchaseOrdersState: PurchaseOrdersReducer,
+  documentsCategoryState: DocumentsCategoryReducer,
+  documentsState: DocumentsReducer,
+  complianceState: ComplianceReducer,
+  emailTemplatesState: EmailTemplatesReducer,
+  courseCategoryState: CourseCategoryReducer,
+  dashboardCourseState: dashboardCourseReducer,
+})
+
+const RootReducer = (state, action) => {
+  if (action.type === 'TOKEN_EXPIRE' || action.type === 'SESSION_LOGOUT') {
+    state = undefined;
+    localStorage.removeItem('token');
+    sessionStorage.clear();
+  }
+  return appReducer(state, action)
+}
+
+export default persistReducer(presistConfig, RootReducer);
+
+/*const rootReducer = combineReducers({
+  session: sessionReducer
+});
+
+export default rootReducer;*/

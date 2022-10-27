@@ -1,0 +1,153 @@
+import React from 'react';
+import {API_URL} from 'configs'
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Typography,
+  Grid,
+  Card,
+  CardMedia 
+} from '@material-ui/core';
+import { redirectToRolesList } from 'actions';
+import { Page, StyledButton } from 'components';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { useSelector, useDispatch } from 'react-redux';
+import AudioPlayer from 'material-ui-audio-player';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+
+const useStylesAudioPlayer = makeStyles((theme) => {
+  return {
+    root: {
+      [theme.breakpoints.down('sm')]: {
+        width: '100%',
+      },
+    },
+    loopIcon: {
+      color: '#3f51b5',
+      '&.selected': {
+        color: '#0921a9',
+      },
+      '&:hover': {
+        color: '#7986cb',
+      },
+      [theme.breakpoints.down('sm')]: {
+        display: 'none',
+      },
+    },
+    playIcon: {
+      color: '#f50057',
+      '&:hover': {
+        color: '#ff4081',
+      },
+    },
+    replayIcon: {
+      color: '#e6e600',
+    },
+    pauseIcon: {
+      color: '#0099ff',
+    },
+    volumeIcon: {
+      color: 'rgba(0, 0, 0, 0.54)',
+    },
+    volumeSlider: {
+      color: 'black',
+    },
+    progressTime: {
+      color: 'rgba(0, 0, 0, 0.54)',
+    },
+    mainSlider: {
+      color: '#3f51b5',
+      '& .MuiSlider-rail': {
+        color: '#7986cb',
+      },
+      '& .MuiSlider-track': {
+        color: '#3f51b5',
+      },
+      '& .MuiSlider-thumb': {
+        color: '#303f9f',
+      },
+    },
+  };
+});
+
+
+const useStyles = makeStyles(() => ({
+  media_style: {
+    height: '100%',
+    overflow: 'hidden',
+    display: 'block',
+    width: '100%',
+  },
+}));
+
+const SlideContant = props => {
+  const { slideData, ...rest } = props;
+  const classes = useStyles();
+
+  if (slideData.content_type === 'Text') {
+    return (
+      <div
+        {...rest}
+      >   
+      
+        <div className="ck-content" dangerouslySetInnerHTML={{ __html: slideData.text_content }} />
+      </div>
+    );
+  }
+  else if (slideData.content_type === 'Image') {
+    return (
+      <div
+        {...rest}
+      >
+        <img
+          className={classes.media_style}
+          src={API_URL+slideData.media_path}
+          alt={slideData.name}
+        />
+      </div>
+    );
+  }
+  else if (slideData.content_type === 'Audio') {
+    return (
+      <div
+        {...rest}
+        style={{ width: '100%', paddingLeft: '19px' }}
+      >
+        <AudioPlayer
+          className={classes.media_style}
+          src={API_URL+slideData.media_path}
+          useStyles={useStylesAudioPlayer}
+        />
+      </div>
+    );
+  }
+  else if (slideData.content_type === 'Video') {
+    return (
+      <div
+        {...rest}
+      >
+        <video className={classes.media_style} controls>
+          <source src={API_URL+slideData.media_path} />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    );
+  }
+  else {
+    return (
+      <div
+        {...rest}
+      >
+      </div>
+    );
+  }
+
+};
+
+SlideContant.propTypes = {
+  className: PropTypes.string
+};
+
+export default SlideContant;

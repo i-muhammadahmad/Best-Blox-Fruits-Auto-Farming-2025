@@ -1,0 +1,6 @@
+export { default as ClientReducer } from './ClientReducer';
+export { default as ContactBoardReducer } from './ContactBoardReducer';
+export { default as MeetingNotesReducer } from './MeetingNotesReducer';
+export { default as ClientInvoicesReducer } from './ClientInvoicesReducer';
+export { default as ClientHeadcountReducer } from './ClientHeadcountReducer';
+export { default as EmailTemplatesReducer } from './EmailTemplatesReducer';

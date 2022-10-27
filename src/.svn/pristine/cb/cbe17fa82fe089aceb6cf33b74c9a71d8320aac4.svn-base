@@ -1,0 +1,319 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const AUDIT_FORM_IFRACTION_CATEGORY_REQUEST = 'AUDIT_FORM_IFRACTION_CATEGORY_REQUEST'
+export const AUDIT_FORM_IFRACTION_CATEGORY_SUCCESS = 'AUDIT_FORM_IFRACTION_CATEGORY_SUCCESS'
+export const AUDIT_FORM_IFRACTION_CATEGORIES_BY_ATTR_SUCCESS = 'AUDIT_FORM_IFRACTION_CATEGORIES_BY_ATTR_SUCCESS'
+export const AUDIT_FORM_IFRACTION_CATEGORY_VALIDATION_ERROR = 'AUDIT_FORM_IFRACTION_CATEGORY_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_AUDIT_FORM_IFRACTION_CATEGORY_FEILD_VALIDATION_ERROR = "HIDE_AUDIT_FORM_IFRACTION_CATEGORY_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_AUDIT_FORM_IFRACTION_CATEGORY_LIST = 'REDIRECT_TO_AUDIT_FORM_IFRACTION_CATEGORY_LIST'
+export const AUDIT_FORM_IFRACTION_CATEGORY_PARENT_SUCCESS = 'AUDIT_FORM_IFRACTION_CATEGORY_PARENT_SUCCESS'
+export const AUDIT_FORM_IFRACTION_CATEGORY_GET_SUCCESS = 'AUDIT_FORM_IFRACTION_CATEGORY_GET_SUCCESS'
+export const AUDIT_FORM_IFRACTION_CATEGORY_DROPDOWN_LIST_SUCCESS = 'AUDIT_FORM_IFRACTION_CATEGORY_DROPDOWN_LIST_SUCCESS'
+export const AUDIT_FORM_IFRACTION_CATEGORY_SERVER_SUCCESS = 'AUDIT_FORM_IFRACTION_CATEGORY_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const auditFormInfractionCategoryRequest = () => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_REQUEST,
+})
+
+export const auditFormInfractionCategoryServerListSuccess = () => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_SERVER_SUCCESS,
+})
+
+const auditFormInfractionCategoryListSuccess = auditFormInfractionCategoryList => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_SUCCESS,
+  auditFormInfractionCategoryList: auditFormInfractionCategoryList,
+})
+
+const auditFormInfractionCategoryParentListSuccess = auditFormInfractionCategoryParentsList => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_PARENT_SUCCESS,
+  auditFormInfractionCategoryParentsList: auditFormInfractionCategoryParentsList,
+})
+
+const auditFormInfractionCategoryFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const auditFormInfractionCategoryAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(auditFormInfractionCategorySuccessNotification(message))
+  dispatch(redirectToAuditFormInfractionCategoryList())
+}
+
+export const redirectToAuditFormInfractionCategoryList = () => ({
+  type: REDIRECT_TO_AUDIT_FORM_IFRACTION_CATEGORY_LIST,
+})
+
+const getAuditFormInfractionCategorySuccess = (response, action) => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const auditFormInfractionCategorySuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const hideAuditFormInfractionCategoryValidationError = (feild_key) => ({
+  type: HIDE_AUDIT_FORM_IFRACTION_CATEGORY_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+const auditFormInfractionCategoriesByAttrListSuccess = auditFormInfractionCategoriesByAttrList => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORIES_BY_ATTR_SUCCESS,
+  auditFormInfractionCategoriesByAttrList: auditFormInfractionCategoriesByAttrList,
+})
+
+/*
+* auditFormInfractionCategories dropdown list fetch methods
+*/
+const auditFormInfractionCategoryDropdownListSuccess = auditFormInfractionCategoriesDropdownList => ({
+  type: AUDIT_FORM_IFRACTION_CATEGORY_DROPDOWN_LIST_SUCCESS,
+  auditFormInfractionCategoriesDropdownList: auditFormInfractionCategoriesDropdownList,
+})
+
+export const auditFormInfractionCategoryDropdownListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/getAllForDropdown", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+    .then((response) => {
+      dispatch(auditFormInfractionCategoryDropdownListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+
+export const auditFormInfractionCategoriesByAttrListFetch = (request_data = []) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: request_data
+    })
+      .then((response) => {
+        dispatch(auditFormInfractionCategoriesByAttrListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+}
+
+export const auditFormInfractionCategoryListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(auditFormInfractionCategoryListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+}
+
+export const auditFormInfractionCategoryParentListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/getAllParents", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(auditFormInfractionCategoryParentListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addAuditFormInfractionCategory = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        auditFormInfractionCategoryAddUpadteSuccess('Audit Form Infraction Category Added Successfully', 'create', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const updateAuditFormInfractionCategory = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        auditFormInfractionCategoryAddUpadteSuccess('Audit Form Infraction Category Updated Successfully', 'update', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const getAuditFormInfractionCategoryById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(getAuditFormInfractionCategorySuccess(response.data, action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const deleteAuditFormInfractionCategory = (auditFormInfractionCategoryId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormInfractionCategoryRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "auditFormInfractionCategory/delete/" + auditFormInfractionCategoryId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(auditFormInfractionCategorySuccessNotification('Audit Form Infraction Category deleted successfully'))
+        dispatch(auditFormInfractionCategoryListFetch())
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(auditFormInfractionCategoryFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(auditFormInfractionCategoryFailure('Unable to perform action.Something went wrong'))
+  }
+}   

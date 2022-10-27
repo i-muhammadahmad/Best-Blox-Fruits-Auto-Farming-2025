@@ -1,0 +1,100 @@
+import { GridRequest, GridResponse, TubularHttpClientAbstract, TubularHttpClient } from 'tubular-common';
+import { isEmpty, forEach } from 'lodash';
+
+
+export default class ServerSideRequest {
+    request;
+    actions_col;
+    call_backs;
+    extra_req_data = [];
+    object_viewed_id;
+
+    constructor(request, actions, call_backs, extraRequestData = [], object_viewed_id) {
+        this.request = TubularHttpClient.resolveRequest(request);
+        this.actions_col = actions;
+        this.call_backs = call_backs;
+        this.extra_req_data = extraRequestData;
+        this.object_viewed_id = object_viewed_id
+    }
+
+    async fetch(gridRequest) {
+        const call_backs_func = this.call_backs;
+
+        //show loading
+        call_backs_func.showLoding();
+        let requestData = this.prepareRequestBody(gridRequest);
+        const response = await fetch(TubularHttpClient.getRequest(this.request, requestData));
+        const responseBody = await response.text();
+        const responseObject = responseBody ? JSON.parse(responseBody) : {};
+
+        if (response.status >= 200 && response.status < 300) {
+
+            await TubularHttpClient.fixResponse(responseObject);
+
+            // succcess calback 
+            call_backs_func.serverSideSuccess();
+            // hide loading 
+            call_backs_func.hideLoding();
+
+            //custumiizing response
+            if ((typeof call_backs_func.customResponse === 'function')) {
+                return await call_backs_func.customResponse(responseObject);
+            }
+            else {
+                return await this.handleSuccessResponse(responseObject);
+            }
+        }
+        else if (response.status === 401 && responseObject.error) {
+            call_backs_func.tokenError(responseObject.error.toString());
+        }
+        else {
+            let err = '';
+            if (responseObject.error) {
+                err = responseObject.error.toString();
+            }
+            else {
+                err = response.status + ` ` + response.statusText;
+            }
+            call_backs_func.genralError(err);
+        }
+
+        // hide loading 
+        call_backs_func.hideLoding();
+    }
+
+    prepareRequestBody(gridRequest) {
+        let req_data = gridRequest;
+
+        if (!isEmpty(this.extra_req_data)) {
+            req_data['extraFilters'] = this.extra_req_data;
+        }
+        if (!isEmpty(this.object_viewed_id)) {
+            req_data['object_viewed_id'] = this.object_viewed_id;
+        }
+
+        return req_data;
+    }
+
+    handleSuccessResponse(responseObject) {
+
+        const action_col_func = this.actions_col;
+        if (
+            !isEmpty(responseObject)
+            && !isEmpty(responseObject.payload)
+            && (typeof action_col_func === 'function')
+        ) {
+            forEach(responseObject.payload, function (value, key) {
+                // appling action in try-catch block. so if any error occure it will not effect table rendring
+                try {
+                    responseObject.payload[key]['Actions'] = action_col_func(value);
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            });
+        }
+
+        return responseObject;
+    }
+
+}

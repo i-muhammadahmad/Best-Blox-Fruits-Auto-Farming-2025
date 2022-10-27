@@ -1,0 +1,227 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const EMPLOYEE_ATTRITION_REQUEST = 'EMPLOYEE_ATTRITION_REQUEST'
+export const EMPLOYEE_ATTRITION_SUCCESS = 'EMPLOYEE_ATTRITION_SUCCESS'
+export const EMPLOYEE_ATTRITION_VALIDATION_ERROR = 'EMPLOYEE_ATTRITION_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_EMPLOYEE_ATTRITION_FEILD_VALIDATION_ERROR = "HIDE_EMPLOYEE_ATTRITION_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_EMPLOYEE_ATTRITION_LIST = 'REDIRECT_TO_EMPLOYEE_ATTRITION_LIST'
+export const EMPLOYEE_ATTRITION_GET_SUCCESS = 'EMPLOYEE_ATTRITION_GET_SUCCESS'
+export const EMPLOYEE_ATTRITION_SERVER_SUCCESS = 'EMPLOYEE_ATTRITION_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const employeeAttritionRequest = () => ({
+  type: EMPLOYEE_ATTRITION_REQUEST,
+})
+
+export const employeeAttritionServerListSuccess = () => ({
+  type: EMPLOYEE_ATTRITION_SERVER_SUCCESS
+})
+
+const employeeAttritionListSuccess = employeeAttritionList => ({
+  type: EMPLOYEE_ATTRITION_SUCCESS,
+  employeeAttritionList: employeeAttritionList,
+})
+
+const employeeAttritionFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: EMPLOYEE_ATTRITION_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const employeeAttritionAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(employeeAttritionSuccessNotification(message))
+  dispatch(redirectToEmployeeAttritionList())
+}
+
+export const redirectToEmployeeAttritionList = () => ({
+  type: REDIRECT_TO_EMPLOYEE_ATTRITION_LIST,
+})
+
+const getEmployeeAttritionSuccess = (response, action) => ({
+  type: EMPLOYEE_ATTRITION_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const employeeAttritionSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideEmployeeAttritionValidationError = (feild_key) => ({
+  type: HIDE_EMPLOYEE_ATTRITION_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const employeeAttritionListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(employeeAttritionRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "employeeAttrition/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(employeeAttritionListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addEmployeeAttrition = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(employeeAttritionRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "employeeAttrition/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        employeeAttritionAddUpadteSuccess('Employee Attrition Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateEmployeeAttrition = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(employeeAttritionRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "employeeAttrition/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        employeeAttritionAddUpadteSuccess('Employee Attrition Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getEmployeeAttritionById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(employeeAttritionRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "employeeAttrition/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getEmployeeAttritionSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteEmployeeAttrition = (employeeAttritionId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(employeeAttritionRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "employeeAttrition/delete/" + employeeAttritionId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(employeeAttritionSuccessNotification('Employee Attrition deleted successfully'))
+        dispatch(employeeAttritionListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(employeeAttritionFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(employeeAttritionFailure('Unable to perform action.Something went wrong'))
+  }
+}   

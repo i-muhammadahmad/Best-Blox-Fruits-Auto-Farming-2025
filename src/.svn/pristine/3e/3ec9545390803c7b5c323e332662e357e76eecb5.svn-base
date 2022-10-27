@@ -1,0 +1,557 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header,
+  FlagImage
+} from './components';
+import {
+  updateOffices,
+  hideOfficesValidationError,
+  redirectToOfficesList,
+  timeZonesListFetch,
+  countriesListFetch,
+  citiesListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography 
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+
+const schema = {
+  name: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  total_seats: {
+    presence: { allowEmpty: false, message: 'is required' },
+    numericality: {
+      onlyInteger: true,
+      greaterThan: -1,
+      lessThanOrEqualTo: 1000,
+    }
+  },
+  timezone_id: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  country_id: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  city_id: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  latitude: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  longitude: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  zipcode: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+}));
+
+const OfficesUpdate = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const officesState = useSelector(state => state.officesState);
+  const timeZonesState = useSelector(state => state.timeZonesState);
+  const session = useSelector(state => state.session);
+
+  const [TimezoneValue, setTimezoneValue] = useState(null);
+  const [CountryValue, setCountryValue] = useState(null);
+  const [CityValue, setCityValue] = useState(null);
+  const [files, setFiles] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = officesState.officesRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'name': record.name,
+        'id': record.id,
+        'total_seats': record.total_seats,
+        'country_id': record.country_id,
+        'city_id': record.city_id,
+        'timezone_id': record.timezone_id,
+        'latitude': record.latitude,
+        'longitude': record.longitude,
+        'description': record.description,
+        'addresses': record.addresses,
+        'zipcode': record.zipcode
+      },
+      touched: {
+        ...formState.touched,
+        'name': true,
+        'id': true,
+        'total_seats': true,
+        'city_id': true,
+        'country_id': true,
+        'timezone_id': true,
+        'latitude': true,
+        'longitude': true,
+        'description': true,
+        'addresses': true,
+        'zipcode': true
+      }
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officesState.officesRecord]);
+
+  useEffect(() => {
+    let record = officesState.officesRecord
+    const item = find(timeZonesState.timeZonesList, ['id', record.timezone_id])
+    setTimezoneValue(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeZonesState.timeZonesList]);
+
+  useEffect(() => {
+    let record = officesState.officesRecord
+    const item = find(officesState.countriesList, ['id', record.country_id])
+    setCountryValue(item);
+    dispatch(citiesListFetch(record.country_id, session.current_page_permissions.object_id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officesState.countriesList]);
+
+  useEffect(() => {
+    let record = officesState.officesRecord
+    const item = find(officesState.citiesList, ['id', record.city_id])
+    setCityValue(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officesState.citiesList]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    dispatch(timeZonesListFetch(session.current_page_permissions.object_id))
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    dispatch(countriesListFetch(session.current_page_permissions.object_id))
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(officesState.validation_error)) {
+      const errors = officesState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [officesState.validation_error]);
+
+  useEffect(() => {
+    if (!officesState.showUpdateForm && !officesState.showViewPage) {
+      router.history.push('/offices');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officesState.showUpdateForm, officesState.showViewPage]);
+
+  useEffect(() => {
+    if (officesState.redirect_to_list) {
+      router.history.push('/offices');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officesState.redirect_to_list]);
+
+  const setTimezoneId = timezone_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'timezone_id': timezone_id
+      },
+      touched: {
+        ...formState.touched,
+        'timezone_id': true
+      }
+    }));
+    dispatch(hideOfficesValidationError('timezone_id'))
+  }
+
+  const handleCountryChange = country_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'country_id': country_id
+      },
+      touched: {
+        ...formState.touched,
+        'country_id': true
+      }
+    }));
+    dispatch(citiesListFetch(country_id, session.current_page_permissions.object_id));
+    dispatch(hideOfficesValidationError('country_id'))
+  }
+
+  const setCityId = city_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'city_id': city_id
+      },
+      touched: {
+        ...formState.touched,
+        'city_id': true
+      }
+    }));
+    dispatch(hideOfficesValidationError('city_id'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideOfficesValidationError('description'))
+  }
+
+  const setAddresses = addresses => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'addresses': addresses
+      },
+      touched: {
+        ...formState.touched,
+        'addresses': true
+      }
+    }));
+    dispatch(hideOfficesValidationError('addresses'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideOfficesValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const data = new FormData();
+    if(!isEmpty(files[0])){
+      data.append('flag_image', files[0]);
+    }  
+
+    //appending form state to data object
+    forEach(formState.values, function(value, key) {
+      data.append(key, value);
+    });
+    dispatch(updateOffices(data));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Offices"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Update Offices" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={8} sm={8}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('name')}
+                        fullWidth
+                        helperText={hasError('name') ? formState.errors.name[0] : null}
+                        label="Name"
+                        name="name"
+                        onChange={handleChange}
+                        value={formState.values.name || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('total_seats')}
+                        fullWidth
+                        helperText={hasError('total_seats') ? formState.errors.total_seats[0] : null}
+                        label="Total Seats"
+                        name="total_seats"
+                        onChange={handleChange}
+                        value={formState.values.total_seats || ''}
+                        variant="outlined"
+                        size="small"
+                        type="number"
+                        InputProps={{ inputProps: { min: 0 } }}
+                      />
+                    </Grid>
+                    
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <Autocomplete
+                        id="country_id"
+                        value={CountryValue}
+                        onChange={(event, newValue) => {
+                          if (newValue) {
+                            setCountryValue(newValue)
+                            handleCountryChange(newValue.id)
+                          }
+                          else {
+                            setCountryValue(newValue)
+                            handleCountryChange('')
+                          }
+                        }}
+                        options={officesState.countriesList}
+                        getOptionLabel={(option) => option.name}
+                        size="small"
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Country" variant="outlined" error={hasError('country_id')} helperText={hasError('country_id') ? formState.errors.country_id[0] : null} />}
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      {(officesState.citiesList) ?
+                        <Autocomplete
+                          id="city_id"
+                          value={CityValue}
+                          onChange={(event, newValue) => {
+                            if (newValue) {
+                              setCityValue(newValue)
+                              setCityId(newValue.id)
+                            }
+                            else {
+                              setCityValue(newValue)
+                              setCityId('')
+                            }
+                          }}
+                          options={officesState.citiesList}
+                          getOptionLabel={(option) => option.name}
+                          size="small"
+                          renderInput={(params) => <TextField {...params} size="small" label="Select City" variant="outlined" error={hasError('city_id')} helperText={hasError('city_id') ? formState.errors.city_id[0] : null} />}
+                        />
+                        : ''
+                      }
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('latitude')}
+                        fullWidth
+                        helperText={hasError('latitude') ? formState.errors.latitude[0] : null}
+                        label="Latitude"
+                        name="latitude"
+                        onChange={handleChange}
+                        value={formState.values.latitude || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('longitude')}
+                        fullWidth
+                        helperText={hasError('longitude') ? formState.errors.longitude[0] : null}
+                        label="Longitude"
+                        name="longitude"
+                        onChange={handleChange}
+                        value={formState.values.longitude || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('zipcode')}
+                        fullWidth
+                        helperText={hasError('zipcode') ? formState.errors.zipcode[0] : null}
+                        label="Zip Code"
+                        name="zipcode"
+                        onChange={handleChange}
+                        value={formState.values.zipcode || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <Autocomplete
+                        id="timezone_id"
+                        value={TimezoneValue}
+                        onChange={(event, newValue) => {
+                          if (newValue) {
+                            setTimezoneValue(newValue)
+                            setTimezoneId(newValue.id)
+                          }
+                          else {
+                            setTimezoneValue(newValue)
+                            setTimezoneId('')
+                          }
+
+                        }}
+                        options={timeZonesState.timeZonesList}
+                        getOptionLabel={(option) => '(' + option.offset + ') ' + option.name}
+                        size="small"
+                        renderInput={(params) => <TextField {...params} size="small" label="Select Timezone" variant="outlined" error={hasError('timezone_id')} helperText={hasError('timezone_id') ? formState.errors.timezone_id[0] : null} />}
+                      />
+                    </Grid>
+                  </Grid>  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={12}>
+                      <FormHelperText id="office-address">
+                        <Typography component="b">Offices Address </Typography>
+                      </FormHelperText>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={CK_CONFIGS(localStorage.getItem("token"))}
+                        data={officesState.officesRecord.addresses || ''}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setAddresses(data)
+                        }}
+                      />
+                      <FormControl error={hasError('addresses')} >
+                        <FormHelperText id="component-error-text">{hasError('addresses') ? formState.errors.addresses[0] : null}</FormHelperText>
+                      </FormControl>
+                    </Grid>
+                  </Grid>  
+                  <Grid container spacing={3}>  
+                    <Grid item xs={12} sm={12}>
+                      <FormHelperText id="description">
+                        <Typography component="b">Description</Typography>
+                      </FormHelperText>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={CK_CONFIGS(localStorage.getItem("token"))}
+                        data={officesState.officesRecord.description || ''}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data)
+                        }}
+                      />
+                      <FormControl error={hasError('description')} >
+                        <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                      </FormControl>
+                    </Grid>  
+                  </Grid>
+                </Grid>
+                <Grid item xs={4} sm={4}>  
+                  <FlagImage
+                    files={files}
+                    setFiles={setFiles}
+                    officesState={officesState}
+                  />
+                </Grid> 
+              </Grid>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Update Offices
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToOfficesList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default OfficesUpdate;

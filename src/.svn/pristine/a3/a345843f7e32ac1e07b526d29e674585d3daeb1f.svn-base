@@ -1,0 +1,533 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import uuid from 'uuid/v1';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header,
+  ApprovalLevels
+} from './components';
+import {
+  addApprovalProfiles,
+  hideApprovalProfilesValidationError,
+  redirectToApprovalProfilesList,
+  designationListFetch,
+  employeesCustomDropdownListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography,
+  Divider
+} from '@material-ui/core';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown, EmployeeDropdown } from 'commonDropdowns';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ApprovalProfilesAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const approvalProfilesState = useSelector(state => state.approvalProfilesState);
+  const designationState = useSelector(state => state.designationState);
+  const session = useSelector(state => state.session);
+
+  const [uuids, setUuids] = useState({
+    0: uuid(),
+  });
+
+  const [approvalLevels, setApprovalLevels] = useState(1);
+  const [approvalAuth, setApprovalAuth] = useState({
+    [uuids[0]]: {
+      'id': uuids[0],
+      'unique_id': uuids[0],
+      'approval_from': 'employee',
+      'employee_id': '',
+      'designation_id': '',
+      'priority': 0
+    }
+  });
+  const [OfficeValue, setOfficeValue] = useState(null);
+  const [dropDownValues, setDropDownValues] = useState({ 
+    'employee': {
+      [uuids[0]]: null,
+    },
+    'designation': {
+      [uuids[0]]: null,
+    }
+  });
+  const [selectedOfficeId, setSelectedOfficeId] = useState('all');
+
+  const [schema, setSchema] = useState({
+    title: {
+      presence: { allowEmpty: false, message: ' is required' },
+    },
+    office_id: {
+      presence: { allowEmpty: false, message: ' is required' },
+    },
+    ['approval_from'+uuids[0]]: {
+      presence: { allowEmpty: false, message: '^This feild is required' },
+    },
+    ['approval_id'+uuids[0]]: {
+      presence: { allowEmpty: false, message: '^This feild is required' },
+    },
+  })
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      ['approval_from'+uuids[0]]: 'employee',
+      'office_id': 'all'
+    },
+    touched: {
+      'object_viewed_id': true,
+      ['approval_from'+uuids[0]]: true,
+      'office_id': true
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(approvalProfilesState.validation_error)) {
+      const errors = approvalProfilesState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [approvalProfilesState.validation_error]);
+
+  useEffect(() => {
+    if (approvalProfilesState.redirect_to_list) {
+      router.history.push('/approval-profile');
+    }
+  }, [approvalProfilesState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    dispatch(designationListFetch());
+    dispatch(employeesCustomDropdownListFetch());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setApprovalId = (approval_id, index) => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        ['approval_id' + index]: approval_id
+      },
+      touched: {
+        ...formState.touched,
+        ['approval_id' + index]: true
+      }
+    }));
+    dispatch(hideApprovalProfilesValidationError('approval_id' + index));
+
+    if (approvalAuth[index]['approval_from'] === 'employee') {
+      setApprovalAuth(approvalAuth => ({
+        ...approvalAuth,
+        [index]: {
+          ...approvalAuth[index],
+          'employee_id': approval_id,
+          'designation_id': ''
+        }
+      }));
+    }
+    else {
+      setApprovalAuth(approvalAuth => ({
+        ...approvalAuth,
+        [index]: {
+          ...approvalAuth[index],
+          'employee_id': '',
+          'designation_id': approval_id
+        }
+      }));
+    }
+
+  }
+
+  const officeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue);
+      setOfficeId(newValue.id);
+      if (newValue.id != 'all') {
+        dispatch(employeesCustomDropdownListFetch([newValue.id]));
+      }
+      else {
+        dispatch(employeesCustomDropdownListFetch());
+      }
+    }
+    else {
+      setOfficeValue(newValue);
+      setOfficeId('');
+      dispatch(employeesCustomDropdownListFetch());
+    }
+
+  }
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'office_id': office_id
+      },
+      touched: {
+        ...formState.touched,
+        'office_id': true
+      }
+    }));
+    dispatch(hideApprovalProfilesValidationError('office_id'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideApprovalProfilesValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideApprovalProfilesValidationError(event.target.name))
+  }
+
+  const handleApprovalFromChange = (event, index) => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        ['approval_id' + index]: '',
+        [event.target.name]: event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        ['approval_id' + index]: true,
+        [event.target.name]: true
+      }
+    }));
+
+    setApprovalAuth(approvalAuth => ({
+      ...approvalAuth,
+      [index]: {
+        ...approvalAuth[index],
+        'approval_from': event.target.value,
+        'employee_id': '',
+        'designation_id': ''
+      }
+    }));
+
+  }
+
+  const addAnotherApproval = async () => {
+    let level = approvalLevels;
+
+    //setting unique id for new approval level
+    let unique_id = uuid();
+    await setUuids(uuids => ({
+      ...uuids,
+      [level]: unique_id
+    }));
+
+    //setting default dropdown values for new approval level
+    await setDropDownValues(dropDownValues => ({
+      ...dropDownValues,
+      employee: {
+        ...dropDownValues.employee,
+        [unique_id]: null,
+      },
+      designation: {
+        ...dropDownValues.designation,
+        [unique_id]: null,
+      },
+    }));
+
+    await setSchema(schema => ({
+      ...schema,
+      ['approval_from' + unique_id]: {
+        presence: { allowEmpty: false, message: '^This feild is required' },
+      },
+      ['approval_id' + unique_id]: {
+        presence: { allowEmpty: false, message: '^This feild is required' },
+      },
+    }));
+
+    await setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        ['approval_from' + unique_id]: 'employee'
+      },
+      touched: {
+        ...formState.touched,
+        ['approval_from' + unique_id]: true
+      }
+    }));
+
+    await setApprovalAuth(approvalAuth => ({
+      ...approvalAuth,
+      [unique_id]: {
+        'id': unique_id,
+        'unique_id': unique_id,
+        'approval_from': 'employee',
+        'employee_id': '',
+        'designation_id': '',
+        'priority': level
+      }
+    }));
+
+    setApprovalLevels(level + 1);
+  }
+
+  const removeApprovalLevel = async (level) => {
+    let schema_arr = { ...schema };
+    let formState_arr = { ...formState };
+    let approvalAuth_arr = { ...approvalAuth };
+    let dropdown_val_arr = {...dropDownValues};
+    let uuids_arr = {...uuids}
+    for (let i = level; i < approvalLevels; i++) {
+      //finding approval level arr
+      let appr_level = find(approvalAuth_arr, function(o) { return o.priority === i; });
+
+      if(!isEmpty(appr_level)){
+        let id = appr_level['unique_id'];
+
+        //restting uuid arrays
+        await delete uuids_arr[i];
+
+        //resting schema for validations
+        await delete schema_arr['approval_from' + id];
+        await delete schema_arr['approval_id' + id];
+
+        //resting form states
+        await delete formState_arr['values']['approval_from' + id];
+        await delete formState_arr['values']['approval_id' + id];
+        await delete formState_arr['touched']['approval_from' + id];
+        await delete formState_arr['touched']['approval_id' + id];
+        await delete formState_arr['errors']['approval_from' + id];
+        await delete formState_arr['errors']['approval_id' + id];
+
+        //resting dropdown values
+        await delete dropdown_val_arr['employee'][id];
+        await delete dropdown_val_arr['designation'][id];
+
+        //restting approval auths
+        await delete approvalAuth_arr[id];
+        await delete approvalAuth_arr[id];
+      }  
+    }
+
+    await setSchema(schema_arr);
+    await setApprovalAuth(approvalAuth_arr);
+    await setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState_arr['values']
+      },
+      touched: {
+        ...formState_arr['touched']
+      },
+      errors:{
+        ...formState_arr['errors']
+      }
+    }));
+    await setDropDownValues(dropDownValues => ({
+      ...dropDownValues,
+      employee: dropdown_val_arr['employee'],
+      designation: dropdown_val_arr['designation']
+    }));
+    await setUuids(uuids_arr);
+    setApprovalLevels(level);
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    if (formState.isValid) {
+      let form_data = formState.values;
+      form_data['approvals'] = approvalAuth;
+      form_data['approval_levels'] = approvalLevels;
+      dispatch(addApprovalProfiles(form_data));
+    }
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Approval Profile"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Approval Profile" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  <TextField
+                    error={hasError('title')}
+                    fullWidth
+                    helperText={hasError('title') ? formState.errors.title[0] : null}
+                    label="Title"
+                    name="title"
+                    onChange={handleChange}
+                    value={formState.values.title || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <OfficesDropdown
+                    OfficeValue={OfficeValue}
+                    setOfficeValue={setOfficeValue}
+                    showSelectAllOption={true}
+                    selectedId={selectedOfficeId}
+                    allOptTitle={'Global'}
+                    id="office_id"
+                    name="office_id"
+                    officeOnChange={officeOnChange}
+                    renderInput={(params) => <TextField {...params} label="Select Office" variant="outlined" error={hasError('allocated_office')} helperText={hasError('allocated_office') ? formState.errors.allocated_office[0] : null} />}
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}  >
+                <Grid item xs={12} sm={12} >
+                  <ApprovalLevels
+                    approvalList={Object.values(approvalAuth)}
+                    key={'approvalLevel'}
+                    formState={formState}
+                    hasError={hasError}
+                    setApprovalId={setApprovalId}
+                    handleApprovalFromChange={handleApprovalFromChange}
+                    removeApprovalLevel={removeApprovalLevel}
+                    dropDownValues={dropDownValues}
+                    setDropDownValues={setDropDownValues}
+                    setApprovalAuth={setApprovalAuth}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} >
+                  {(approvalLevels < 4) ?
+                    <StyledButton
+                      color="bsuccess"
+                      size="small"
+                      type="button"
+                      variant="contained"
+                      onClick={() => addAnotherApproval()}
+                    >
+                      Add Another Approval Level
+                    </StyledButton>
+                    : ''
+                  }
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={formState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Create Approval Profile
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToApprovalProfilesList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default ApprovalProfilesAdd;

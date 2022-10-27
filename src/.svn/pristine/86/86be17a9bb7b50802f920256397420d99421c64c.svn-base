@@ -1,0 +1,290 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const AUDIT_FORM_SETUP_REQUEST = 'AUDIT_FORM_SETUP_REQUEST'
+export const AUDIT_FORM_SETUP_SUCCESS = 'AUDIT_FORM_SETUP_SUCCESS'
+export const AUDIT_FORM_SETUP_VALIDATION_ERROR = 'AUDIT_FORM_SETUP_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_AUDIT_FORM_SETUP_FEILD_VALIDATION_ERROR = "HIDE_AUDIT_FORM_SETUP_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_AUDIT_FORM_SETUP_LIST = 'REDIRECT_TO_AUDIT_FORM_SETUP_LIST'
+export const AUDIT_FORM_SETUP_GET_SUCCESS = 'AUDIT_FORM_SETUP_GET_SUCCESS'
+export const AUDIT_FORM_SETUP_SERVER_SUCCESS = 'AUDIT_FORM_SETUP_SERVER_SUCCESS'
+export const AUDIT_FORM_SETUP_DROPDOWN_SUCCESS = 'AUDIT_FORM_SETUP_DROPDOWN_SUCCESS'
+export const AUDIT_FORM_SETUP_CHECKPOINT_SUCCESS = 'AUDIT_FORM_SETUP_CHECKPOINT_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const auditFormSetupRequest = () => ({
+  type: AUDIT_FORM_SETUP_REQUEST,
+})
+
+export const auditFormSetupServerListSuccess = () => ({
+  type: AUDIT_FORM_SETUP_SERVER_SUCCESS
+})
+
+const auditFormSetupListSuccess = auditFormSetupList => ({
+  type: AUDIT_FORM_SETUP_SUCCESS,
+  auditFormSetupList: auditFormSetupList,
+})
+
+const auditFormSetupDropdownListSuccess = auditFormSetupDropdownList => ({
+  type: AUDIT_FORM_SETUP_DROPDOWN_SUCCESS,
+  auditFormSetupDropdownList: auditFormSetupDropdownList,
+})
+
+const auditSetupCheckpointsListSuccess = auditFormSetupCheckpointsList => ({
+  type: AUDIT_FORM_SETUP_CHECKPOINT_SUCCESS,
+  auditFormSetupCheckpointsList: auditFormSetupCheckpointsList,
+})
+
+const auditFormSetupFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: AUDIT_FORM_SETUP_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const auditFormSetupAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(auditFormSetupSuccessNotification(message))
+  dispatch(redirectToAuditFormSetupList())
+}
+
+export const redirectToAuditFormSetupList = () => ({
+  type: REDIRECT_TO_AUDIT_FORM_SETUP_LIST,
+})
+
+const getAuditFormSetupSuccess = (response, action) => ({
+  type: AUDIT_FORM_SETUP_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const auditFormSetupSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideAuditFormSetupValidationError = (feild_key) => ({
+  type: HIDE_AUDIT_FORM_SETUP_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const auditFormSetupDropdownListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/getAllForDropdown", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id: object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      dispatch(auditFormSetupDropdownListSuccess(response.data))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+  }
+}
+
+export const auditSetupCheckpointsListFetch = (object_viewed_id = '', audit_form_setup_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/getAllCheckpoints", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        audit_form_setup_id: audit_form_setup_id,
+        object_viewed_id: object_viewed_id
+      }
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader()) 
+      dispatch(auditSetupCheckpointsListSuccess(response.data))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+  }
+}
+
+export const auditFormSetupListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      dispatch(auditFormSetupListSuccess(response.data))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+  }
+}
+
+export const addAuditFormSetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      auditFormSetupAddUpadteSuccess('Audit Form Setup Added Successfully', 'create', dispatch)
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+  }
+}
+
+export const updateAuditFormSetup = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        auditFormSetupAddUpadteSuccess('Audit Form Setup Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getAuditFormSetupById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getAuditFormSetupSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteAuditFormSetup = (auditFormSetupId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(auditFormSetupRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "audit_form_setup/delete/" + auditFormSetupId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(auditFormSetupSuccessNotification('Audit Form Setup deleted successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(auditFormSetupFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(auditFormSetupFailure('Unable to perform action.Something went wrong'))
+  }
+}   

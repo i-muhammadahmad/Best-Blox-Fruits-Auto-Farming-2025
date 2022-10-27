@@ -1,0 +1,4 @@
+export { default as CourseCategoryReducer } from './CourseCategoryReducer';
+export { default as QuizSetupReducer } from './QuizSetupReducer';
+export { default as QuizReducer } from './QuizReducer';
+

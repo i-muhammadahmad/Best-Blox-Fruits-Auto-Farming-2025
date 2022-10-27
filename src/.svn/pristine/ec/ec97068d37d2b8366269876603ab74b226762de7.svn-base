@@ -1,0 +1,84 @@
+import * as actionTypes from 'actions';
+
+const initialState = {
+    Loading: false,
+    employeeAttritionList: [],
+    employeeAttritionRecord: [],
+    validation_error: "",
+    redirect_to_list: false,
+    showDeleteModel: false,
+    showUpdateForm: false,
+    showViewPage: false,
+}
+
+const EmployeeAttritionReducer = (state = initialState, action) => {
+    switch (action.type) {
+        case actionTypes.EMPLOYEE_ATTRITION_REQUEST:
+            return {
+                ...state,
+                Loading: true,
+                validation_error: "",
+                redirect_to_list: false,
+            }
+        case actionTypes.EMPLOYEE_ATTRITION_SERVER_SUCCESS:
+            return {
+                ...state,
+                Loading: false,
+                redirect_to_list: false,
+                validation_error: "",
+                showUpdateForm: false,
+                showViewPage: false,
+                employeeAttritionRecord: [],
+            }    
+        case actionTypes.EMPLOYEE_ATTRITION_SUCCESS:
+            return {
+                ...state,
+                Loading: false,
+                redirect_to_list: false,
+                validation_error: "",
+                employeeAttritionList: action.employeeAttritionList,
+                showUpdateForm: false,
+                showViewPage: false,
+                employeeAttritionRecord: [],
+            }
+        case actionTypes.EMPLOYEE_ATTRITION_GET_SUCCESS:
+            return {
+                ...state,
+                Loading: false,
+                redirect_to_list: false,
+                employeeAttritionRecord: action.record,
+                showUpdateForm: (action.actionType === 'update') ? true : false,
+                showViewPage: (action.actionType === 'view') ? true : false
+            }
+        case actionTypes.EMPLOYEE_ATTRITION_VALIDATION_ERROR:
+            return {
+                ...state,
+                Loading: false,
+                redirect_to_list: false,
+                validation_error: action.validation_error,
+            }
+        case actionTypes.HIDE_EMPLOYEE_ATTRITION_FEILD_VALIDATION_ERROR:
+            if (state.validation_error && state.validation_error[action.feild_key])
+                delete state.validation_error[action.feild_key]
+            return {
+                ...state,
+                Loading: false,
+                redirect_to_list: false,
+                validation_error: action.validation_error,
+
+            }
+        case actionTypes.REDIRECT_TO_EMPLOYEE_ATTRITION_LIST:
+            return {
+                ...state,
+                redirect_to_list: true,
+                showUpdateForm: false,
+                showViewPage: false,
+                validation_error: '',
+                employeeAttritionRecord: [],
+            }
+        default:
+            return state;
+    }
+}
+
+export default EmployeeAttritionReducer;

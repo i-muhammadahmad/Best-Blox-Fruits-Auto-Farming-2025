@@ -1,0 +1,2 @@
+export { default as AssetTypesForm } from './AssetTypesForm';
+export { default as AssetAttributes } from './AssetAttributes';

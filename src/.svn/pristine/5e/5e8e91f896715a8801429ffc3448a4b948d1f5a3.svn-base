@@ -1,0 +1,325 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header,
+  FlagImage
+} from './components';
+import {
+  updateSetupFloorPlan,
+  hideSetupFloorPlanValidationError,
+  redirectToSetupFloorPlanList,
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography 
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown } from 'commonDropdowns';
+
+const schema = {
+  name: {
+    presence: { allowEmpty: false, message: 'is required' }
+  },
+  office_id: {
+    presence: { allowEmpty: false, message: '^Please Select Office' }
+  }
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+}));
+
+const SetupFloorPlanUpdate = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const setupFloorPlanState = useSelector(state => state.setupFloorPlanState);
+  const session = useSelector(state => state.session);
+
+  const [OfficeValue, setOfficeValue] = useState(null);
+  const [files, setFiles] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    let record = setupFloorPlanState.setupFloorPlansRecord
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'name': record.name,
+        'id': record.id,
+        'office_id' : record.office_id,
+        'description': record.description,
+      },
+      touched: {
+        ...formState.touched,
+        'name': true,
+        'id': true,
+        'office_id': true,
+        'description': true,
+      }
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setupFloorPlanState.setupFloorPlansRecord]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(setupFloorPlanState.validation_error)) {
+      const errors = setupFloorPlanState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [setupFloorPlanState.validation_error]);
+
+  useEffect(() => {
+    if (!setupFloorPlanState.showUpdateForm) {
+      router.history.push('/setup-floor-plan');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setupFloorPlanState.showUpdateForm]);
+
+  useEffect(() => {
+    if (setupFloorPlanState.redirect_to_list) {
+      router.history.push('/setup-floor-plan');
+    }
+  }, [setupFloorPlanState.redirect_to_list, router.history]);
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideSetupFloorPlanValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideSetupFloorPlanValidationError(event.target.name))
+  }
+
+  const officeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue);
+      setOfficeId(newValue.id);
+    } else {
+      setOfficeValue(newValue);
+      setOfficeId('');
+    }
+  };
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        office_id: office_id
+      },
+      touched: {
+        ...formState.touched,
+        office_id: true
+      }
+    }));
+    dispatch(hideSetupFloorPlanValidationError('office_id'));
+  };
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const data = new FormData();
+    if(!isEmpty(files[0])){
+      data.append('floor_plan_image', files[0]);
+    }  
+
+    //appending form state to data object
+    forEach(formState.values, function(value, key) {
+      data.append(key, value);
+    });
+    dispatch(updateSetupFloorPlan(data));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Setup Floor Plan"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Update Setup Floor Plan" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={8} sm={8}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={6} sm={6}>
+                      <TextField
+                        error={hasError('name')}
+                        fullWidth
+                        helperText={hasError('name') ? formState.errors.name[0] : null}
+                        label="Name"
+                        name="name"
+                        onChange={handleChange}
+                        value={formState.values.name || ''}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <OfficesDropdown
+                        OfficeValue={OfficeValue}
+                        setOfficeValue={setOfficeValue}
+                        id="office_id"
+                        name="office_id"
+                        selectedId={formState.values.office_id}
+                        officeOnChange={officeOnChange}
+                        renderInput={params => (
+                          <TextField
+                            {...params}
+                            label="Select Office"
+                            variant="outlined"
+                            error={hasError('office_id')}
+                            helperText={
+                              hasError('office_id')
+                                ? formState.errors.office_id[0]
+                                : null
+                            }
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container spacing={3}>  
+                    <Grid item xs={12} sm={12}>
+                      <FormHelperText id="description">
+                        <Typography component="b">Description</Typography>
+                      </FormHelperText>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        config={CK_CONFIGS(localStorage.getItem("token"))}
+                        data={setupFloorPlanState.setupFloorPlansRecord.description || ''}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data)
+                        }}
+                      />
+                      <FormControl error={hasError('description')} >
+                        <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                      </FormControl>
+                    </Grid>  
+                  </Grid>
+                </Grid>
+                <Grid item xs={4} sm={4}>  
+                  <FlagImage
+                    files={files}
+                    setFiles={setFiles}
+                    setupFloorPlanState={setupFloorPlanState}
+                  />
+                </Grid> 
+              </Grid>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Update Setup Floor Plan
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToSetupFloorPlanList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default SetupFloorPlanUpdate;

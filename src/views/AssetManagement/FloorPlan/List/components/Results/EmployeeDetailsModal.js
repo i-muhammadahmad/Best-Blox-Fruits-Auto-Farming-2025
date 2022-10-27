@@ -1,0 +1,193 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Backdrop,
+  Grid,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Paper,
+  Avatar
+} from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import { StyledButton } from 'components';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { isEmpty, join, find } from 'lodash';
+import { API_URL } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+  content: {
+    padding: 0
+  },
+  inner: {
+    margin: '10px'
+  },
+  nameCell: {
+    display: 'flex',
+    alignItems: 'center'
+  }
+}));
+
+function EmployeeDetailsModal(props) {
+  const classes = useStyles();
+  const {
+    showEmployeeDetailModal,
+    setShowEmployeeDetailModal,
+    employeeModalDetail,
+    ...rest
+  } = props;
+
+  const handleModalClose = () => {
+    setShowEmployeeDetailModal(false);
+  };
+
+  return (
+    <Dialog
+      aria-labelledby="transition-modal-title"
+      aria-describedby="transition-modal-description"
+      fullWidth
+      maxWidth="md"
+      open={showEmployeeDetailModal}
+      onClose={handleModalClose}
+      closeAfterTransition
+      BackdropComponent={Backdrop}
+      BackdropProps={{
+        timeout: 500
+      }}>
+      <DialogTitle id="form-dialog-title">Employee Details</DialogTitle>
+      <DialogContent style={{ overflow: 'hidden' }}>
+        <Grid container spacing={3}>
+          <Grid item xs={6}>
+            <TableContainer component={Paper}>
+              <Table
+                className={classes.table}
+                size="small"
+                aria-label="simple table">
+                <TableBody>
+                  <TableRow>
+                    <TableCell variant="head"> Employee Code </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.employee_code
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head"> Name </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.emp_name
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head"> Email </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.email
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head"> Office </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.office_name
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head"> Client </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.client_name
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head"> WorkStation </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.workstation_name
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell variant="head"> Joining Date </TableCell>
+                    <TableCell>
+                      {!isEmpty(employeeModalDetail)
+                        ? employeeModalDetail.employee_details.start_date
+                        : ''}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+          <Grid item xs={6}>
+            <TableContainer component={Paper}>
+              <Table
+                className={classes.table}
+                size="small"
+                aria-label="Assets Binded With Employee">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Image</TableCell>
+                    <TableCell>Assign From</TableCell>
+                    <TableCell>Assign To</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {!isEmpty(employeeModalDetail.asset_details) ? (
+                    employeeModalDetail.asset_details.map((asset, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Avatar
+                            alt="Asset Image"
+                            src={
+                              API_URL +
+                              'storage/media/AssetTypes/' +
+                              asset.image
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>{asset.asset_assigned_from}</TableCell>
+                        <TableCell>{asset.asset_assigned_to}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell></TableCell>
+                      <TableCell style={{ textAlign: 'center' }}>
+                        No Assets Are Binded With Employee
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <StyledButton
+          variant="contained"
+          color="bsecondary"
+          size="small"
+          className={classes.button}
+          startIcon={<CancelIcon />}
+          onClick={handleModalClose}>
+          CLOSE
+        </StyledButton>
+      </DialogActions>
+    </Dialog>
+  );
+}
+export default EmployeeDetailsModal;

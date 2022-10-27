@@ -1,0 +1,234 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Grid,
+  TextField,
+  Box,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
+} from '@material-ui/core';
+import CheckIcon from '@material-ui/icons/Check';
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+  Autocomplete
+} from '@material-ui/lab';
+import {
+  assetTypesListFetch
+} from 'actions'
+import { StyledButton } from 'components'
+import SearchIcon from '@material-ui/icons/Search';
+import { ClientDropdown } from 'commonDropdowns'
+import { map } from 'lodash';
+
+const useStyles = makeStyles((theme) => ({
+
+  content: {
+    padding: theme.spacing(3)
+  },
+  inner: {
+    minWidth: 700
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    width: '100%',
+  },
+}));
+
+const ExtraFilters = props => {
+  const { className, extraFiltersState, setExtraFiltersState, filterRecords, ...rest } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const [AssetTypeValue, setAssetTypeValue] = useState([]);
+  const [ClientValue, setClientValue] = useState([]);
+
+  useEffect(() => {
+    dispatch(assetTypesListFetch())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+  const handleDateColumnChange = (event, value) => {
+    setExtraFiltersState(extraFiltersState => ({
+      ...extraFiltersState,
+      'date_column': value
+    }));
+  }
+
+  const handleDateChange = (event) => {
+    setExtraFiltersState(extraFiltersState => ({
+      ...extraFiltersState,
+      'date_value': event.target.value
+    }));
+  }
+
+  const handleAssetStatusChange = (event) => {
+    setExtraFiltersState(extraFiltersState => ({
+      ...extraFiltersState,
+      'assets_status': event.target.value
+    }));
+  }
+
+  const setAssetTypeIds = atype_ids => {
+    setExtraFiltersState(extraFiltersState => ({
+      ...extraFiltersState,
+      'atype_ids': atype_ids
+    }));
+  }
+
+  const clientOnChange = (event, newValue) => {
+    let camp_ids = [];
+    if (newValue) {
+      setClientValue(newValue)
+      camp_ids = map(newValue, 'id')
+      setClientIds(camp_ids)
+    }
+    else {
+      setClientValue(newValue)
+      setClientIds([])
+    }
+  }
+
+  const setClientIds = client_ids => {
+    setExtraFiltersState(extraFiltersState => ({
+      ...extraFiltersState,
+      'client_ids': client_ids
+    }));
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Card>
+        <CardHeader
+          title="Report Filters"
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+          <div className={classes.inner}>
+            <Grid container spacing={3} direction="column" style={{display:'none'}}>
+              <Grid item xs={12} sm={6}>
+                <ToggleButtonGroup size="small" exclusive value={extraFiltersState.date_column} onChange={handleDateColumnChange} >
+                  <ToggleButton value="date_created">
+                    <CheckIcon fontSize="small" />
+                    Date Created
+                  </ToggleButton>
+                  <ToggleButton value="date_last_modified">
+                    <CheckIcon fontSize="small" />
+                    Date Last Modified
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Grid>
+            </Grid>
+            <Grid container spacing={3}  >
+              <Grid item xs={6} sm={4} style={{display:'none'}}>
+                <TextField
+                  fullWidth
+                  label="Date"
+                  name="date_value"
+                  onChange={handleDateChange}
+                  value={extraFiltersState.date_value || ''}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+              {/*<Grid item xs={6} sm={4}>
+                <ClientDropdown
+                  ClientValue={ClientValue}
+                  setClientValue={setClientValue}
+                  id="client_ids"
+                  name="client_ids"
+                  clientOnChange={clientOnChange}
+                  limitTags={2}
+                  multiple={true}
+                  renderInput={(params) => <TextField {...params} label="Select Clients" variant="outlined" />}
+                />
+              </Grid>*/}
+              <Grid item xs={6} sm={4}>
+                {(assetTypesState.assetTypesList) ?
+                  <Autocomplete
+                    id="atype_ids"
+                    name="atype_ids"
+                    value={AssetTypeValue}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        setAssetTypeValue(newValue)
+                        setAssetTypeIds([newValue.id])
+                      }
+                      else {
+                        setAssetTypeValue(newValue)
+                        setAssetTypeIds([])
+                      }
+                    }}
+                    options={assetTypesState.assetTypesList}
+                    getOptionLabel={(option) => option.name}
+                    size="small"
+                    renderInput={(params) => <TextField {...params} label="Select Asset Type" variant="outlined" />}
+                  />
+                  : ''}
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <TextField
+                  fullWidth
+                  label="Assets Status"
+                  name="assets_status"
+                  onChange={handleAssetStatusChange}
+                  value={extraFiltersState.assets_status || ''}
+                  select
+                  variant="outlined"
+                  size="small"
+                  
+                >
+                  <MenuItem aria-label="All" value="all" key="0" >All</MenuItem>
+                  <MenuItem aria-label="Binded" value="binded" key="1" >Binded</MenuItem>
+                  <MenuItem aria-label="Available (In Stock)" value="available" key="2" >Available (In Stock)</MenuItem>
+                  <MenuItem aria-label="Deprecated" value="deprecated" key="3" >Deprecated</MenuItem>
+                  <MenuItem aria-label="Unreturned" value="unreturned" key="3" >Unreturned</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+            <Grid container spacing={3}  >
+              <Grid item xs={12} sm={12} >
+                <Box display="flex" flexDirection="row-reverse" >
+                  <StyledButton
+                    color="bsuccess"
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<SearchIcon />}
+                    onClick={() => { filterRecords() }}
+                  >
+                    Filter Assets
+                  </StyledButton>
+                </Box>
+              </Grid>
+            </Grid>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+ExtraFilters.propTypes = {
+  className: PropTypes.string
+};
+
+export default ExtraFilters;

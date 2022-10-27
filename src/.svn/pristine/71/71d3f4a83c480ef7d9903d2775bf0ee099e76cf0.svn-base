@@ -1,0 +1,119 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const CompanyTypeView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const companyTypeState = useSelector(state => state.companyTypeState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (companyTypeState.redirect_to_list) {
+      router.history.push('/company-type');
+    }
+  }, [companyTypeState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!companyTypeState.showUpdateForm && !companyTypeState.showViewPage) {
+      router.history.push('/company-type');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyTypeState.showUpdateForm, companyTypeState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Company Type View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Company Type View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Company Type Name </TableCell>
+                  <TableCell>{companyTypeState.companyTypeRecord.opt_display}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(companyTypeState.companyTypeRecord.created_by_user) ?
+                      companyTypeState.companyTypeRecord.created_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{companyTypeState.companyTypeRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(companyTypeState.companyTypeRecord.created_by_user) ?
+                      companyTypeState.companyTypeRecord.updated_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{companyTypeState.companyTypeRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Company Type Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: companyTypeState.companyTypeRecord.description }} />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default CompanyTypeView;

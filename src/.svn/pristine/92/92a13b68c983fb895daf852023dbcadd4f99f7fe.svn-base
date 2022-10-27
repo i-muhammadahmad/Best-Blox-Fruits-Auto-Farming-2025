@@ -1,0 +1,62 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { Grid } from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page } from 'components';
+import moment from 'moment';
+import { getofficeComplienceSummary } from 'actions';
+import { Header, CompliantOffices, CompliantDepartments } from './components';
+import { API_URL } from 'configs';
+import { useLocation } from 'react-router';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		padding: theme.spacing(3)
+	},
+	container: {
+		marginTop: theme.spacing(3)
+	}
+}));
+
+const DashboardCompliance = () => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const [showReport, setShowReport] = useState(false);
+	const [extraFiltersState, setExtraFiltersState] = useState({
+		isValid: false,
+		values: {
+			from_date: moment(moment().toDate()).format('YYYY-MM-DD')
+		},
+		touched: {
+			from_date: true
+		},
+		errors: {}
+	});
+
+	useEffect(() => {
+		let mounted = true;
+
+		dispatch(getofficeComplienceSummary());
+
+		return () => {
+			mounted = false;
+		};
+	}, []);
+
+	return (
+		<Page className={classes.root} title="Compliance Dashboard">
+			<Header />
+			<Grid className={classes.container} container spacing={3}>
+				<Grid item lg={4} sm={4} xs={12}>
+					<CompliantOffices />
+				</Grid>
+				<Grid item lg={8} sm={8} xs={12}>
+					{<CompliantDepartments />}
+				</Grid>
+			</Grid>
+		</Page>
+	);
+};
+
+export default DashboardCompliance;

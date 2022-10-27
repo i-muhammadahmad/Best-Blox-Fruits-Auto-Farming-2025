@@ -1,0 +1,266 @@
+import React from 'react';
+import { API_URL } from 'configs';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { 
+  makeStyles,
+  Paper,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Grid,
+  Typography
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { 
+  toggleTranscribeJobDetailsViewModel,
+  downloadJobDetailAudio 
+} from 'actions';
+import { StyledButton } from 'components';
+import { isEmpty } from 'lodash';
+import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
+import AudioPlayer from 'material-ui-audio-player';
+
+const useStylesModal = makeStyles((theme) => ({
+  modal: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paper: {
+    backgroundColor: theme.palette.background.paper,
+    border: '2px solid #000',
+    boxShadow: theme.shadows[5],
+    padding: theme.spacing(2, 4, 3),
+  },
+  root: {
+    '& .MuiTextField-root': {
+      margin: theme.spacing(1),
+      width: '70%',
+    },
+  },
+  paperStyling: {
+    padding: theme.spacing(3, 2, 3, 2)
+  }
+}));
+
+const useStylesAudioPlayer = makeStyles((theme) => {
+  return {
+    root: {
+      [theme.breakpoints.down('sm')]: {
+        width: '100%',
+      },
+    },
+    loopIcon: {
+      color: '#3f51b5',
+      '&.selected': {
+        color: '#0921a9',
+      },
+      '&:hover': {
+        color: '#7986cb',
+      },
+      [theme.breakpoints.down('sm')]: {
+        display: 'none',
+      },
+    },
+    playIcon: {
+      color: '#f50057',
+      '&:hover': {
+        color: '#ff4081',
+      },
+    },
+    replayIcon: {
+      color: '#e6e600',
+    },
+    pauseIcon: {
+      color: '#0099ff',
+    },
+    volumeIcon: {
+      color: 'rgba(0, 0, 0, 0.54)',
+    },
+    volumeSlider: {
+      color: 'black',
+    },
+    progressTime: {
+      color: 'rgba(0, 0, 0, 0.54)',
+    },
+    mainSlider: {
+      color: '#3f51b5',
+      '& .MuiSlider-rail': {
+        color: '#7986cb',
+      },
+      '& .MuiSlider-track': {
+        color: '#3f51b5',
+      },
+      '& .MuiSlider-thumb': {
+        color: '#303f9f',
+      },
+    },
+  };
+});
+
+const JobDetailsView = () => {
+  const classes = useStylesModal();
+
+  const transcribeJobState = useSelector(state => state.transcribeJobState);
+  const dispatch = useDispatch();
+
+  const handleClose = () => {
+    dispatch(toggleTranscribeJobDetailsViewModel());
+  };
+
+  const downloadAudioFile = () => {
+    dispatch(downloadJobDetailAudio(transcribeJobState.transcribeJobDetailRecord.id));
+  }
+
+
+  return (
+    <div>
+      <Dialog 
+        aria-labelledby="transition-modal-title"
+        aria-describedby="transition-modal-description"
+        fullWidth={true}
+        maxWidth={'lg'}
+        open={transcribeJobState.showJobDetailsViewModel}
+        onClose={handleClose}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+        timeout: 500,
+        }}
+        
+
+      >
+        <DialogTitle id="form-dialog-title">Transcribe Job Details View</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TableContainer component={Paper}>
+                <Table className={classes.table} size="small" aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head" > Dailing Client Name </TableCell>
+                      <TableCell>{ transcribeJobState.transcribeJobDetailRecord.dailing_client_name }</TableCell>
+                    </TableRow>
+                    <TableRow>  
+                      <TableCell variant="head" > Is Transcribed </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.is_transcribed}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Is Downloaded </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.is_downloaded}</TableCell>
+                    </TableRow>
+                    <TableRow>  
+                      <TableCell variant="head" > Is Error </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.error }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > File Name </TableCell>
+                      <TableCell>{ transcribeJobState.transcribeJobDetailRecord.file_name }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > File Size </TableCell>
+                      <TableCell>{ transcribeJobState.transcribeJobDetailRecord.file_size }</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>  
+            <Grid item xs={12} sm={6}>  
+              <TableContainer component={Paper}>
+                <Table className={classes.table} size="small" aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head" > File Url </TableCell>
+                      <TableCell>{ transcribeJobState.transcribeJobDetailRecord.file_url }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" style={{whiteSpace:'nowrap'}} > Created By </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.created_by}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" style={{whiteSpace:'nowrap'}} > Created At </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.date_created}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" style={{whiteSpace:'nowrap'}} > Last Updated By </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.last_modified_by }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" style={{whiteSpace:'nowrap'}} > Last Updated At </TableCell>
+                      <TableCell>{transcribeJobState.transcribeJobDetailRecord.date_last_modified}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid> 
+            <Grid item xs={12} sm={12}> 
+              <Paper elevation={3} className={classes.paperStyling} >
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={12}>
+                    <Typography variant="h4" gutterBottom>
+                      Transcribed Text
+                    </Typography>
+                  </Grid>   
+                  <Grid item xs={12} sm={12}>
+                    {transcribeJobState.transcribeJobDetailRecord.transcribed_text}
+                  </Grid>
+                </Grid>
+              </Paper>    
+            </Grid> 
+          </Grid>
+          <Grid item xs={12} sm={12}>
+            <Paper elevation={3} className={classes.paperStyling} >
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={4}>
+                  {(transcribeJobState.job_detail_audio_file_path === '')?
+                    <StyledButton
+                      variant="contained"
+                      color="bprimary"
+                      size="small"
+                      startIcon={<CloudDownloadIcon />}
+                      onClick={downloadAudioFile} 
+                    >
+                      Download Audio File
+                    </StyledButton>
+                  :
+                    <div>
+                      <AudioPlayer
+                        src={API_URL+transcribeJobState.job_detail_audio_file_path}
+                        useStyles={useStylesAudioPlayer}
+                      />
+                      <br/>
+                      <br/>
+                      <br/>
+                      <br/>
+                    </div>  
+                  }  
+                </Grid>
+              </Grid>
+            </Paper>  
+          </Grid>  
+        </DialogContent>
+        <DialogActions>
+          <StyledButton
+            variant="contained"
+            color="blight"
+            size="small"
+            startIcon={<CancelIcon />}
+            onClick={handleClose} 
+          >
+            CLOSE
+          </StyledButton>
+        </DialogActions>
+      </Dialog>
+      
+    </div>
+  );
+}
+
+export default JobDetailsView;

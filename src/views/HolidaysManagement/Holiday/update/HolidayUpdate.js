@@ -1,0 +1,449 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import {
+  updateHoliday,
+  hideHolidayValidationError,
+  holidayCategoryListFetch,
+  redirectToHolidayList
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, map, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import moment from 'moment';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { ClientDropdown, OfficesDropdown } from 'commonDropdowns';
+
+const schema = {
+  holiday_name: {
+    presence: { allowEmpty: false, message: '^Holiday is required' },
+  },
+  client_ids: {
+    presence: { allowEmpty: false, message: '^Please Select Client' },
+  },
+  offices_ids: {
+    presence: { allowEmpty: false, message: '^Please Select Office' },
+  },
+  category_id: {
+    presence: { allowEmpty: false, message: '^Please Select Holiday Category' },
+  },
+  date: {
+    presence: { allowEmpty: false, message: '^Holiday date is required' },
+  }
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const HolidayUpdate = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const holidayState = useSelector(state => state.holidayState);
+  const session = useSelector(state => state.session);
+
+  const [ClientValue, setClientValue] = useState([]);
+  const [OfficeValue, setOfficeValue] = useState([]);
+  const [selectedOfficeId, setSelectedOfficeId] = useState([]);
+  const [holidaycategory, setholidaycategory] = useState(null);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    dispatch(holidayCategoryListFetch(session.current_page_permissions.object_id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let record = holidayState.holidayRecord;
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'offices_ids': JSON.parse(record.offices_ids),
+        'description': record.holiday_description,
+        'category_id': record.holiday_category_id,
+        'holiday_name': record.holiday_name,
+        'date': record.holiday_date,
+        'id': record.id
+      },
+      touched: {
+        ...formState.touched,
+        'offices_ids': true,
+        'description': true,
+        'category_id': true,
+        'date': true,
+        'holiday_name': true,
+        'id': true
+      }
+    }));
+
+    //papolating secondary clients
+    if(record.is_all === 1){
+      let hclient = [];
+      hclient.push('all');
+      setClientIds(hclient);
+    }
+    else{
+        if (!isEmpty(record.holiday_clients)) {
+          let hclient = [];
+          forEach(record.holiday_clients, function (value, key) {
+            hclient.push(value.client_id);
+          });
+          setClientIds(hclient);
+        }
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holidayState.holidayRecord]);
+
+  useEffect(() => {
+    let record = holidayState.holidayRecord
+    const item = find(holidayState.holidayCategoryList, ['id', record.holiday_category_id])
+    setholidaycategory(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holidayState.holidayCategoryList]);
+
+  useEffect(() => {
+    if (!holidayState.showUpdateForm && !holidayState.showViewPage) {
+      router.history.push('/holiday');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holidayState.showUpdateForm, holidayState.showViewPage]);
+
+  useEffect(() => {
+    if (holidayState.redirect_to_list) {
+      router.history.push('/holiday');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holidayState.redirect_to_list]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(holidayState.validation_error)) {
+      const errors = holidayState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [holidayState.validation_error]);
+
+  useEffect(() => {
+    if (holidayState.redirect_to_list) {
+      router.history.push('/holiday');
+    }
+  }, [holidayState.redirect_to_list, router.history]);
+
+  const OfficeOnChange = async (event, newValue) => {
+    if (!isEmpty(newValue)) {
+      setOfficeValue(newValue);
+      let office_ids = (map(newValue,'id'))
+      setOfficeIds(office_ids);
+      setSelectedOfficeId(office_ids);
+    }
+    else {
+      await setClientValue([]);
+      await setClientIds([]);
+      setOfficeValue(newValue);
+      setOfficeIds([]);
+      setSelectedOfficeId([]);
+    }
+  }
+
+  const setOfficeIds = offices_ids => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'offices_ids': offices_ids
+      },
+      touched: {
+        ...formState.touched,
+        'offices_ids': true
+      }
+    }));
+    
+    dispatch(hideHolidayValidationError('offices_ids'));
+  }
+
+  const clientOnChange = (event, newValue) => {
+    if (newValue) {
+      setClientValue(newValue);
+      let camp_ids = (map(newValue, 'id'))
+      setClientIds(camp_ids)
+    }
+    else {
+      setClientValue(newValue);
+      setClientIds([]);
+    }
+  }
+
+  const setClientIds = client_ids => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'client_ids': client_ids
+      },
+      touched: {
+        ...formState.touched,
+        'client_ids': true
+      }
+    }));
+    dispatch(hideHolidayValidationError('client_ids'))
+  }
+
+  const setCategoryId = category_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'category_id': category_id
+      },
+      touched: {
+        ...formState.touched,
+        'client_id': true
+      }
+    }));
+    dispatch(hideHolidayValidationError('client_id'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideHolidayValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideHolidayValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(updateHoliday(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+
+  return (
+    <Page
+      className={classes.root}
+      title="Update Holiday"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Update Holiday" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    error={hasError('holiday_name')}
+                    fullWidth
+                    helperText={hasError('holiday_name') ? formState.errors.holiday_name[0] : null}
+                    label="Holiday Name"
+                    name="holiday_name"
+                    onChange={handleChange}
+                    value={formState.values.holiday_name || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  {(holidayState.holidayCategoryList) ?
+                    <Autocomplete
+                      id="category_id"
+                      limitTags={2}
+                      value={holidaycategory}
+                      onChange={(event, newValue) => {
+                        if (newValue) {
+                          setholidaycategory(newValue)
+                          setCategoryId(newValue.id)
+                        }
+                        else {
+                          setholidaycategory(newValue)
+                          setCategoryId('')
+                        }
+                      }}
+                      size="small"
+                      options={holidayState.holidayCategoryList}
+                      getOptionLabel={(option) => option.opt_display}
+                      renderInput={(params) => <TextField {...params} label="Select Holiday Category" variant="outlined" error={hasError('category_id')} helperText={hasError('category_id') ? formState.errors.category_id[0] : null} />}
+                    />
+
+                    : ''}
+
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    className={classes.field}
+                    defaultValue={moment(moment().toDate()).format('YYYY-MM-DD')}
+                    fullWidth
+                    label="Date"
+                    name="date"
+                    onChange={handleChange}
+                    value={formState.values.date || ''}
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <OfficesDropdown
+                    OfficeValue={OfficeValue}
+                    setOfficeValue={setOfficeValue}
+                    id="offices_ids"
+                    name="offices_ids"
+                    showSelectAllOption={false}
+                    multiple={true}
+                    limitTags={2}
+                    officeOnChange={OfficeOnChange}
+                    selectedId={formState.values.offices_ids}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Offices" variant="outlined" error={hasError('offices_ids')} helperText={hasError('offices_ids') ? formState.errors.offices_ids[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <ClientDropdown
+                    ClientValue={ClientValue}
+                    setClientValue={setClientValue}
+                    id="client_ids"
+                    name="client_ids"
+                    officesIds={selectedOfficeId}
+                    clientOnChange={clientOnChange}
+                    showSelectAllOption={true}
+                    multiple={true}
+                    limitTags={2}
+                    selectedId={formState.values.client_ids}
+                    renderInput={(params) => <TextField {...params} label="Select Clients" variant="outlined" error={hasError('client_ids')} helperText={hasError('client_ids') ? formState.errors.client_ids[0] : null} />}
+                  />
+                </Grid>
+              </Grid>  
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={holidayState.holidayRecord.holiday_description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data);
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Update Holiday
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToHolidayList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default HolidayUpdate;

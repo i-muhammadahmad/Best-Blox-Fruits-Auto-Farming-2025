@@ -1,0 +1,493 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const ASSETS_REQUEST = 'ASSETS_REQUEST'
+export const ASSETS_SUCCESS = 'ASSETS_SUCCESS'
+export const ASSETS_VALIDATION_ERROR = 'ASSETS_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_ASSETS_FEILD_VALIDATION_ERROR = "HIDE_ASSETS_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_ASSETS_LIST = 'REDIRECT_TO_ASSETS_LIST'
+export const ASSETS_GET_SUCCESS = 'ASSETS_GET_SUCCESS'
+export const ASSETS_SERVER_SUCCESS = 'ASSETS_SERVER_SUCCESS'
+
+//binding constents
+export const ASSETS_BINDING_VALIDATION_ERROR = 'ASSETS_BINDING_VALIDATION_ERROR'
+export const HIDE_ASSETS_BINDING_VALIDATION_ERROR = "HIDE_ASSETS_BINDING_VALIDATION_ERROR"
+
+//attachment consts
+export const ASSETS_ATTACHMENT_VALIDATION_ERROR = 'ASSETS_ATTACHMENT_VALIDATION_ERROR'
+export const ASSETS_ATTACHMENT_SUCCESS = 'ASSETS_ATTACHMENT_SUCCESS'
+
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const assetsRequest = () => ({
+  type: ASSETS_REQUEST,
+})
+
+export const assetsServerListSuccess = () => ({
+  type: ASSETS_SERVER_SUCCESS
+})
+
+const assetsListSuccess = assetsList => ({
+  type: ASSETS_SUCCESS,
+  assetsList: assetsList,
+})
+
+const assetsFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: ASSETS_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const assetsAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(assetsSuccessNotification(message))
+  dispatch(redirectToAssetsList())
+}
+
+export const redirectToAssetsList = () => ({
+  type: REDIRECT_TO_ASSETS_LIST,
+})
+
+const getAssetsSuccess = (response, action) => ({
+  type: ASSETS_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const assetsSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideAssetsValidationError = (feild_key) => ({
+  type: HIDE_ASSETS_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const assetsListFetch = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsListSuccess(response.data))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addAssets = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        assetsAddUpadteSuccess('Asset Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateAssets = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        assetsAddUpadteSuccess('Asset Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getAssetsById = (id, action) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(assetsRequest())
+    return axios(API_URL + "assets/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+      .then((response) => {
+        dispatch(getAssetsSuccess(response.data, action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const deleteAssets = (assetsId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/delete/" + assetsId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsSuccessNotification('Asset deleted successfully'))
+        dispatch(assetsListFetch())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+export const unbindAssets = (assetsId, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/unbind/" + assetsId, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsSuccessNotification('Asset Unbind successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(assetsFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(assetsFailure('Unable to perform action.Something went wrong'))
+  }
+}
+
+/*
+* binding methods
+*/
+export const saveAssetsBinding = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/saveBinding/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsSuccessNotification('Asset Binded Successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleBindingErrorResponse(error, dispatch)
+      });
+  }
+}
+
+export const hideAssetsBindingValidationError = (feild_key) => ({
+  type: HIDE_ASSETS_BINDING_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+const bindingValidationError = notification => ({
+  type: ASSETS_BINDING_VALIDATION_ERROR,
+  binding_validation_error: notification,
+})
+
+const handleBindingErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(bindingValidationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(assetsFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(assetsFailure('Unable to perform action.Something went wrong'))
+  }
+}
+
+/*
+* discarding methods
+*/
+export const saveAssetsDiscarding = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/discardAsset/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsSuccessNotification('Asset Discarded Successfully'))
+        dispatch(redirectToAssetsList())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+/*
+* unreturned Assets methods
+*/
+export const saveAssetAsUnreturned = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/saveAssetAsUnreturned/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsSuccessNotification('Asset Marked As Unreturned Successfully'))
+        dispatch(redirectToAssetsList())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+/*
+* attachment  methods
+*/
+export const uploadAssetAttachments = (data) => {
+  var token = localStorage.getItem("token")
+  let asset_id = data.get('id');
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/uploadAttachments/" + asset_id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      dispatch(assetsSuccessNotification('Attachments Uploaded Successfully'))
+      //dispatch(redirectToAssetsList())
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleAttachmentErrorResponse(error, dispatch)
+    });
+  }
+}
+
+export const getAttachmentsByAssetId = (id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    dispatch(assetsRequest())
+    return axios(API_URL + "assets/getAttachments/" + id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+    })
+    .then((response) => {
+      dispatch(getAttachmentSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+export const deleteAssetAttachment = (id, object_viewed_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "assets/deleteAttachment/" + id, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(assetsSuccessNotification('Attachment deleted successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+const getAttachmentSuccess = (response) => ({
+  type: ASSETS_ATTACHMENT_SUCCESS,
+  assetAttachmentList: response,
+})
+
+const attachmentValidationError = notification => ({
+  type: ASSETS_ATTACHMENT_VALIDATION_ERROR,
+  attachment_validation_error: notification,
+})
+
+const handleAttachmentErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(attachmentValidationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(assetsFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(assetsFailure('Unable to perform action.Something went wrong'))
+  }
+}
+

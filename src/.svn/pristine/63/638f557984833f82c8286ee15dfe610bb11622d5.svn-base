@@ -1,0 +1,291 @@
+import React, { useState, useEffect } from 'react';
+import {
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	Grid,
+	CardContent,
+	FormControl,
+	FormHelperText,
+	TextField,
+	Typography
+} from '@material-ui/core';
+import {
+	hideTicketsValidationError,
+	getTicketsById,
+	ticketsCategoryDropdownListFetch,
+	ticketsStatusDropdownListFetch,
+	// updateTicketDetails
+} from 'actions';
+import { makeStyles } from '@material-ui/styles';
+import { StyledButton } from 'components';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty, forEach, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	},
+	content: {
+		padding: 0
+	},
+	inner: {
+		margin: '10px'
+	},
+	nameCell: {
+		display: 'flex',
+		alignItems: 'center'
+	}
+}));
+
+const DetailsModel = props => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const router = useRouter();
+	const ticketsState = useSelector(state => state.ticketsState);
+	const ticketsCategoryState = useSelector(state => state.ticketsCategoryState);
+	const session = useSelector(state => state.session);
+
+	const { showDetailsModel, setShowDetailsModel, ...rest } = props;
+	const [files, setFiles] = useState([]);
+	const [category, setCategory] = useState(null);
+	const [status, setStatus] = useState(null);
+
+	const [formState, setFormState] = useState({
+		isValid: false,
+		values: {
+			object_viewed_id: session.current_page_permissions.object_id
+		},
+		touched: {
+			object_viewed_id: true
+		},
+		errors: {}
+	});
+
+	useEffect(() => {
+		let record = ticketsState.ticketsRecord;
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				id: record.id,
+				status_id: record.status_id,
+				ticket_category_id: record.ticket_category_id
+			},
+			touched: {
+				...formState.touched,
+				id: true,
+				status_id: true,
+				ticket_category_id: true
+			}
+		}));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ticketsState.ticketsRecord]);
+
+	useEffect(() => {
+		if (!isEmpty(ticketsCategoryState.ticketsCategoryDropdownList)) {
+			let record = ticketsState.ticketsRecord;
+			const item = find(ticketsCategoryState.ticketsCategoryDropdownList, [
+				'id',
+				record.ticket_category_id
+			]);
+			setCategory(item);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ticketsCategoryState.ticketsCategoryDropdownList]);
+
+	useEffect(() => {
+		if (!isEmpty(ticketsState.ticketsStatusDropdownList)) {
+			let record = ticketsState.ticketsRecord;
+			const item = find(ticketsState.ticketsStatusDropdownList, [
+				'id',
+				record.status_id
+			]);
+			setStatus(item);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ticketsState.ticketsStatusDropdownList]);
+
+	useEffect(() => {
+		dispatch(ticketsCategoryDropdownListFetch());
+		dispatch(ticketsStatusDropdownListFetch());
+	}, []);
+
+	const handleChange = event => {
+		event.persist();
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				[event.target.name]:
+					event.target.type === 'checkbox'
+						? event.target.checked
+						: event.target.value
+			},
+			touched: {
+				...formState.touched,
+				[event.target.name]: true
+			}
+		}));
+		dispatch(hideTicketsValidationError(event.target.name));
+	};
+
+	const handleSubmit = async event => {
+		event.preventDefault();
+		const data = new FormData();
+		forEach(formState.values, function(value, key) {
+			data.append(key, value);
+		});
+		// await dispatch(updateTicketDetails(data));
+		await handleModalClose();
+		dispatch(getTicketsById(formState.values.id, 'update'));
+	};
+
+	const setCategoryId = ticket_category_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				ticket_category_id: ticket_category_id
+			},
+			touched: {
+				...formState.touched,
+				ticket_category_id: true
+			}
+		}));
+		dispatch(hideTicketsValidationError('ticket_category_id'));
+	};
+
+	const setStatusId = status_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				status_id: status_id
+			},
+			touched: {
+				...formState.touched,
+				status_id: true
+			}
+		}));
+		dispatch(hideTicketsValidationError('status_id'));
+	};
+
+	const hasError = field =>
+		formState.touched[field] && formState.errors[field] ? true : false;
+
+	const handleModalClose = () => {
+		setShowDetailsModel(false);
+	};
+
+	return (
+		<>
+			<Dialog
+				open={showDetailsModel}
+				onClose={handleModalClose}
+				aria-labelledby="alert-dialog-title"
+				aria-describedby="alert-dialog-description"
+				maxWidth="md">
+				<DialogTitle id="alert-dialog-title">Update Ticket Details</DialogTitle>
+				<CardContent>
+					<form onSubmit={handleSubmit}>
+						<div className={classes.formGroup}>
+							<Grid container spacing={3}>
+								<Grid item xs={12} sm={12}>
+									<Autocomplete
+										id="ticket_category_id"
+										limitTags={2}
+										value={category}
+										onChange={(event, newValue) => {
+											if (newValue) {
+												setCategory(newValue);
+												setCategoryId(newValue.id);
+											} else {
+												setCategory(newValue);
+												setCategoryId('');
+											}
+										}}
+										size="small"
+										options={ticketsCategoryState.ticketsCategoryDropdownList}
+										getOptionLabel={option => option.category_name}
+										renderInput={params => (
+											<TextField
+												{...params}
+												label="Select Category"
+												variant="outlined"
+												error={hasError('ticket_category_id')}
+												helperText={
+													hasError('ticket_category_id')
+														? formState.errors.ticket_category_id[0]
+														: null
+												}
+											/>
+										)}
+									/>
+								</Grid>
+								<Grid item xs={12} sm={12}>
+									<Autocomplete
+										id="status_id"
+										limitTags={2}
+										value={status}
+										onChange={(event, newValue) => {
+											if (newValue) {
+												setStatus(newValue);
+												setStatusId(newValue.id);
+											} else {
+												setStatus(newValue);
+												setStatusId('');
+											}
+										}}
+										size="small"
+										options={ticketsState.ticketsStatusDropdownList}
+										getOptionLabel={option => option.status}
+										renderInput={params => (
+											<TextField
+												{...params}
+												label="Select Status"
+												variant="outlined"
+												error={hasError('status_id')}
+												helperText={
+													hasError('status_id')
+														? formState.errors.status_id[0]
+														: null
+												}
+											/>
+										)}
+									/>
+								</Grid>
+							</Grid>
+						</div>
+						<DialogActions>
+							<StyledButton color="bdanger" onClick={handleModalClose}>
+								Cancel
+							</StyledButton>
+							<StyledButton
+								variant="contained"
+								color="bprimary"
+								type="submit"
+								autoFocus={true}>
+								Update Detail
+							</StyledButton>
+						</DialogActions>
+					</form>
+				</CardContent>
+			</Dialog>
+		</>
+	);
+};
+
+export default DetailsModel;

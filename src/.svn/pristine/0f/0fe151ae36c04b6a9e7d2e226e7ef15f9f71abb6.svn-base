@@ -1,0 +1,205 @@
+import React, { useEffect, useState } from 'react';
+import { Page, StyledFab } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid,
+  Divider
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty, forEach, truncate } from 'lodash';
+import { CustomDataGrid } from 'components';
+import { JobDetailsResults } from './components';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import {
+  getTranscribeJobDetailsById,
+  downloadJobDetailAudio,
+  deleteJobDetailAudio
+} from 'actions';
+import VisibilityIcon from '@material-ui/icons/Visibility'
+import JobDetailsView from './components/JobDetailsView';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  content: {
+    padding: 0
+  },
+  projectDetails: {
+    marginTop: theme.spacing(0)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const TranscribeJobView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const transcribeJobState = useSelector(state => state.transcribeJobState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    if (transcribeJobState.redirect_to_list) {
+      router.history.push('/transcribe-job');
+    }
+  }, [transcribeJobState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!transcribeJobState.showViewPage) {
+      router.history.push('/transcribe-job');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcribeJobState.showViewPage]);
+
+  useEffect(() => {
+    if (transcribeJobState.showJobDetailsViewModel === false && transcribeJobState.job_detail_audio_file_path !== '') {
+      dispatch(deleteJobDetailAudio(transcribeJobState.job_detail_audio_file_path));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcribeJobState.showJobDetailsViewModel]);
+
+  const viewJobDetailsRecord = (value) => {
+    //dispatch(getTranscribeJobDetailsById(id, transcribeJobState.transcribeJobRecord.transcribe_job_details))
+    dispatch(getTranscribeJobDetailsById(value));
+  }
+
+  const getJobDetailsActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(session.current_page_permissions.rights_view == '1') ?
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewJobDetailsRecord(value)}
+          >
+            <VisibilityIcon />
+          </StyledFab>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Transcribe Job View"
+    >
+      <Header />
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={12}>
+          <Card
+            className={classes.projectDetails}
+          >
+            <CardHeader title="Transcribe Job View" />
+            <Divider />
+            <CardContent >
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TableContainer component={Paper}>
+                    <Table className={classes.table} size="small" aria-label="simple table">
+                      <TableBody>
+                        <TableRow>
+                          <TableCell variant="head" > Job Execution Date </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.execution_date}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Total Files Count </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.total_files_count}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Transcribed Files Count </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.transcribed_files_count}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Files Available For Transcribe </TableCell>
+                          <TableCell>{(transcribeJobState.transcribeJobRecord.files_available_for_transcribe === 1) ? 'Yes' : 'No'}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Is Job Complete </TableCell>
+                          <TableCell>{(transcribeJobState.transcribeJobRecord.is_job_complete === 1) ? 'Yes' : 'No'}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TableContainer component={Paper}>
+                    <Table className={classes.table} size="small" aria-label="simple table">
+                      <TableBody>
+                        <TableRow>
+                          <TableCell variant="head" > Created By </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.created_by}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Created At </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.date_created}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Last Updated By </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.last_modified_by}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell variant="head" > Last Updated At </TableCell>
+                          <TableCell>{transcribeJobState.transcribeJobRecord.date_last_modified}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={12}>
+          {!isEmpty(transcribeJobState.transcribeJobRecord) ?
+            <JobDetailsResults
+              className={classes.results}
+              refershDataTable={refershDataTable}
+              setRefershDataTable={setRefershDataTable}
+              actionsCol={getJobDetailsActions}
+              extraFilters={{ 'job_id': transcribeJobState.transcribeJobRecord.id }}
+            />
+            : ''
+          }
+        </Grid>
+        <Grid item xs={12} sm={12}>
+          <Card
+            className={classes.projectDetails}
+          >
+            <CardHeader title="Transcribe Job Description" />
+            <Divider />
+            <CardContent >
+              <div
+                className="ck-content" dangerouslySetInnerHTML={{ __html: transcribeJobState.transcribeJobRecord.description }}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      <JobDetailsView />
+    </Page>
+  );
+}
+
+export default TranscribeJobView;

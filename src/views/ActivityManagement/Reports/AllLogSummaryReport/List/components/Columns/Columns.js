@@ -1,0 +1,60 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("created_date", {
+    dataType: ColumnDataType.Count,
+    label: "Date",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("created_hour", {
+    dataType: ColumnDataType.String,
+    label: "Hour",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("client_name", {
+    dataType: ColumnDataType.String,
+    label: "Client",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("activity_name", {
+    dataType: ColumnDataType.String,
+    label: "Activity",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("user_fullname", {
+    dataType: ColumnDataType.String,
+    label: "User",
+    sortable: true,
+    filterable: true,
+    searchable: true,
+  }),
+  createColumn("processing_time",{
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    label: "Production Time",
+    searchable: true,
+  }),
+  createColumn("total_logged_activities", {
+    dataType: ColumnDataType.String,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Entries Logged",
+    sortDirection: ColumnSortDirection.Descending,
+    sortOrder: 1,
+  })
+];
+export default Columns;

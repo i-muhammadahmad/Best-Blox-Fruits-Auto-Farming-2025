@@ -1,0 +1,141 @@
+import React, {useEffect} from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import { 
+  makeStyles,
+  Paper,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const BulkActivitySetupView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const bulkActivitySetupState = useSelector(state => state.bulkActivitySetupState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if(bulkActivitySetupState.redirect_to_list){
+      router.history.push('/bulk-activity-setup');
+    } 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkActivitySetupState.redirect_to_list]);
+
+  useEffect(()=> {
+    if(!bulkActivitySetupState.showUpdateForm && !bulkActivitySetupState.showViewPage){
+      router.history.push('/bulk-activity-setup');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[bulkActivitySetupState.showUpdateForm, bulkActivitySetupState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Bulk Activity Setup View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Bulk Activity Setup View" />
+        <CardContent>
+        <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Bulk Setup Name </TableCell>
+                  <TableCell>{bulkActivitySetupState.bulkActivitySetupRecord.name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Client </TableCell>
+                  <TableCell>{
+                    !isEmpty(bulkActivitySetupState.bulkActivitySetupRecord.activity_client)?
+                    bulkActivitySetupState.bulkActivitySetupRecord.activity_client.client_name:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Extra Fields </TableCell>
+                  <TableCell>{
+                    !isEmpty(bulkActivitySetupState.bulkActivitySetupRecord.extra_fields)?
+                    <div>
+                    {bulkActivitySetupState.bulkActivitySetupRecord.extra_fields.map(extraField => (
+                      <div key={extraField.id}>
+                        {extraField.label}
+                      </div> 
+                    ))}
+                    </div> 
+                    :''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(bulkActivitySetupState.bulkActivitySetupRecord.created_by_user)?
+                    bulkActivitySetupState.bulkActivitySetupRecord.created_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{bulkActivitySetupState.bulkActivitySetupRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(bulkActivitySetupState.bulkActivitySetupRecord.created_by_user)?
+                    bulkActivitySetupState.bulkActivitySetupRecord.updated_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{bulkActivitySetupState.bulkActivitySetupRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody> 
+            </Table> 
+          </TableContainer>
+          </CardContent>
+      </Card> 
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Bulk Activity Setup Description" />
+        <CardContent>  
+            <div 
+              className="ck-content" dangerouslySetInnerHTML={{ __html: bulkActivitySetupState.bulkActivitySetupRecord.description }} />
+        </CardContent>  
+      </Card>   
+    </Page>
+  );
+}
+
+export default BulkActivitySetupView;

@@ -1,0 +1,366 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton, FilesDropzone } from 'components';
+import { Header, Attachment, Sidebar } from './components';
+import {
+	addDocuments,
+	hideDocumentsValidationError,
+	redirectToDocumentsList,
+	documentsCategoryDropdownListFetch,
+	documentsDropdownListFetch
+} from 'actions';
+import {
+	Card,
+	CardHeader,
+	CardContent,
+	TextField,
+	Grid,
+	FormControl,
+	FormHelperText,
+	Typography
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	}
+}));
+
+const DocumentsAdd = () => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const router = useRouter();
+	const documentsState = useSelector(state => state.documentsState);
+	const documentsCategoryState = useSelector(
+		state => state.documentsCategoryState
+	);
+	const session = useSelector(state => state.session);
+
+	const [category, setCategory] = useState(null);
+	const [files, setFiles] = useState([]);
+	const [serverFileErrors, setServerFileErrors] = useState([]);
+	const [dropZoneConfig, setDropZoneConfig] = useState({
+		maxSize: 5000000
+	});
+	const [open, setOpen] = useState(false);
+	const [lineItemsList, setLineItemsList] = useState({});
+
+	const [schema, setSchema] = React.useState({
+		title: {
+			presence: { allowEmpty: false, message: 'is required' }
+		},
+		category_id: {
+			presence: { allowEmpty: false, message: '^Please Select Category' }
+		}
+	});
+
+	const [formState, setFormState] = useState({
+		isValid: false,
+		values: {
+			object_viewed_id: session.current_page_permissions.object_id
+		},
+		touched: {
+			object_viewed_id: true
+		},
+		errors: {}
+	});
+
+	useEffect(() => {
+		dispatch(documentsCategoryDropdownListFetch(session.current_page_permissions.object_id));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+	
+	useEffect(() => {
+		console.log(documentsCategoryState.documentsCategoryDropdownList);
+	}, [documentsCategoryState.documentsCategoryDropdownList]);
+
+	useEffect(() => {
+		const errors = validate(formState.values, schema);
+
+		setFormState(formState => ({
+			...formState,
+			isValid: errors ? false : true,
+			errors: errors || {}
+		}));
+	}, [formState.values]);
+
+	useEffect(() => {
+		if (!isEmpty(documentsState.validation_error)) {
+			const errors = documentsState.validation_error;
+			setFormState(formState => ({
+				...formState,
+				isValid: errors ? false : true,
+				errors: errors || {}
+			}));
+		}
+	}, [documentsState.validation_error]);
+
+	useEffect(() => {
+		if (documentsState.redirect_to_list) {
+			router.history.push('/documents');
+		}
+	}, [documentsState.redirect_to_list, router.history]);
+
+	const setCategoryId = category_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				category_id: category_id
+			},
+			touched: {
+				...formState.touched,
+				category_id: true
+			}
+		}));
+		dispatch(hideDocumentsValidationError('category_id'));
+	};
+
+	const setDescription = description => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				description: description
+			},
+			touched: {
+				...formState.touched,
+				description: true
+			}
+		}));
+		dispatch(hideDocumentsValidationError('description'));
+	};
+
+	const handleChange = event => {
+		event.persist();
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				[event.target.name]:
+					event.target.type === 'checkbox'
+						? event.target.checked
+						: event.target.value
+			},
+			touched: {
+				...formState.touched,
+				[event.target.name]: true
+			}
+		}));
+		dispatch(hideDocumentsValidationError(event.target.name));
+	};
+
+	const handleSubmit = async event => {
+		event.preventDefault();
+		const data = new FormData();
+		if (!isEmpty(files)) {
+			for (let i = 0; i < files.length; i++) {
+				data.append('attachments[]', files[i]);
+			}
+		}
+
+		//appending form state to data object
+		forEach(formState.values, function(value, key) {
+			data.append(key, value);
+		});
+		data.append(
+			'document_access_details',
+			JSON.stringify(Object.values(lineItemsList))
+		);
+
+		await dispatch(addDocuments(data, router.history.action.toLowerCase() == 'pop' ? false : true));
+		// closing the window if its open in popup window
+		let location = window.location.pathname;
+		location = location.split('/');
+		if (location[1] == 'popup') {
+			window.close();
+		}
+	};
+
+	const handleDrawerToggle = () => {
+		setOpen(!open);
+	};
+
+	const hasError = field =>
+		formState.touched[field] && formState.errors[field] ? true : false;
+
+	return (
+		<>
+			<Page className={classes.root} title="Add Documents">
+				<Header />
+				<Card className={classes.projectDetails}>
+					<CardHeader title="Add Documents" />
+					<CardContent>
+						<form onSubmit={handleSubmit}>
+							<div className={classes.formGroup}>
+								<Grid container spacing={3}>
+									<Grid item xs={8} sm={8}>
+										<Grid container spacing={3}>
+											<Grid item xs={6} sm={6}>
+												<TextField
+													error={hasError('title')}
+													fullWidth
+													helperText={
+														hasError('title') ? formState.errors.title[0] : null
+													}
+													label="Document Title"
+													name="title"
+													onChange={handleChange}
+													value={formState.values.title || ''}
+													variant="outlined"
+													size="small"
+												/>
+											</Grid>
+											<Grid item xs={6} sm={6}>
+												{documentsCategoryState.documentsCategoryDropdownList ? (
+													<Autocomplete
+														id="category_id"
+														value={category}
+														onChange={(event, newValue) => {
+															if (newValue) {
+																setCategory(newValue);
+																setCategoryId(newValue.id);
+															} else {
+																setCategory(newValue);
+																setCategoryId('');
+															}
+														}}
+														size="small"
+														options={
+															documentsCategoryState.documentsCategoryDropdownList
+														}
+														getOptionLabel={option => option.category_name}
+														renderInput={params => (
+															<TextField
+																{...params}
+																label="Select Category"
+																variant="outlined"
+																error={hasError('category_id')}
+																helperText={
+																	hasError('category_id')
+																		? formState.errors.category_id[0]
+																		: null
+																}
+															/>
+														)}
+													/>
+												) : (
+													''
+												)}
+											</Grid>
+										</Grid>
+										<Grid container spacing={3}>
+											<Grid item xs={12} sm={12}>
+												<FormHelperText id="description">
+													<Typography component="b">Description</Typography>
+												</FormHelperText>
+												<CKEditor
+													editor={ClassicEditor}
+													config={CK_CONFIGS(localStorage.getItem('token'))}
+													data={formState.values.description || ''}
+													onChange={(event, editor) => {
+														const data = editor.getData();
+														setDescription(data);
+													}}
+												/>
+												<FormControl error={hasError('description')}>
+													<FormHelperText id="component-error-text">
+														{hasError('description')
+															? formState.errors.description[0]
+															: null}
+													</FormHelperText>
+												</FormControl>
+											</Grid>
+										</Grid>
+										<Grid container spacing={3}>
+											<Grid item xs={12} sm={12}>
+												<StyledButton
+													color="bsuccess"
+													type="button"
+													variant="contained"
+													onClick={handleDrawerToggle}
+													size="small"
+													startIcon={<AddCircleOutlineIcon />}>
+													Add Document Access
+												</StyledButton>
+											</Grid>
+										</Grid>
+									</Grid>
+									<Grid item xs={4} sm={4}>
+										<FilesDropzone
+											files={files}
+											setFiles={setFiles}
+											thumbsAt={'bottom'}
+											customDZconfigs={dropZoneConfig}
+											title={'Add Attachment'}
+											serverRejectedFiles={serverFileErrors}
+										/>
+									</Grid>
+								</Grid>
+							</div>
+							<StyledButton
+								color="bprimary"
+								disabled={
+									formState.isValid != 'true' && !isEmpty(files) ? false : true
+								}
+								size="small"
+								type="submit"
+								variant="contained"
+								startIcon={<SaveIcon />}>
+								Create Document
+							</StyledButton>{' '}
+							&nbsp; &nbsp;
+							{router.history.action.toLowerCase() != 'pop' ? (
+								<StyledButton
+									variant="contained"
+									color="blight"
+									size="small"
+									onClick={() => {
+										dispatch(redirectToDocumentsList());
+									}}
+									startIcon={<CancelIcon />}>
+									CLOSE
+								</StyledButton>
+							) : (
+								''
+							)}
+						</form>
+					</CardContent>
+				</Card>
+			</Page>
+			<Sidebar
+				open={open}
+				handleDrawerToggle={handleDrawerToggle}
+				lineItemsList={lineItemsList}
+				setLineItemsList={setLineItemsList}
+				formState={formState}
+				setFormState={setFormState}
+				schema={schema}
+				setSchema={setSchema}
+				hasError={hasError}
+			/>
+		</>
+	);
+};
+
+export default DocumentsAdd;

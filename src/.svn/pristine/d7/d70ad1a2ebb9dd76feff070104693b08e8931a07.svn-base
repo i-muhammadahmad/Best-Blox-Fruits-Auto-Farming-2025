@@ -1,0 +1,650 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import {
+  addShifts,
+  hideShiftsValidationError,
+  redirectToShiftsList,
+  timeZonesListFetch,
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Checkbox,
+  FormLabel,
+  Avatar
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { API_URL, CK_CONFIGS } from 'configs'
+import { OfficesDropdown, ClientDropdown } from 'commonDropdowns';
+
+const schema = {
+  name: {
+    presence: { allowEmpty: false, message: '^Name is required' },
+  },
+  office_id: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  client_id: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  timezone_id: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  start_time: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+  end_time: {
+    presence: { allowEmpty: false, message: ' is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  small_img: {
+    width: theme.spacing(3),
+    height: theme.spacing(3),
+    diaplay: 'inline-block'
+  },
+}));
+
+const ShiftsAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const shiftsState = useSelector(state => state.shiftsState);
+  const timeZonesState = useSelector(state => state.timeZonesState);
+  const session = useSelector(state => state.session);
+
+  const [OfficeValue, setOfficeValue] = useState(null);
+  const [ClientValue, setClientValue] = useState(null);
+  const [TimezoneValue, setTimezoneValue] = useState(null);
+  const [selectedOfficeId, setSelectedOfficeId] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      shift_details:{
+        '0':{ 'day':'Monday' },
+        '1':{ 'day':'Tuesday' },
+        '2':{ 'day':'Wednesday' },
+        '3':{ 'day':'Thursday' },
+        '4':{ 'day':'Friday' },
+        '5':{ 'day':'Saturday' },
+        '6':{ 'day':'Sunday' }
+      }
+    },
+    touched: {},
+    errors: {}
+  });
+
+  useEffect(() => {
+    dispatch(timeZonesListFetch());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(shiftsState.validation_error)) {
+      const errors = shiftsState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [shiftsState.validation_error]);
+
+  useEffect(() => {
+    if (shiftsState.redirect_to_list) {
+      router.history.push('/shifts');
+    }
+  }, [shiftsState.redirect_to_list, router.history]);
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideShiftsValidationError('description'))
+  }
+
+  const OfficeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue);
+      setOfficeId(newValue.id);
+      setSelectedOfficeId([newValue.id]);
+    }
+    else {
+      setOfficeValue(newValue);
+      setOfficeId('');
+      setSelectedOfficeId([]);
+    }
+  }
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'office_id': office_id
+      },
+      touched: {
+        ...formState.touched,
+        'office_id': true
+      }
+    }));
+    dispatch(hideShiftsValidationError('office_id'))
+  }
+
+  const clientOnChange = (event, newValue) => {
+    if (newValue) {
+      setClientValue(newValue)
+      setClientId(newValue.id)
+    }
+    else {
+      setOfficeValue(newValue)
+      setClientId('')
+    }
+  }
+
+  const setClientId = client_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'client_id': client_id
+      },
+      touched: {
+        ...formState.touched,
+        'client_id': true
+      }
+    }));
+    dispatch(hideShiftsValidationError('client_id'))
+  }
+
+  const setTimezoneId = timezone_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'timezone_id': timezone_id
+      },
+      touched: {
+        ...formState.touched,
+        'timezone_id': true
+      }
+    }));
+    dispatch(hideShiftsValidationError('timezone_id'))
+  }
+
+  const [totalHours, setTotalHours] = useState({});
+
+  useEffect(() => {
+    for (let index = 0; index < 7; index++) {
+      calculateTotalHours(index+'');
+    }  
+  }, [formState.values.shift_details]);
+
+  const handleRestDayChange = (event, num) => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        shift_details:{
+          ...formState.values.shift_details,
+          [num]:{
+            ...formState.values.shift_details[num],
+            rest_day: event.target.checked,
+            ['start_time']: (event.target.checked)? '': formState.values.shift_details[num]['start_time'],
+            ['end_time']: (event.target.checked)? '': formState.values.shift_details[num]['end_time'] 
+          }
+        }
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+  }
+
+  const handleStartTimeChange = (event, num) => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        shift_details:{
+          ...formState.values.shift_details,
+          [num]:{
+            ...formState.values.shift_details[num],
+            start_time: event.target.value,
+          }
+        }
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+  }
+
+  const handleEndTimeChange = (event, num) => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        shift_details:{
+          ...formState.values.shift_details,
+          [num]:{
+            ...formState.values.shift_details[num],
+            end_time: event.target.value,
+          }
+        }
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+  }
+
+  const handleApplyStandredTimeChange = (event, num) => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        shift_details:{
+          ...formState.values.shift_details,
+          [num]:{
+            ...formState.values.shift_details[num],
+            start_time: formState.values.start_time || '',
+            end_time: formState.values.end_time || '',
+          }
+        }
+      },
+      touched: {
+        ...formState.touched,
+        ['start_time_'+num]: true,
+        ['end_time_'+num]: true
+      }
+    }));
+    
+  }
+
+  const calculateTotalHours = (num) => {
+    let start_time = formState.values.shift_details[num].start_time;
+    let end_time = formState.values.shift_details[num].end_time;
+    let timeStart = new Date("01/01/2007 " + start_time);
+    let timeEnd = new Date("01/01/2007 " + end_time);
+    let diff = (timeEnd - timeStart) / 60000; //dividing by seconds and milliseconds
+    let minutes = diff % 60;
+    let hours = parseFloat(diff / 60);
+    if(hours < 0)
+      hours = 24+hours;
+    else if(hours == 24)
+      hours = 0;
+    else if(hours > 24)
+      hours = hours-24;
+
+    hours = isNaN(hours.toFixed(2))? '': hours.toFixed(2) +' hrs';
+    
+    setTotalHours(totalHours => ({
+      ...totalHours,
+      ['total_hours_'+num]: hours
+    }));  
+  }
+
+  const getOfficeListItem = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(value.flag_image)?
+          <>
+          <Avatar alt="Avator" src={API_URL+value.flag_image} className={classes.small} />
+          <span>{value.name}</span>
+          </>
+          :
+          <>
+          {value.name}
+          </>
+        }
+      </div>
+    );  
+  }
+
+  const shiftDays = () => {
+    const shift_dtl = Object.values(formState.values.shift_details);
+    return(
+      <TableBody>
+        {shift_dtl.map( (s_detail, i) => (
+        <TableRow key={i}>
+          <TableCell>{s_detail.day}</TableCell>
+          <TableCell >
+            <Checkbox
+              name={"start_time_"+i}
+              color="primary"
+              inputProps={{ 'aria-label': 'Rest Day' }}
+              onChange={(e) => handleRestDayChange(e, i)}
+              checked={formState.values.shift_details[i]['rest_day']}
+            />
+          </TableCell>
+          <TableCell >
+            <Checkbox
+              color="primary"
+              inputProps={{ 'aria-label': 'Apply Standerd Shift Time' }}
+              onChange={(e) => handleApplyStandredTimeChange(e, i)}
+            />
+          </TableCell>
+          <TableCell >
+            <TextField
+              id={"start_time_"+i}
+              label="Start Time"
+              type="time"
+              name={"start_time_"+i}
+              fullWidth
+              onChange={(e) => handleStartTimeChange(e, i)}
+              value={formState.values.shift_details[i]['start_time'] || ''}
+              className={classes.textField}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              inputProps={{
+                step: 300, // 5 min
+              }}
+              size="small"
+              disabled={formState.values.shift_details[i]['rest_day']}
+            />
+          </TableCell>
+          <TableCell >
+            <TextField
+              id={"end_time_"+i}
+              label="End Time"
+              type="time"
+              name={"end_time_"+i}
+              fullWidth
+              onChange={(e) => handleEndTimeChange(e, i)}
+              value={formState.values.shift_details[i]['end_time'] || ''}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              inputProps={{
+                step: 300, // 5 min
+              }}
+              size="small"
+              disabled={formState.values.shift_details[i]['rest_day']}
+            />
+          </TableCell>
+          <TableCell > {
+            totalHours['total_hours_'+i] || ''
+          } </TableCell>
+        </TableRow>
+        ))}
+      </TableBody>
+    );    
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideShiftsValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(addShifts(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Shifts"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Shifts" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  <TextField
+                    error={hasError('name')}
+                    fullWidth
+                    helperText={hasError('name') ? formState.errors.name[0] : null}
+                    label="Name"
+                    name="name"
+                    onChange={handleChange}
+                    value={formState.values.name || ''}
+                    variant="outlined"
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <OfficesDropdown
+                    OfficeValue={OfficeValue}
+                    setOfficeValue={setOfficeValue}
+                    id="office_id"
+                    name="office_id"
+                    officeOnChange={OfficeOnChange}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Office" variant="outlined" error={hasError('office_id')} helperText={hasError('office_id') ? formState.errors.office_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <ClientDropdown
+                    ClientValue={ClientValue}
+                    setClientValue={setClientValue}
+                    id="client_id"
+                    name="client_id"
+                    clientOnChange={clientOnChange}
+                    officesIds={selectedOfficeId}
+                    disabled={isEmpty(selectedOfficeId)}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Client" variant="outlined" error={hasError('client_id')} helperText={hasError('client_id') ? formState.errors.client_id[0] : null} />}
+                  /> 
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  { (timeZonesState.timeZonesList) ?
+                    <Autocomplete
+                      id="timezone_id"
+                      value={TimezoneValue}
+                      onChange={(event, newValue) => {
+                        if (newValue) {
+                          setTimezoneValue(newValue)
+                          setTimezoneId(newValue.id)
+                        }
+                        else {
+                          setTimezoneValue(newValue)
+                          setTimezoneId('')
+                        }
+                      }}
+                      options={timeZonesState.timeZonesList}
+                      getOptionLabel={(option) => option.name}
+                      size="small"
+                      renderInput={(params) => <TextField {...params} size="small" label="Select Timezone" variant="outlined" error={hasError('timezone_id')} helperText={hasError('timezone_id') ? formState.errors.timezone_id[0] : null} />}
+                    />
+                    :''
+                  }  
+                </Grid>
+              </Grid>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4} >
+                  <FormLabel component="legend">Shift Standard Time</FormLabel>
+                  <TextField
+                    id="start_time"
+                    label="Start Time"
+                    type="time"
+                    name="start_time"
+                    fullWidth
+                    onChange={handleChange}
+                    value={formState.values.start_time || ''}
+                    className={classes.textField}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={{
+                      step: 300, // 5 min
+                    }}
+                    size="small"
+                    helperText={hasError('start_time') ? formState.errors.start_time[0] : null}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4} >
+                  <FormLabel component="legend">&nbsp;</FormLabel>
+                  <TextField
+                    id="end_time"
+                    label="End Time"
+                    type="time"
+                    name="end_time"
+                    fullWidth
+                    onChange={handleChange}
+                    value={formState.values.end_time || ''}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    inputProps={{
+                      step: 300, // 5 min
+                    }}
+                    size="small"
+                    helperText={hasError('end_time') ? formState.errors.end_time[0] : null}
+                  />
+                </Grid>
+              </Grid>  
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={12}>
+                  <TableContainer component={Paper}>
+                    <Table  aria-label="Shift Detail Tbale">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Day</TableCell>
+                          <TableCell >Rest Day</TableCell>
+                          <TableCell >Apply Standard<br /> Shift Time</TableCell>
+                          <TableCell >Start Time</TableCell>
+                          <TableCell >End Time</TableCell>
+                          <TableCell >Hrs</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      { shiftDays() } 
+                    </Table>
+                  </TableContainer>     
+                </Grid>
+              </Grid>  
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={formState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Create Shifts
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToShiftsList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+          </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default ShiftsAdd;

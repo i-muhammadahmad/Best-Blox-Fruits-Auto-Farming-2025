@@ -1,0 +1,157 @@
+import axios from 'axios';
+import {API_URL} from 'configs';
+
+export const SESSION_LOGIN = 'SESSION_LOGIN';
+export const SESSION_LOGOUT = 'SESSION_LOGOUT';
+export const LOGIN_REQUEST = 'LOGIN_REQUEST';
+export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
+export const LOGIN_FAILURE = 'LOGIN_FAILURE';
+export const HIDE_ERROR = 'HIDE_ERROR';
+export const HIDE_FEILD_VALIDATION_ERROR = 'HIDE_FEILD_VALIDATION_ERROR';
+export const TOKEN_EXPIRE = 'TOKEN_EXPIRE';
+export const CURRENT_PAGE_PERMISSIONS = 'CURRENT_PAGE_PERMISSIONS';
+export const HIDE_DISCLAIMER = 'HIDE_DISCLAIMER';
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+export const login = () => dispatch =>
+  dispatch({
+    type: SESSION_LOGIN
+  });
+
+export const logout = () => dispatch =>
+  dispatch({
+    type: SESSION_LOGOUT
+  });
+
+//setting current page permission in state
+export const setCurrentPagePermissions = current_page => ({
+  type: CURRENT_PAGE_PERMISSIONS,
+  current_page: current_page,
+})  
+
+const loginRequest = () => {
+  return {
+    type: LOGIN_REQUEST
+  }
+}
+
+
+const loginSuccess = (userObj, user_Permissions, nested_menus) => ({
+  type: LOGIN_SUCCESS,
+  payload: userObj,
+  user_Permissions, user_Permissions,
+  nested_menus, nested_menus
+}) 
+
+const loginFailure = error => ({
+    type: LOGIN_FAILURE,
+    payload: error,
+    error_type: 'general'
+})
+  
+const validationError = error => ({
+  type: LOGIN_FAILURE,
+  payload: error,
+  error_type: 'validation'
+})
+
+export const hideError = () => ({
+  type: HIDE_ERROR,
+})
+
+export const hideFeildValidationError = (feild_key) => ({
+  type: HIDE_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+  
+export const userLoginFetch = user => {
+    return dispatch => {
+      dispatch(loginRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+'login', {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        data: user
+      })
+      .then((response) => {
+        localStorage.setItem("token", response.data.access_token)
+        dispatch(loginSuccess(response.data.user, response.data.user_Permissions, response.data.nested_menus))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error,dispatch)
+      });
+        
+    }
+  }
+
+//Microsoft azure login functions
+export const showMsalError = (err) => {
+  return dispatch => {
+    dispatch(loginFailure(err));
+  }
+}
+
+export const loginWithMsal = (data) =>  {
+  return dispatch => {
+    dispatch(loginRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL+'loginWithMsal', {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      data: {
+        accessToken: data.accessToken,
+        email: data.mail
+      }
+    })
+    .then((response) => {
+      localStorage.setItem("token", response.data.access_token)
+      dispatch(loginSuccess(response.data.user, response.data.user_Permissions, response.data.nested_menus))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error,dispatch)
+    });
+      
+  }
+}
+
+//Disclaimer functions
+export const hideDisclaimer = () => ({
+  type: HIDE_DISCLAIMER,
+})
+   
+const handleErrorResponse = (error,dispatch) => {
+  try{
+    if(error.response.status === 422){
+      dispatch(validationError(error.response.data.error))
+    }
+    else{
+      let err = '';
+      if(error.response.data.error){
+        err = error.response.data.error.toString();
+      }
+      else{
+        err = error.response.status+` `+error.response.statusText
+      }
+      dispatch(loginFailure(err))
+    }
+  }
+  catch(e){
+    dispatch(loginFailure('Unable to perform action.Something went wrong'))
+  }  
+} 

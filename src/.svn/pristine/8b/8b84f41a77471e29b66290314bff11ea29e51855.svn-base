@@ -1,0 +1,129 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("office_name", {
+    dataType: ColumnDataType.String,
+    sortable: false,
+    filterable: true,
+    searchable: true,
+    label: "Office",
+    visible: false
+  }),
+  createColumn("employee_name", {
+    dataType: ColumnDataType.String,
+    sortable: false,
+    filterable: false,
+    searchable: true,
+    label: "Employee Name",
+    visible: false
+  }),
+  createColumn("employee_first_name", {
+    dataType: ColumnDataType.String,
+    sortable: false,
+    filterable: true,
+    searchable: true,
+    label: "Employee First Name",
+    visible: false
+  }),
+  createColumn("employee_last_name", {
+    dataType: ColumnDataType.String,
+    sortable: false,
+    filterable: true,
+    searchable: true,
+    label: "Employee Last Name",
+    visible: false
+  }),
+  createColumn("workstation_name", {
+    dataType: ColumnDataType.String,
+    sortable: false,
+    filterable: true,
+    searchable: true,
+    label: "Workstation",
+    visible: false
+  }),
+  createColumn("asset_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Name",
+  }),
+  createColumn("asset_type_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Asset Type",
+  }),
+  createColumn("serial_no", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Serial No",
+  }),
+  createColumn("control_no", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Control No",
+  }),
+  createColumn("binder_with", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Binder With",
+  }),
+  createColumn("allocated_to", {
+    dataType: ColumnDataType.String,
+    sortable: false,
+    filterable: false,
+    searchable: false,
+    label: "Allocated To",
+  }),
+  createColumn("asset_assigned_from", {
+    dataType: ColumnDataType.Date,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Assigned From",
+  }),
+  createColumn("asset_assigned_to", {
+    dataType: ColumnDataType.Date,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Assigned To",
+  }),
+  createColumn("is_approved", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Is Approved",
+  }),
+  createColumn("approval_status", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Approval Status",
+  }),
+  createColumn("date_last_modified", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Last Modified At",
+    sortDirection: ColumnSortDirection.Descending,
+    sortOrder: 1,
+  }),
+  createColumn("Actions"),
+];
+export default Columns;

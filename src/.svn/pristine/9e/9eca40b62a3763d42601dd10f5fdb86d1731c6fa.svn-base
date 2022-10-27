@@ -1,0 +1,349 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+
+export const TICKETS_REQUEST = 'TICKETS_REQUEST'
+export const TICKETS_SUCCESS = 'TICKETS_SUCCESS'
+export const TICKETS_VALIDATION_ERROR = 'TICKETS_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_TICKETS_FEILD_VALIDATION_ERROR = "HIDE_TICKETS_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_TICKETS_LIST = 'REDIRECT_TO_TICKETS_LIST'
+export const TICKETS_GET_SUCCESS = 'TICKETS_GET_SUCCESS'
+export const TICKETS_SERVER_SUCCESS = 'TICKETS_SERVER_SUCCESS'
+export const TICKETS_STATUS_DROPDOWN_LIST_SUCCESS = 'TICKETS_STATUS_DROPDOWN_LIST_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const ticketsRequest = () => ({
+  type: TICKETS_REQUEST,
+})
+
+export const ticketsServerListSuccess = () => ({
+  type: TICKETS_SERVER_SUCCESS,
+})
+
+const ticketsListSuccess = ticketsList => ({
+  type: TICKETS_SUCCESS,
+  ticketsList: ticketsList,
+})
+
+const ticketsFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: TICKETS_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const ticketsAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(ticketsSuccessNotification(message))
+  dispatch(redirectToTicketsList())
+}
+
+const commentAddSuccess = (message, action, dispatch) => {
+  dispatch(ticketsSuccessNotification(message))
+}
+
+const ticketDetailsUpdateSuccess = (message, action, dispatch) => {
+  dispatch(ticketsSuccessNotification(message))
+}
+
+export const redirectToTicketsList = () => ({
+  type: REDIRECT_TO_TICKETS_LIST,
+})
+
+const getTicketsSuccess = (response, action) => ({
+  type: TICKETS_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const ticketsSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+
+export const hideTicketsValidationError = (feild_key) => ({
+  type: HIDE_TICKETS_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const ticketsListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+    .then((response) => {
+      dispatch(hideCommonLoader())
+      dispatch(ticketsListSuccess(response.data))
+    }, (error) => {
+      dispatch(hideCommonLoader())
+      handleErrorResponse(error, dispatch)
+    });
+
+  }
+}
+
+export const addTickets = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        ticketsAddUpadteSuccess('Ticket Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const addComment = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/addComment/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        commentAddSuccess('Comment Added Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateTickets = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/update/" + data.get('id'), {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        ticketsAddUpadteSuccess('Ticket Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+// For updating ticket status
+export const updateTicketStatus = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/updateTicketStatus/" + data.id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        ticketDetailsUpdateSuccess('Ticket Status Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+// For updating ticket Category
+export const updateTicketCategory = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/updateTicketCategory/" + data.id, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        ticketDetailsUpdateSuccess('Ticket Category Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const getTicketsById = (id, action, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(getTicketsSuccess(response.data, action))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const deleteTickets = (ticketsId, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/delete/" + ticketsId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        dispatch(ticketsSuccessNotification('Ticket deleted successfully'))
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+/*
+* Tickets Status dropdown list fetch methods
+*/
+const ticketsStatusDropdownListSuccess = ticketsStatusDropdownList => ({
+  type: TICKETS_STATUS_DROPDOWN_LIST_SUCCESS,
+  ticketsStatusDropdownList: ticketsStatusDropdownList,
+})
+
+export const ticketsStatusDropdownListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(ticketsRequest())
+    dispatch(showCommonLoader())
+    return axios(API_URL + "tickets/getAllStatusForDropdown", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      params: {object_viewed_id: object_viewed_id}
+    })
+    .then((response) => {
+      dispatch(ticketsStatusDropdownListSuccess(response.data))
+      dispatch(hideCommonLoader())
+    }, (error) => {
+      handleErrorResponse(error, dispatch)
+      dispatch(hideCommonLoader())
+    });
+
+  }
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(ticketsFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(ticketsFailure('Unable to perform action.Something went wrong'))
+  }
+}   

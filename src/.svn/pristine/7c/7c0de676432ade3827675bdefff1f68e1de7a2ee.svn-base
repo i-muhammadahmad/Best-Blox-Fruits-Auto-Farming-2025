@@ -1,0 +1,92 @@
+import { API_URL } from 'configs';
+
+export const CK_CONFIGS = (token = localStorage.getItem("token")) => ({
+  toolbar: {
+    items: [
+      'heading',
+      '|',
+      'bold',
+      'underline',
+      'italic',
+      'highlight',
+      'blockQuote',
+      'bulletedList',
+      'numberedList',
+      '|',
+      'outdent',
+      'indent',
+      '|',
+      'alignment',
+      'fontSize',
+      'fontColor',
+      'fontBackgroundColor',
+      'fontFamily',
+      '|',
+      'imageUpload',
+      'mediaEmbed',
+      'link',
+      'insertTable',
+      '|',
+      'code',
+      'codeBlock',
+      'htmlEmbed',
+      'specialCharacters',
+      'horizontalLine',
+      '|',
+      'undo',
+      'redo'
+    ]
+  },
+  language: 'en',
+  ckfinder: {
+    // Upload the images to the server using the CKFinder QuickUpload command.
+    uploadUrl: API_URL + 'common/uploadCKMedia?token=' + token,
+  },
+  image: {
+    // Configure the available styles.
+    styles: [
+      'alignLeft', 'alignCenter', 'alignRight', 'full', 'side'
+    ],
+    // Configure the available image resize options.
+    resizeOptions: [
+      {
+        name: 'resizeImage:original',
+        label: 'Original',
+        value: null
+      },
+      {
+        name: 'resizeImage:25',
+        label: '25%',
+        value: '25'
+      },
+      {
+        name: 'resizeImage:50',
+        label: '50%',
+        value: '50'
+      },
+      {
+        name: 'resizeImage:75',
+        label: '75%',
+        value: '75'
+      }
+    ],
+    // You need to configure the image toolbar, too, so it shows the new style
+    // buttons as well as the resize buttons.
+    toolbar: [
+      'imageStyle:alignLeft', 'imageStyle:alignCenter', 'imageStyle:alignRight', 'imageStyle:full', 'imageStyle:side',
+      '|',
+      'resizeImage',
+      '|',
+      'imageTextAlternative'
+    ]
+  },
+  table: {
+    contentToolbar: [
+      'tableColumn',
+      'tableRow',
+      'mergeTableCells',
+      'tableCellProperties',
+      'tableProperties'
+    ]
+  },
+});

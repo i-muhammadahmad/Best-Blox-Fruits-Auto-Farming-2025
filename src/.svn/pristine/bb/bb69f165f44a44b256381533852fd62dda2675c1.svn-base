@@ -1,0 +1,136 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const EmployeeAttritionView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const employeeAttritionState = useSelector(state => state.employeeAttritionState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!employeeAttritionState.showUpdateForm && !employeeAttritionState.showViewPage) {
+      router.history.push('/employee-attrition');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeAttritionState.showUpdateForm, employeeAttritionState.showViewPage]);
+
+  useEffect(() => {
+    if (employeeAttritionState.redirect_to_list) {
+      router.history.push('/employee-attrition');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeAttritionState.redirect_to_list]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Employee Attrition View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Employee Attrition View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Office </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.office_name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Client </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.client_name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Employee </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.employee_name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Attrition Type </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.attrition_type}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Attrition Reason </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.attrition_reason}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Speration Date </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.separation_date}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(employeeAttritionState.employeeAttritionRecord.created_by_user) ?
+                      employeeAttritionState.employeeAttritionRecord.created_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(employeeAttritionState.employeeAttritionRecord.updated_by_user) ?
+                      employeeAttritionState.employeeAttritionRecord.updated_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{employeeAttritionState.employeeAttritionRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Employee Attrition Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: employeeAttritionState.employeeAttritionRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default EmployeeAttritionView;

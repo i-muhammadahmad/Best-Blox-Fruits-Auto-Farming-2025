@@ -1,0 +1,211 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid,
+  TableHead
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty, join } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  },
+  rightBorderCol: {
+    borderRight: '1px solid', 
+    borderRightColor: '#eeeeee'
+  }
+}));
+
+const ApprovalProfilesView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const approvalProfilesState = useSelector(state => state.approvalProfilesState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (approvalProfilesState.redirect_to_list) {
+      router.history.push('/approval-profile');
+    }
+  }, [approvalProfilesState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!approvalProfilesState.showViewPage && !approvalProfilesState.showUpdateForm) {
+      router.history.push('/approval-profile');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvalProfilesState.showViewPage, approvalProfilesState.showUpdateForm]);
+
+  const getOfficeName = value => {
+    let office_name = '';
+    if(!value.is_global){
+      if(!isEmpty(value.office)){
+        office_name = value.office.name;
+      }
+    }
+    else{
+      office_name = 'Global';
+    }
+    return office_name;
+  }
+
+  const getApprovalFromName = approval => {
+    let ap_name = '';
+    if(approval.approval_from === 'employee'){
+      if(!isEmpty(approval.approval_employee)){
+        let emp = approval.approval_employee;
+        ap_name = join([emp.firstname, emp.middlename, emp.lastname], ' ')
+      }
+    }
+    if(approval.approval_from === 'designation'){
+      if(!isEmpty(approval.approval_designation)){
+        ap_name = approval.approval_designation.name;
+      }
+    }
+    return ap_name;
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Approval Profiles View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Approval Profiles View" />
+        <CardContent>
+          <Grid container spacing={3}  >
+            <Grid item xs={12} sm={6} >
+              <TableContainer component={Paper}>
+                <Table className={classes.table} size="small"  aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head" > Title </TableCell>
+                      <TableCell>{approvalProfilesState.approvalProfilesRecord.title}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Is Global </TableCell>
+                      <TableCell>{
+                        (approvalProfilesState.approvalProfilesRecord.is_global)?
+                        'Yes': 'No'
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Office </TableCell>
+                      <TableCell>{getOfficeName(approvalProfilesState.approvalProfilesRecord)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Approval Level </TableCell>
+                      <TableCell>{approvalProfilesState.approvalProfilesRecord.approval_levels}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>  
+            </Grid>
+            <Grid item xs={12} sm={6} >    
+              <TableContainer component={Paper}>
+                <Table className={classes.table} size="small" aria-label="simple table">
+                  <TableBody>    
+                    <TableRow>
+                      <TableCell variant="head" > Created By </TableCell>
+                      <TableCell>{
+                        !isEmpty(approvalProfilesState.approvalProfilesRecord.created_by_user) ?
+                          approvalProfilesState.approvalProfilesRecord.created_by_user.email : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Created At </TableCell>
+                      <TableCell>{approvalProfilesState.approvalProfilesRecord.date_created}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Last Updated By </TableCell>
+                      <TableCell>{
+                        !isEmpty(approvalProfilesState.approvalProfilesRecord.updated_by_user) ?
+                          approvalProfilesState.approvalProfilesRecord.updated_by_user.email : ''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Last Updated At </TableCell>
+                      <TableCell>{approvalProfilesState.approvalProfilesRecord.date_last_modified}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+          </Grid>    
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Approvals" />
+        <CardContent>
+          <Grid container spacing={3}  >
+            <Grid item xs={12} sm={6} >
+              <TableContainer component={Paper}>
+                <Table className={classes.table} size="small"  aria-label="simple table">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell className={classes.rightBorderCol} > Approval Level </TableCell>
+                      <TableCell colspan={2} align="center" > Approval From </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {!isEmpty(approvalProfilesState.approvalProfilesRecord.approval_profile_details)?
+                    <>
+                    {approvalProfilesState.approvalProfilesRecord.approval_profile_details.map((approval, index) => (
+                      <TableRow>
+                        <TableCell className={classes.rightBorderCol}> {(approval.priority + 1)} </TableCell>
+                        <TableCell className={classes.rightBorderCol} style={{textTransform:'capitalize'}}> {approval.approval_from} </TableCell>
+                        <TableCell className={classes.rightBorderCol}> {getApprovalFromName(approval)} </TableCell>
+                      </TableRow>
+                    ))} 
+                    </>
+                    : ''}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+          </Grid>    
+        </CardContent>
+      </Card>  
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Approval Profile Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: approvalProfilesState.approvalProfilesRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default ApprovalProfilesView;

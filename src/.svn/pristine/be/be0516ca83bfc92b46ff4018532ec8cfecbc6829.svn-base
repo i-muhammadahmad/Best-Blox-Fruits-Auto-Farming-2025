@@ -1,0 +1,320 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import { 
+  addActivityAccess,
+  hideActivityAccessValidationError,
+  activityAccessRoleListFetch,
+  activitySetupListFetch,
+  redirectToActivityAccessList
+} from 'actions'
+import { 
+  Card, 
+  CardHeader, 
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText
+ } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+
+const schema = {
+  role_id: {
+    presence: { allowEmpty: false, message: '^Role is required' },
+  },
+  activity_id: {
+    presence: { allowEmpty: false, message: '^Activity is required' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ActivityAccessAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const activityAccessState = useSelector(state => state.activityAccessState);
+  const activitySetupState = useSelector(state => state.activitySetupState);
+  const session = useSelector(state => state.session);
+
+  const [RoleValue, setRoleValue] = useState(null);
+  const [ActivityValue, setActivityValue] = useState(null);
+  const [activitiesList, setActivitiesList] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    dispatch(activityAccessRoleListFetch(session.current_page_permissions.object_id))
+    dispatch(activitySetupListFetch(session.current_page_permissions.object_id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if(!isEmpty(activityAccessState.validation_error)){
+      const errors = activityAccessState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }  
+  }, [activityAccessState.validation_error]);
+
+  useEffect(() => {
+    if(activityAccessState.redirect_to_list){
+      router.history.push('/activity-access');
+    } 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityAccessState.redirect_to_list]);
+
+  useEffect(() => {
+    let acti = activitySetupState.activitySetupList;
+    acti.sort(function(a, b) {
+      const nameA = a.activity_client.client_name.toUpperCase(); // ignore upper and lowercase
+      const nameB = b.activity_client.client_name.toUpperCase(); // ignore upper and lowercase
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      // names must be equal
+      return 0;
+    });
+
+    setActivitiesList(acti);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activitySetupState.activitySetupList]);
+
+  const setRoleId = role_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'role_id':role_id
+      },
+      touched: {
+        ...formState.touched,
+        'role_id': true
+      }
+    }));
+    dispatch(hideActivityAccessValidationError('role_id'))
+  }
+
+  const setActivityId = activity_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'activity_id':activity_id
+      },
+      touched: {
+        ...formState.touched,
+        'activity_id': true
+      }
+    }));
+    dispatch(hideActivityAccessValidationError('activity_id'))
+  }
+  
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description':description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideActivityAccessValidationError('description'))
+  }
+
+  /*const handleChange = event => {
+    event.persist();
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideActivityAccessValidationError(event.target.name))
+  }*/
+ 
+  
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(addActivityAccess(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Activity Access"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Activity Access" />
+        <CardContent>
+        <form
+          onSubmit={handleSubmit}
+        >
+          <div className={classes.formGroup}>
+            <Grid container spacing={3}>
+            <Grid item xs={6} sm={6}>
+            {(activitiesList)?
+            <Autocomplete
+              id="activity_id"
+              value={ActivityValue}
+              onChange={(event, newValue) => {
+                if(newValue){
+                  setActivityValue(newValue)
+                  setActivityId(newValue.id)
+                }
+                else{
+                  setActivityValue(newValue)
+                  setActivityId('')
+                }
+                
+              }}
+              options={activitiesList}
+              getOptionLabel={(option) => !isEmpty(option.activity_client)? option.activity_client.client_name+' >> '+ option.name : option.name}
+              size="small"
+              renderInput={(params) => <TextField {...params} size="small" label="Select Activity" variant="outlined" error={hasError('activity_id')} helperText={hasError('activity_id') ? formState.errors.activity_id[0] : null} />}
+            />
+            
+            :''}
+            </Grid>  
+            <Grid item xs={6} sm={4}>
+            {(activityAccessState.activityAccessRolesList)?
+            <Autocomplete
+              id="role_id"
+              value={RoleValue}
+              onChange={(event, newValue) => {
+                if(newValue){
+                  setRoleValue(newValue)
+                  setRoleId(newValue.id)
+                }
+                else{
+                  setRoleValue(newValue)
+                  setRoleId('')
+                }
+                
+              }}
+              options={activityAccessState.activityAccessRolesList}
+              getOptionLabel={(option) => option.name}
+              size="small"
+              renderInput={(params) => <TextField {...params} size="small" label="Select Role" variant="outlined" error={hasError('role_id')} helperText={hasError('role_id') ? formState.errors.role_id[0] : null} />}
+            />
+            
+            :''}
+            
+            </Grid>
+            </Grid>
+          </div>
+          <div className={classes.formGroup}>
+            <CKEditor
+              editor={ ClassicEditor }
+              config={CK_CONFIGS(localStorage.getItem("token"))}
+              data={formState.values.description || ''}
+              onChange={ ( event, editor ) => {
+                  const data = editor.getData();
+                  setDescription(data)
+              }}
+            />
+            <FormControl error={hasError('description')} >  
+              <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+            </FormControl> 
+          </div>
+          <StyledButton
+            color="bprimary"
+            disabled={!formState.isValid}
+            size="small"
+            type="submit"
+            variant="contained"
+            startIcon={<SaveIcon/>}
+          >
+            Create Activity Access
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+            variant="contained"
+            color="blight"
+            size="small"
+            onClick={ ()=>{ dispatch(redirectToActivityAccessList()) } }
+            startIcon={<CancelIcon />}
+          >
+            CLOSE
+          </StyledButton>
+          
+        </form>
+          
+        </CardContent>
+      </Card>
+      
+    </Page>
+  );
+};
+
+export default ActivityAccessAdd;

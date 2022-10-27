@@ -1,0 +1,277 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  Header,
+  NestedObjects
+} from './components';
+import {
+  saveRolesAccess,
+  hideRolesAccessValidationError,
+  redirectToRolesAccessList,
+  rolesListFetch,
+  objectsNestedTreeFetch,
+  permissionsByRoleFetch,
+  setPermissionFetchedFalse,
+  objectsListFetch
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  List,
+  ListItem,
+  ListItemText,
+  Collapse,
+  Divider,
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import ExpandLess from '@material-ui/icons/ExpandLess';
+import ExpandMore from '@material-ui/icons/ExpandMore';
+import AccessRights from 'utils/AccessRights';
+
+const schema = {
+  role_id: {
+    presence: { allowEmpty: false, message: '^Please select role' },
+  },
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const RolesAccessAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const rolesAccessState = useSelector(state => state.rolesAccessState);
+  const rolesState = useSelector(state => state.rolesState);
+  const objectsState = useSelector(state => state.objectsState);
+  const session = useSelector(state => state.session);
+
+  const [RoleValue, setRoleValue] = useState(null);
+  const [listExpander, setListExpander] = useState([]);
+  const [ReloadTree, setReloadTree] = useState(false);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      role_access_rights: {},
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    dispatch(rolesListFetch(session.current_page_permissions.object_id))
+    dispatch(objectsNestedTreeFetch(session.current_page_permissions.object_id))
+    dispatch(objectsListFetch(session.current_page_permissions.object_id))
+  }, []);
+
+  useEffect(() => {
+    if(rolesAccessState.isPermissonsFetched === true){
+      setReloadTree(true);
+      dispatch(setPermissionFetchedFalse());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rolesAccessState.isPermissonsFetched]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(rolesAccessState.validation_error)) {
+      const errors = rolesAccessState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [rolesAccessState.validation_error]);
+
+  useEffect(() => {
+    if (rolesAccessState.redirect_to_list) {
+      //router.history.push('/rolesAccess');
+      //setRoleValue([]);
+    }
+  }, [rolesAccessState.redirect_to_list, router.history]);
+
+  const handleListExpanderClick = (index) => {
+    setListExpander(listExpander => ({
+      ...listExpander,
+      [index]: true
+    }));
+  }
+
+  const setRolesId = role_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'role_id': role_id,
+        role_access_rights: {}
+      },
+      touched: {
+        ...formState.touched,
+        'role_id': true
+      }
+    }));
+
+    if (!isEmpty(role_id)) {
+      dispatch(permissionsByRoleFetch(role_id));
+    }
+    setReloadTree(false);
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideRolesAccessValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    await dispatch(saveRolesAccess(formState.values));
+    setRoleValue(null);
+    setRolesId('');
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Roles Access"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Roles Access" />
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={3}>
+                  {(rolesState.rolesList) ?
+                    <Autocomplete
+                      limitTags={2}
+                      value={RoleValue}
+                      onChange={(event, newValue) => {
+                        if (newValue) {
+                          setRoleValue(newValue)
+                          setRolesId(newValue.id)
+                        }
+                        else {
+                          setRoleValue(newValue)
+                          setRolesId('')
+                        }
+                      }}
+                      options={rolesState.rolesList}
+                      getOptionLabel={(option) => option.name}
+                      size="small"
+                      renderInput={(params) => <TextField {...params} label="Select Role" variant="outlined" />}
+                    />
+                    : ''}
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              {
+                (!isEmpty(objectsState.objectsNestedTree) && ReloadTree) ?
+                  <NestedObjects
+                    component="nav"
+                    key={'nested_menu'}
+                    objectLists={objectsState.objectsNestedTree}
+                    setFormState={setFormState}
+                    formState={formState}
+                  />
+                  : ''
+              }
+            </div>
+            {(
+              !isEmpty(RoleValue)
+              && (AccessRights(session.current_page_permissions, 'edit', RoleValue.created_by) 
+              || AccessRights(session.current_page_permissions, 'add'))
+            )?
+            <>
+              <StyledButton
+                color="bprimary"
+                disabled={!formState.isValid}
+                size="small"
+                type="submit"
+                variant="contained"
+                startIcon={<SaveIcon />}
+              >
+                Save Roles Access
+              </StyledButton> &nbsp; &nbsp;
+              <StyledButton
+                  variant="contained"
+                  color="blight"
+                  size="small"
+                  onClick={() => { dispatch(redirectToRolesAccessList()) }}
+                  startIcon={<CancelIcon />}
+                >
+                  CLOSE
+              </StyledButton>
+            </>  
+            : ""}
+          </form>
+
+        </CardContent>
+      </Card>
+
+    </Page>
+  );
+};
+
+export default RolesAccessAdd;

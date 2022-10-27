@@ -1,0 +1,743 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton } from 'components';
+import {
+  assetTypesListFetch,
+  workstationsListFetch,
+  saveAssetsBinding,
+  hideAssetsBindingValidationError,
+  getAssetsById,
+  unbindAssets
+} from 'actions';
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Typography,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, join, remove } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import LinkOffIcon from '@material-ui/icons/LinkOff';
+import moment from 'moment';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown, EmployeeDropdown } from 'commonDropdowns';
+import AccountabilityForm from '../AccountabilityForm';
+import { useReactToPrint } from 'react-to-print';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const AssetsBinding = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const assetsState = useSelector(state => state.assetsState);
+  const assetTypesState = useSelector(state => state.assetTypesState);
+  const workstationsState = useSelector(state => state.workstationsState);
+  const session = useSelector(state => state.session);
+
+  const [AssetTypeValue, setAssetTypeValue] = useState('');
+  const [AssetRecord, setAssetRecord] = useState('');
+  const [OfficeValue, setOfficeValue] = useState(null);
+  const [WorkstationValue, setWorkstationValue] = useState(null);
+  const [EmployeeValue, setEmployeeValue] = useState(null);
+  const [bindedWith, setBindedWith] = useState('');
+  const [openUnbindModel, setOpenUnbindModel] = useState(false);
+
+  //print component ref
+  const getEmployeeName = () => {
+    let emp_name = '';
+    if (!isEmpty(AssetRecord) && !isEmpty(AssetRecord.employee)) {
+      emp_name =
+        AssetRecord.employee.firstname + '-' + AssetRecord.employee.lastname;
+    }
+    return emp_name;
+  };
+
+  const printComponentRef = useRef();
+  const handlePrint = useReactToPrint({
+    content: () => printComponentRef.current,
+    documentTitle: 'accountability_form-' + getEmployeeName()
+  });
+
+  //setting default form state
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      object_viewed_id: session.current_page_permissions.object_id,
+      asset_assigned_from: moment(moment().toDate()).format('YYYY-MM-DD')
+    },
+    touched: {
+      object_viewed_id: true,
+      asset_assigned_from: true
+    },
+    errors: {}
+  });
+
+  //setting default schema state
+  const [schema, setSchema] = useState({
+    asset_assigned_from: {
+      presence: { allowEmpty: false, message: 'is required' }
+    }
+  });
+
+  //papulating asset value to formState
+  useEffect(() => {
+    let record = assetsState.assetsRecord;
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        name: record.name,
+        id: record.id,
+        allocated_office: record.allocated_office,
+        allocated_employee: record.allocated_employee,
+        allocated_workstation: record.allocated_workstation,
+        asset_assigned_from: record.asset_assigned_from,
+        asset_assigned_to: record.asset_assigned_to,
+        binding_notes: record.binding_notes,
+        atype_id: record.atype_id
+      },
+      touched: {
+        ...formState.touched,
+        id: true,
+        allocated_office: true,
+        allocated_employee: true,
+        allocated_workstation: true,
+        asset_assigned_from: true,
+        asset_assigned_to: true,
+        binding_notes: true,
+        atype_id: true
+      }
+    }));
+    setAssetRecord(assetsState.assetsRecord);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetsState.assetsRecord]);
+
+  //selecting asset type
+  useEffect(() => {
+    let record = assetsState.assetsRecord;
+    const item = find(assetTypesState.assetTypesList, ['id', record.atype_id]);
+    setAssetTypeValue(item);
+
+    if (!isEmpty(item)) {
+      //getting schema array
+      let new_schema = { ...schema };
+      if (item.is_binded_with_office == 1) {
+        new_schema['allocated_office'] = {
+          presence: { allowEmpty: false, message: '^ Please Select Office' }
+        };
+      }
+      if (
+        item.is_binded_with_employee == 1 &&
+        !isEmpty(record.allocated_employee)
+      ) {
+        new_schema['allocated_employee'] = {
+          presence: { allowEmpty: false, message: '^ Please Select Employee' }
+        };
+        setBindedWith('employee');
+      } else if (
+        item.is_binded_with_workstation == 1 &&
+        !isEmpty(record.allocated_workstation)
+      ) {
+        new_schema['allocated_workstation'] = {
+          presence: {
+            allowEmpty: false,
+            message: '^ Please Select Workstation'
+          }
+        };
+        setBindedWith('workstation');
+      } else {
+        new_schema['bindedWith'] = {
+          presence: {
+            allowEmpty: false,
+            message: '^ Please Select WorkStation or Employee'
+          }
+        };
+      }
+
+      //setting new validation schema
+      setSchema(new_schema);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetTypesState.assetTypesList]);
+
+  //selecting workstation
+  useEffect(() => {
+    if (!isEmpty(workstationsState.workstationsList)) {
+      let record = assetsState.assetsRecord;
+      const item = find(workstationsState.workstationsList, [
+        'id',
+        record.allocated_workstation
+      ]);
+      setWorkstationValue(item);
+    }
+  }, [workstationsState.workstationsList]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.values]);
+
+  //this will revalidate fromstate on schema change
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema]);
+
+  useEffect(() => {
+    if (!isEmpty(assetsState.binding_validation_error)) {
+      const errors = assetsState.binding_validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [assetsState.binding_validation_error]);
+
+  useEffect(() => {
+    dispatch(getAssetsById(assetsState.assetsRecord.id, 'update'));
+
+    dispatch(workstationsListFetch());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setBindingNotes = binding_notes => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        binding_notes: binding_notes
+      },
+      touched: {
+        ...formState.touched,
+        binding_notes: true
+      }
+    }));
+    dispatch(hideAssetsBindingValidationError('binding_notes'));
+  };
+
+  const setWorkstationId = allocated_workstation => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        allocated_workstation: allocated_workstation
+      },
+      touched: {
+        ...formState.touched,
+        allocated_workstation: true
+      }
+    }));
+    dispatch(hideAssetsBindingValidationError('allocated_workstation'));
+  };
+
+  const employeeOnChange = (event, newValue) => {
+    if (newValue) {
+      setEmployeeValue(newValue);
+      setEmployeeId(newValue.id);
+    } else {
+      setEmployeeValue(newValue);
+      setEmployeeId('');
+    }
+  };
+
+  const setEmployeeId = allocated_employee => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        allocated_employee: allocated_employee
+      },
+      touched: {
+        ...formState.touched,
+        allocated_employee: true
+      }
+    }));
+    dispatch(hideAssetsBindingValidationError('allocated_employee'));
+  };
+
+  const officeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue);
+      setOfficeId(newValue.id);
+    } else {
+      setOfficeValue(newValue);
+      setOfficeId('');
+    }
+  };
+
+  const setOfficeId = allocated_office => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        allocated_office: allocated_office
+      },
+      touched: {
+        ...formState.touched,
+        allocated_office: true
+      }
+    }));
+    dispatch(hideAssetsBindingValidationError('allocated_office'));
+  };
+
+  const getBinderWithHTML = value => {
+    let binder_with_arr = [];
+    if (value.is_binded_with_employee == 1) {
+      binder_with_arr.push('Employee');
+    }
+    if (value.is_binded_with_office == 1) {
+      binder_with_arr.push('Office');
+    }
+    if (value.is_binded_with_workstation == 1) {
+      binder_with_arr.push('Workstation');
+    }
+    return <span>{join(binder_with_arr, [', '])}</span>;
+  };
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideAssetsBindingValidationError(event.target.name));
+  };
+  
+  const handleBindChange = async event => {
+    await handleChange(event);
+    setBindedWith(event.target.value);
+    let new_schema = { ...schema };
+    if (event.target.value == 'employee') {
+      delete new_schema.allocated_workstation;
+      new_schema['allocated_employee'] = {
+        presence: { allowEmpty: false, message: '^ Please Select Employee' }
+      };
+      setSchema(new_schema);
+      setWorkstationValue(null);
+      setWorkstationId('');
+    } else {
+      delete new_schema.allocated_employee;
+      new_schema['allocated_workstation'] = {
+        presence: { allowEmpty: false, message: '^ Please Select Workstation' }
+      };
+      setSchema(new_schema);
+      setEmployeeValue(null);
+      setEmployeeId('');
+    }
+  };
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    await dispatch(saveAssetsBinding(formState.values));
+    dispatch(getAssetsById(assetsState.assetsRecord.id, 'update'));
+  };
+
+  //unbind model actions
+  const showUnbindModel = () => {
+    setOpenUnbindModel(true);
+  };
+
+  const hideUnbindModel = () => {
+    setOpenUnbindModel(false);
+  };
+
+  const unbindAsset = () => {
+    dispatch(
+      unbindAssets(formState.values.id, formState.values.object_viewed_id)
+    );
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        allocated_employee: '',
+        allocated_workstation: '',
+        asset_assigned_from: '',
+        asset_assigned_to: ''
+      },
+      touched: {
+        ...formState.touched,
+        allocated_employee: true,
+        allocated_workstation: true,
+        asset_assigned_from: true,
+        asset_assigned_to: true
+      }
+    }));
+    setWorkstationValue(null);
+    setEmployeeValue(null);
+    setAssetRecord('');
+    setOpenUnbindModel(false);
+  };
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Card className={classes.projectDetails}>
+      <CardContent>
+        <form onSubmit={handleSubmit}>
+          <div className={classes.formGroup}>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={4}>
+                <Typography component="p">
+                  <b>Asset Type: </b>{' '}
+                  {!isEmpty(AssetTypeValue) ? AssetTypeValue.name : ''}
+                </Typography>
+                <Typography component="p">
+                  (<b> Bound With: </b>{' '}
+                  {!isEmpty(AssetTypeValue)
+                    ? getBinderWithHTML(AssetTypeValue)
+                    : ''}
+                  )
+                </Typography>
+                <Grid container>
+                  <Grid item xs={12} style={{ textAlign: 'right' }}>
+                    <FormControl
+                      component="fieldset"
+                      style={{ position: 'relative', left: '40px' }}
+                      error={hasError('bindedWith')}>
+                      <RadioGroup
+                        aria-label="bindedWith"
+                        id="bindedWith"
+                        name="bindedWith"
+                        value={bindedWith}
+                        onChange={handleBindChange}>
+                        {!isEmpty(AssetTypeValue) &&
+                        AssetTypeValue.is_binded_with_workstation == '1' ? (
+                          <FormControlLabel
+                            style={{ marginTop: '8px' }}
+                            value="workstation"
+                            control={<Radio color="primary" size="small" />}
+                          />
+                        ) : (
+                          ''
+                        )}
+                        {!isEmpty(AssetTypeValue) &&
+                        AssetTypeValue.is_binded_with_employee == '1' ? (
+                          <FormControlLabel
+                            style={{ marginTop: '8px' }}
+                            value="employee"
+                            control={<Radio color="primary" size="small" />}
+                          />
+                        ) : (
+                          ''
+                        )}
+                      </RadioGroup>
+                      <FormHelperText>
+                        {hasError('bindedWith')
+                          ? formState.errors.bindedWith[0]
+                          : null}
+                      </FormHelperText>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                {!isEmpty(AssetTypeValue) &&
+                AssetTypeValue.is_binded_with_office == '1' ? (
+                  <OfficesDropdown
+                    OfficeValue={OfficeValue}
+                    setOfficeValue={setOfficeValue}
+                    selectedId={assetsState.assetsRecord.allocated_office}
+                    id="allocated_office"
+                    name="allocated_office"
+                    officeOnChange={officeOnChange}
+                    disabled={true}
+                    renderInput={params => (
+                      <TextField
+                        {...params}
+                        label="Select Office"
+                        variant="outlined"
+                        error={hasError('allocated_office')}
+                        helperText={
+                          hasError('allocated_office')
+                            ? formState.errors.allocated_office[0]
+                            : null
+                        }
+                      />
+                    )}
+                  />
+                ) : (
+                  ''
+                )}
+                {!isEmpty(AssetTypeValue) &&
+                AssetTypeValue.is_binded_with_workstation == '1' ? (
+                  <Autocomplete
+                    style={{ marginTop: '10px' }}
+                    id="allocated_workstation"
+                    name="allocated_workstation"
+                    value={WorkstationValue}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        setWorkstationValue(newValue);
+                        setWorkstationId(newValue.id);
+                      } else {
+                        setWorkstationValue(newValue);
+                        setWorkstationId('');
+                      }
+                    }}
+                    disabled={
+                      bindedWith == 'workstation' &&
+                      assetsState.assetsRecord.allocated_workstation !== ''
+                        ? false
+                        : true
+                    }
+                    options={workstationsState.workstationsList}
+                    getOptionLabel={option => option.name}
+                    size="small"
+                    required
+                    renderInput={params => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        label="Select Workstation"
+                        variant="outlined"
+                        error={hasError('allocated_workstation')}
+                        helperText={
+                          hasError('allocated_workstation')
+                            ? formState.errors.allocated_workstation[0]
+                            : null
+                        }
+                      />
+                    )}
+                  />
+                ) : (
+                  ''
+                )}
+                {!isEmpty(AssetTypeValue) &&
+                AssetTypeValue.is_binded_with_employee == '1' ? (
+                  <EmployeeDropdown
+                    style={{ marginTop: '10px' }}
+                    disabled={
+                      bindedWith == 'employee' &&
+                      assetsState.assetsRecord.allocated_employee !== ''
+                        ? false
+                        : true
+                    }
+                    EmployeeValue={EmployeeValue}
+                    setEmployeeValue={setEmployeeValue}
+                    selectedId={assetsState.assetsRecord.allocated_employee}
+                    id="allocated_employee"
+                    name="allocated_employee"
+                    employeeOnChange={employeeOnChange}
+                    renderInput={params => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        label="Select Employee"
+                        variant="outlined"
+                        error={hasError('allocated_employee')}
+                        helperText={
+                          hasError('allocated_employee')
+                            ? formState.errors.allocated_employee[0]
+                            : null
+                        }
+                      />
+                    )}
+                  />
+                ) : (
+                  ''
+                )}
+              </Grid>
+              <Grid item xs={4} sm={2}>
+                <TextField
+                  className={classes.field}
+                  value={formState.values.asset_assigned_from || ''}
+                  fullWidth
+                  label="Assign From"
+                  name="asset_assigned_from"
+                  onChange={handleChange}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true
+                  }}
+                  error={hasError('asset_assigned_from')}
+                  helperText={
+                    hasError('asset_assigned_from')
+                      ? formState.errors.asset_assigned_from[0]
+                      : null
+                  }
+                />
+              </Grid>
+              <Grid item xs={4} sm={2}>
+                <TextField
+                  className={classes.field}
+                  value={formState.values.asset_assigned_to || ''}
+                  fullWidth
+                  label="Assign To"
+                  name="asset_assigned_to"
+                  onChange={handleChange}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true
+                  }}
+                  error={hasError('asset_assigned_to')}
+                  helperText={
+                    hasError('asset_assigned_to')
+                      ? formState.errors.asset_assigned_to[0]
+                      : null
+                  }
+                />
+              </Grid>
+            </Grid>
+          </div>
+          <div className={classes.formGroup}>
+            <CKEditor
+              editor={ClassicEditor}
+              config={CK_CONFIGS(localStorage.getItem('token'))}
+              data={assetsState.assetsRecord.binding_notes || ''}
+              onChange={(event, editor) => {
+                const data = editor.getData();
+                setBindingNotes(data);
+              }}
+            />
+            <FormControl error={hasError('binding_notes')}>
+              <FormHelperText id="component-error-text">
+                {hasError('binding_notes')
+                  ? formState.errors.binding_notes[0]
+                  : null}
+              </FormHelperText>
+            </FormControl>
+          </div>
+          <Grid container spacing={3}>
+            <Grid item xs={9}>
+              <StyledButton
+                color="bprimary"
+                disabled={!formState.isValid}
+                size="small"
+                type="submit"
+                variant="contained"
+                startIcon={<SaveIcon />}>
+                Save Binding
+              </StyledButton>
+              {!isEmpty(AssetTypeValue) &&
+              AssetTypeValue.is_binded_with_employee == '1' &&
+              !isEmpty(AssetRecord.allocated_employee) ? (
+                <>
+                  &nbsp;&nbsp;&nbsp;
+                  <StyledButton
+                    color="bsuccess"
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    onClick={handlePrint}>
+                    Print Accountability Form
+                  </StyledButton>
+                  <div style={{ display: 'none' }}>
+                    <AccountabilityForm
+                      ref={printComponentRef}
+                      AssetRecord={AssetRecord}
+                      AssetTypeValue={AssetTypeValue}
+                    />
+                  </div>
+                </>
+              ) : (
+                ''
+              )}
+            </Grid>
+            {(!isEmpty(AssetRecord.allocated_employee) || !isEmpty(AssetRecord.allocated_workstation) ) ? (
+              <Grid item xs={3}>
+                <div style={{ textAlign: 'right' }}>
+                  <StyledButton
+                    onClick={showUnbindModel}
+                    color="bdanger"
+                    size="small"
+                    variant="contained"
+                    startIcon={<LinkOffIcon />}>
+                    Unbind Asset
+                  </StyledButton>
+                </div>
+              </Grid>
+            ) : (
+              ''
+            )}
+          </Grid>
+        </form>
+        <Dialog
+          open={openUnbindModel}
+          onClose={hideUnbindModel}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description">
+          <DialogTitle id="alert-dialog-title">Unbind Asset</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Are you sure you want to unbind this assets?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <StyledButton onClick={hideUnbindModel}>Cancel</StyledButton>
+            <StyledButton
+              variant="contained"
+              color="bdanger"
+              startIcon={<LinkOffIcon />}
+              onClick={unbindAsset}
+              autoFocus={true}>
+              Unbind Asset
+            </StyledButton>
+          </DialogActions>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AssetsBinding;

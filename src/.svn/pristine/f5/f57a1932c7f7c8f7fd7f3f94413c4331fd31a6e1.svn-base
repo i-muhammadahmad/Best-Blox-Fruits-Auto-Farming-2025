@@ -1,0 +1,44 @@
+import React, { useState }  from 'react';
+import PropTypes from 'prop-types';
+import { makeStyles } from '@material-ui/styles';
+import { DataGrid, ToolbarOptions } from "tubular-react";
+import { ITbTableInstance } from 'tubular-react-common';
+import { CustomSearchBar } from './components';
+
+const useStyles = makeStyles(() => ({
+  
+}));
+
+const CustomDataGrid = props => {
+  const { columns, dataSource, gridName, toolbarOptions, ...rest } = props;
+  const classes = useStyles();
+
+  const cusToolbarOptions = new ToolbarOptions({
+    itemsPerPage: 20,
+    searchText: false,
+    customItems: <CustomSearchBar searchText={ITbTableInstance.state.searchText} updateSearchText={ITbTableInstance.api.updateSearchText}  />
+  });
+  
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={dataSource}
+      gridName={gridName}
+      toolbarOptions={(toolbarOptions === void 0) ? cusToolbarOptions : toolbarOptions }
+      {...rest}
+    />
+  );
+};
+
+CustomDataGrid.propTypes = {
+  columns: PropTypes.any.isRequired,
+  dataSource: PropTypes.any.isRequired,
+  gridName: PropTypes.string.isRequired,
+  toolbarOptions: PropTypes.any
+};
+
+CustomDataGrid.defaultProps = {
+  toolbarOptions: void 0,
+};
+
+export default CustomDataGrid;

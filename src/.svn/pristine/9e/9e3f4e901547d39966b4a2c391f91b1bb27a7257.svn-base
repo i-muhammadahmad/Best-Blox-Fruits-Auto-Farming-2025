@@ -1,0 +1,146 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import { TextField } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import {
+  employeesDropdownListFetch
+} from 'actions';
+import { isEmpty, includes, find, isArray, forEach } from 'lodash'
+
+const useStyles = makeStyles(theme => ({
+  root: {}
+}));
+
+const EmployeeDropdown = props => {
+  const { officesIds, clientIds, EmployeeValue, setEmployeeValue, selectedId, employeeOnChange, id, name, size, renderInput,showSelectAllOption, ...attr } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const employeesState = useSelector(state => state.employeesState);
+  const [employeeList, setEmployeeList] = useState([]);
+  const [offIds, setOffIds] = useState(officesIds);
+  const [campIds, setCampIds] = useState(clientIds);
+
+  useEffect(() => {
+    let offices_ids = [];
+    if (!includes(offIds, 'all')) {
+      offices_ids = offIds
+    }
+
+    let client_ids = [];
+    if (!includes(campIds, 'all')) {
+      client_ids = campIds
+    }
+
+    dispatch(employeesDropdownListFetch(offices_ids, client_ids));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    setOffIds(officesIds);
+  }, [officesIds]);
+
+  useEffect(() => {
+    setCampIds(clientIds);
+  }, [clientIds]);
+
+  useEffect(() => {
+
+    let offices_ids = [];
+    if (!includes(offIds, 'all')) {
+      offices_ids = offIds
+    }
+
+    let client_ids = [];
+    if (!includes(campIds, 'all')) {
+      client_ids = campIds
+    }
+    dispatch(employeesDropdownListFetch(offices_ids, client_ids))
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offIds, campIds]);
+
+  useEffect(() => {
+    if (employeesState.employeesDropdownList) {
+      if(!isEmpty(selectedId)) {
+        if (isArray(selectedId)) {
+          let semp = [];
+          forEach(selectedId, function (value, key) {
+            let item = find(employeesState.employeesDropdownList, ['id', value]);
+            if (!isEmpty(item)) {
+              semp.push(item);
+            }
+          });
+          setEmployeeValue(semp);
+
+        }
+        else {
+          let selected_emp = find(employeesState.employeesDropdownList, ['id', selectedId]);
+          if(!isEmpty(selected_emp)){
+            setEmployeeValue(selected_emp);
+          }
+          else{
+            setEmployeeValue(null);
+          }
+        }
+
+      }
+      let employee_list = {
+        ...employeesState.employeesDropdownList
+      }
+      employee_list = Object.values(employee_list);
+
+      if (attr.multiple === true && !isEmpty(employee_list) && showSelectAllOption === true) {
+        let first = {
+          id: 'all',
+          employee_name: 'All',
+        }
+        employee_list.unshift(first);
+      }
+
+      setEmployeeList(Object.values(employee_list));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.employeesDropdownList]);
+
+  return (
+    <>
+      {(employeeList) ?
+        <Autocomplete
+          value={EmployeeValue}
+          onChange={(event, newValue) => {
+            employeeOnChange(event, newValue)
+          }}
+          options={employeeList}
+          getOptionLabel={(option) => option.employee_name}
+          id={id}
+          size={size}
+          name={name}
+          renderInput={renderInput}
+          {...attr}
+        />
+
+        : ''}
+    </>
+  );
+}
+
+EmployeeDropdown.propTypes = {
+  employeeOnChange: PropTypes.any.isRequired,
+  renderInput: PropTypes.any.isRequired
+};
+
+EmployeeDropdown.defaultProps = {
+  officesIds: [],
+  clientIds: [],
+  EmployeeValue: [],
+  id: 'employee_id',
+  name: 'employee_id',
+  size: 'small',
+  selectedId: '',
+  showSelectAllOption: true
+};
+
+export default EmployeeDropdown;

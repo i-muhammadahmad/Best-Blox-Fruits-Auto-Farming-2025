@@ -1,0 +1,81 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("quiz_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Name",
+  }),
+  createColumn("quiz_level_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Level",
+  }),
+  createColumn("passing_percentage", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Passing Percentage",
+  }),
+  createColumn("publish_status", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Status",
+  }),
+  createColumn("binded_with", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Binded With",
+  }),
+  createColumn("assign_to", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Assigned To",
+  }),
+  createColumn("is_compliance", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Compliance",
+  }),
+  createColumn("assigned_from", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Assigned Date",
+  }),
+  createColumn("due_date", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Due Date",
+  }),
+  createColumn("date_last_modified", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Last Modified At",
+    sortDirection: ColumnSortDirection.Descending,
+    sortOrder: 1,
+  }),
+];
+export default Columns;

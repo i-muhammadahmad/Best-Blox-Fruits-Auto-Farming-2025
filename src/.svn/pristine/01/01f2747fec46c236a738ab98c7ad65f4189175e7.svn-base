@@ -1,0 +1,75 @@
+import {
+  ColumnDataType,
+  ColumnSortDirection,
+  createColumn
+} from "tubular-common";
+
+const Columns = [
+  createColumn("quiz_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Name",
+  }),
+  createColumn("category", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Course Category",
+  }),
+  createColumn("quiz_level_name", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Course Level",
+  }),
+  createColumn("assigned_from", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Assign Date",
+  }),
+  createColumn("due_date", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Due Date",
+  }),
+  createColumn("quiz_stauts", {
+    dataType: ColumnDataType.String,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Status",
+  }),
+  createColumn("no_of_attemp", {
+    dataType: ColumnDataType.Numeric,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Attemps",
+  }),
+  createColumn("quiz_last_score", {
+    dataType: ColumnDataType.Numeric,
+    sortable: true,
+    filterable: true,
+    searchable: true,
+    label: "Last Attemp Score",
+  }),
+  createColumn("date_last_modified", {
+    dataType: ColumnDataType.DateTime,
+    filterable: true,
+    sortable: true,
+    searchable: true,
+    label: "Last Modified At",
+    sortDirection: ColumnSortDirection.Descending,
+    sortOrder: 1,
+  }),
+  createColumn("Actions"),
+];
+export default Columns;

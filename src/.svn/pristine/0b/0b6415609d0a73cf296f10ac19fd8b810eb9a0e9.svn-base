@@ -1,0 +1,127 @@
+import React from 'react';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography,
+  Paper,
+  Grid,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@material-ui/core';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {},
+  content: {
+    padding: 15
+  },
+  table: {
+    minWidth: 700,
+		borderCollapse: 'collapse'
+  },
+  tableCol: {
+    border: '1px solid #eeeeee',
+    borderCollapse: 'collapse',
+    lineHeight: '1',
+    padding: '2px'
+  },
+  textCol:{
+    fontSize: '10px',
+  },
+  tableVerticalCol:{
+    border: '1px solid #eeeeee',
+    borderCollapse: 'collapse',
+    lineHeight: '50px',
+    padding: '10px',
+    width: '6px',
+    height: '62px'
+  },
+  textVerticalltCol:{
+    transform: 'rotate(270deg)',
+    fontSize: '10px',
+    whiteSpace: 'nowrap',
+    width: '0px',
+    position: 'absolute'
+  },
+  tableContainer:{
+    maxHeight: 440,
+  },
+  stickyCol: {
+    position: '-webkit-sticky',
+    position: 'sticky',
+    left: '0'
+  }
+  
+}));
+
+const Results = props => {
+  const { className, userClockRecords, tIntervals, ...rest } = props;
+  const classes = useStyles();
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Typography
+        color="textSecondary"
+        gutterBottom
+        variant="body2"
+      >
+      </Typography>
+      <Card>
+        <CardHeader
+          title="VIEW Report"
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+          {!isEmpty(userClockRecords)?
+          <TableContainer className={classes.tableContainer} component={Paper}>
+            <Table stickyHeader className={classes.table} size="small" aria-label="a dense table">
+              <TableHead>
+                <TableRow>
+                  <TableCell className={classes.stickyCol} ></TableCell>
+                  {tIntervals.map((timeInterval, key) => (
+                    <TableCell className={classes.tableVerticalCol} key={'h'+key}>
+                      <p className={classes.textVerticalltCol}>{timeInterval.interval_str}</p>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {userClockRecords.map((userRecord, id) => (
+                  <TableRow key={'b_'+id}>
+                    {userRecord.user_timeline_html}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          :''
+          }
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+Results.propTypes = {
+  className: PropTypes.string,
+  userClockRecords: PropTypes.array.isRequired
+};
+
+Results.defaultProps = {
+  userClockRecords: []
+};
+
+export default Results;

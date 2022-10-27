@@ -1,0 +1,609 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledFab, StyledButton } from 'components';
+import { Header, ExtraFeildModel } from './components';
+import {
+	updateActivitySetup,
+	hideActivitySetupValidationError,
+	addRemoveExtraFeild,
+	redirectToActivitySetupList
+} from 'actions';
+import {
+	Card,
+	CardHeader,
+	CardContent,
+	TextField,
+	Grid,
+	FormControl,
+	FormHelperText,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Paper
+} from '@material-ui/core';
+import MuiAlert from '@material-ui/lab/Alert';
+import CloseIcon from '@material-ui/icons/Close';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, remove, each, some, includes } from 'lodash';
+import useRouter from 'utils/useRouter';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+import { ClientDropdown } from 'commonDropdowns';
+import { ActivityCategoryDropdown } from 'commonDropdowns';
+
+const schema = {
+	name: {
+		presence: { allowEmpty: false, message: 'is required' }
+	},
+	unit_processing_time: {
+		presence: { allowEmpty: false, message: 'is required' },
+		numericality: {
+			onlyInteger: true
+		}
+	},
+	passing_score: {
+		presence: { allowEmpty: false, message: ' is required' },
+		numericality: {
+			greaterThanOrEqualTo: 0,
+			lessThanOrEqualTo: 100
+		}
+	},
+	client_id: {
+		presence: { allowEmpty: false, message: 'is required' }
+	}
+	/* category_id: {
+		presence: { allowEmpty: false, message: '^Please Select Activity Category' }
+	} */
+};
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3)
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	}
+}));
+
+const ActivitySetupUpdate = () => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const router = useRouter();
+	const activitySetupState = useSelector(state => state.activitySetupState);
+	const session = useSelector(state => state.session);
+	const clientState = useSelector(state => state.clientState);
+
+	const [ClientValue, setClientValue] = useState(null);
+	const [ActivityCategoryValue, setActivityCategoryValue] = useState(null);
+	const [openExtraFieldModel, setOpenExtraFieldModel] = React.useState(false);
+	const [selectedClientId, setSelectedClientId] = useState([]);
+  const [selectedActivityCategoryId, setSelectedActivityCategoryId] = useState(null);
+  const [firstRender, setFirstRender] = useState(true);
+	const [formState, setFormState] = useState({
+		isValid: false,
+		values: {
+			object_viewed_id: session.current_page_permissions.object_id
+		},
+		touched: {
+			object_viewed_id: true
+		},
+		errors: {}
+	});
+
+	useEffect(() => {
+		const errors = validate(formState.values, schema);
+
+		setFormState(formState => ({
+			...formState,
+			isValid: errors ? false : true,
+			errors: errors || {}
+		}));
+	}, [formState.values]);
+
+	useEffect(() => {
+		if (!isEmpty(activitySetupState.validation_error)) {
+			const errors = activitySetupState.validation_error;
+			setFormState(formState => ({
+				...formState,
+				isValid: errors ? false : true,
+				errors: errors || {}
+			}));
+		}
+	}, [activitySetupState.validation_error]);
+
+	useEffect(() => {
+		if (
+			!activitySetupState.showViewPage &&
+			!activitySetupState.showUpdateForm
+		) {
+			router.history.push('/activity-setup');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activitySetupState.showViewPage, activitySetupState.showUpdateForm]);
+
+	useEffect(() => {
+		if (activitySetupState.redirect_to_list) {
+			router.history.push('/activity-setup');
+		}
+	}, [activitySetupState.redirect_to_list, router.history]);
+
+	useEffect(() => {
+		if (!isEmpty(activitySetupState.availableExtraFeilds)) {
+			let record = activitySetupState.activitySetupRecord;
+
+			let touch = { ...formState.touched };
+			let vals = { ...formState.values };
+
+			let av_feilds = activitySetupState.availableExtraFeilds;
+			let ad_feilds = activitySetupState.addedExtraFeilds;
+			each(record, (val, key) => {
+				if (some(['field_'], el => includes(key, el))) {
+					if (!isEmpty(val)) {
+						vals[key] = val;
+						touch[key] = true;
+
+						const item = find(av_feilds, ['name', key]);
+						item['field_label'] = val;
+						ad_feilds.push(item);
+						remove(av_feilds, ['name', key]);
+					}
+				} else if (
+					some(
+						[
+							'id',
+							'name',
+							'client_id',
+							'unit_processing_time',
+							'passing_score',
+							'category_id',
+							'description'
+						],
+						el => includes(key, el)
+					)
+				) {
+					vals[key] = val;
+					touch[key] = true;
+				}
+			});
+
+			setFormState(formState => ({
+				...formState,
+				values: vals,
+				touched: touch
+			}));
+			dispatch(addRemoveExtraFeild(av_feilds, ad_feilds));
+			setSelectedClientId([record.client_id]);
+      setSelectedActivityCategoryId(record.category_id);
+		}
+
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [
+		activitySetupState.availableExtraFeilds,
+		activitySetupState.activitySetupRecord
+	]);
+
+	useEffect(() => {
+		if (!isEmpty(activitySetupState.addedExtraFeilds)) {
+			activitySetupState.addedExtraFeilds.map(added_extraFeild => {
+				const stat = formState => {
+					let feild = added_extraFeild.name;
+					let f_label = added_extraFeild.field_label;
+
+					let vals = { ...formState.values };
+					vals[feild] = f_label;
+
+					let touch = { ...formState.touched };
+					touch[feild] = true;
+					return {
+						...formState,
+						values: vals,
+						touched: touch
+					};
+				};
+				setFormState(stat);
+				return true;
+			});
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activitySetupState.addedExtraFeilds.length]);
+
+	const clientOnChange = (event, newValue) => {
+		if (newValue) {
+			setClientValue(newValue);
+			setClientId(newValue.id);
+			setSelectedClientId([newValue.id]);
+		} else {
+			setClientValue(newValue);
+			setClientId('');
+			setSelectedClientId([]);
+		}
+
+    /* if(firstRender === false)
+    { */
+      setActivityCategoryValue(null);
+      setSelectedActivityCategoryId(null);
+    /* }
+    setFirstRender(false); */
+    
+	};
+
+	const setClientId = client_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				client_id: client_id
+			},
+			touched: {
+				...formState.touched,
+				client_id: true
+			}
+		}));
+		dispatch(hideActivitySetupValidationError('client_id'));
+	};
+
+	const activityCategoryOnChange = (event, newValue) => {
+		if (newValue) {
+			// setActivityCategoryValue(newValue);
+			setCategoryId(newValue.id);
+		} else {
+			// setActivityCategoryValue(newValue);
+			setCategoryId('');
+		}
+	};
+
+	const setCategoryId = category_id => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				category_id: category_id
+			},
+			touched: {
+				...formState.touched,
+				category_id: true
+			}
+		}));
+		dispatch(hideActivitySetupValidationError('category_id'));
+	};
+
+	const setDescription = description => {
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				description: description
+			},
+			touched: {
+				...formState.touched,
+				description: true
+			}
+		}));
+		dispatch(hideActivitySetupValidationError('description'));
+	};
+
+	const handleChange = event => {
+		event.persist();
+
+		setFormState(formState => ({
+			...formState,
+			values: {
+				...formState.values,
+				[event.target.name]:
+					event.target.type === 'checkbox'
+						? event.target.checked
+						: event.target.value
+			},
+			touched: {
+				...formState.touched,
+				[event.target.name]: true
+			}
+		}));
+		dispatch(hideActivitySetupValidationError(event.target.name));
+	};
+
+	const handleSubmit = async event => {
+		event.preventDefault();
+		dispatch(updateActivitySetup(formState.values));
+	};
+
+	const hasError = field =>
+		formState.touched[field] && formState.errors[field] ? true : false;
+
+	const removeExtraFeild = feild_name => {
+		let a_feilds = activitySetupState.availableExtraFeilds;
+		let added_feilds = activitySetupState.addedExtraFeilds;
+		const item = find(added_feilds, ['name', feild_name]);
+		a_feilds.push(item);
+		remove(added_feilds, ['name', feild_name]);
+		dispatch(addRemoveExtraFeild(a_feilds, added_feilds));
+
+		let touch = { ...formState.touched };
+		delete touch[feild_name];
+
+		let vals = { ...formState.values };
+		delete vals[feild_name];
+		setFormState(formState => ({
+			...formState,
+			values: vals,
+			touched: touch
+		}));
+	};
+
+	return (
+		<Page className={classes.root} title="Update Activity Setup">
+			<Header />
+			<Card className={classes.projectDetails}>
+				<CardHeader title="Update Activity Setup" />
+				<CardContent>
+					<form onSubmit={handleSubmit}>
+						<div className={classes.formGroup}>
+							<Grid container spacing={3}>
+								<Grid item xs={6} sm={3}>
+									<TextField
+										error={hasError('name')}
+										fullWidth
+										helperText={
+											hasError('name') ? formState.errors.name[0] : null
+										}
+										label="Activity Name"
+										name="name"
+										onChange={handleChange}
+										value={formState.values.name || ''}
+										variant="outlined"
+										size="small"
+									/>
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									{/* {formState.values.client_id ? ( */}
+										<ClientDropdown
+											ClientValue={ClientValue}
+											setClientValue={setClientValue}
+											id="client_id"
+											name="client_id"
+											clientOnChange={clientOnChange}
+											selectedId={selectedClientId}
+											renderInput={params => (
+												<TextField
+													{...params}
+													label="Select Client"
+													variant="outlined"
+													error={hasError('client_id')}
+													helperText={
+														hasError('client_id')
+															? formState.errors.client_id[0]
+															: null
+													}
+												/>
+											)}
+										/>
+									{/* ) : (
+										''
+									)} */}
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									<TextField
+										error={hasError('unit_processing_time')}
+										fullWidth
+										helperText={
+											hasError('unit_processing_time')
+												? formState.errors.unit_processing_time[0]
+												: null
+										}
+										label="Unit Processing Time (seconds)"
+										name="unit_processing_time"
+										onChange={handleChange}
+										value={formState.values.unit_processing_time || ''}
+										variant="outlined"
+										InputProps={{ inputProps: { min: 0 } }}
+										type="number"
+										size="small"
+									/>
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									<TextField
+										error={hasError('passing_score')}
+										fullWidth
+										helperText={
+											hasError('passing_score')
+												? formState.errors.passing_score[0]
+												: null
+										}
+										label="Passing Percentage(%)"
+										name="passing_score"
+										onChange={handleChange}
+										value={formState.values.passing_score || ''}
+										variant="outlined"
+										InputProps={{ inputProps: { min: 0 } }}
+										type="number"
+										size="small"
+									/>
+								</Grid>
+								<Grid item xs={6} sm={3}>
+									<ActivityCategoryDropdown
+										ActivityCategoryValue={ActivityCategoryValue}
+										setActivityCategoryValue={setActivityCategoryValue}
+										id="category_id"
+										name="category_id"
+										clientIds={selectedClientId}
+										activityCategoryOnChange={activityCategoryOnChange}
+										/* selectedId={
+											selectedActivityCategoryId
+										} */
+                    selectedChangingId={selectedActivityCategoryId}
+										renderInput={params => (
+											<TextField
+												{...params}
+												label="Select Activity Category"
+												variant="outlined"
+												error={hasError('category_id')}
+												helperText={
+													hasError('category_id')
+														? formState.errors.category_id[0]
+														: null
+												}
+											/>
+										)}
+									/>
+								</Grid>
+								{!isEmpty(ActivityCategoryValue) &&
+								ActivityCategoryValue.id != 'null' ? (
+									<Grid item xs={12} sm={4}>
+										<MuiAlert
+											style={{ display: 'none' }}
+											elevation={3}
+											variant="filled"
+											severity="warning"></MuiAlert>
+										<div
+											class="MuiPaper-root MuiAlert-root MuiAlert-filledWarning MuiPaper-elevation3"
+											style={{ backgroundColor: '#f4f6f8', color: '#000' }}
+											role="alert">
+											<div
+												class="MuiAlert-message"
+												style={{ padding: '2px 0px' }}>
+												{ActivityCategoryValue.label}
+											</div>
+										</div>
+									</Grid>
+								) : (
+									''
+								)}
+							</Grid>
+							<Grid container spacing={3}>
+								<Grid item xs={12} sm={6}>
+									{!isEmpty(activitySetupState.addedExtraFeilds) ? (
+										<TableContainer component={Paper}>
+											<Table
+												className={classes.table}
+												aria-label="simple table">
+												<TableHead>
+													<TableRow>
+														<TableCell>Name</TableCell>
+														<TableCell>Label</TableCell>
+														<TableCell align="right"></TableCell>
+													</TableRow>
+												</TableHead>
+												<TableBody>
+													{activitySetupState.addedExtraFeilds.map(
+														added_extraFeild => (
+															<TableRow key={added_extraFeild.name}>
+																<TableCell component="th" scope="row">
+																	{added_extraFeild.name} (
+																	{added_extraFeild.type})
+																</TableCell>
+																<TableCell align="right">
+																	<TextField
+																		fullWidth
+																		label="Extra Feild Label"
+																		name={added_extraFeild.name}
+																		onChange={handleChange}
+																		value={
+																			formState.values[added_extraFeild.name]
+																				? formState.values[
+																						added_extraFeild.name
+																				  ]
+																				: added_extraFeild.field_label
+																		}
+																		variant="outlined"
+																		size="small"
+																	/>
+																</TableCell>
+																<TableCell align="right">
+																	<StyledFab
+																		color="bdanger"
+																		aria-label="edit"
+																		size="small"
+																		onClick={() =>
+																			removeExtraFeild(added_extraFeild.name)
+																		}>
+																		<CloseIcon />
+																	</StyledFab>
+																</TableCell>
+															</TableRow>
+														)
+													)}
+												</TableBody>
+											</Table>
+										</TableContainer>
+									) : (
+										''
+									)}
+								</Grid>
+							</Grid>
+						</div>
+						<div className={classes.formGroup}>
+							<StyledButton
+								color="bsuccess"
+								type="button"
+								variant="contained"
+								onClick={() => setOpenExtraFieldModel(true)}
+								size="small"
+								startIcon={<AddCircleOutlineIcon />}>
+								Add Extra Feilds
+							</StyledButton>
+						</div>
+						<div className={classes.formGroup}>
+							<CKEditor
+								editor={ClassicEditor}
+								config={CK_CONFIGS(localStorage.getItem('token'))}
+								data={activitySetupState.activitySetupRecord.description || ''}
+								onChange={(event, editor) => {
+									const data = editor.getData();
+									setDescription(data);
+								}}
+							/>
+							<FormControl error={hasError('description')}>
+								<FormHelperText id="component-error-text">
+									{hasError('description')
+										? formState.errors.description[0]
+										: null}
+								</FormHelperText>
+							</FormControl>
+						</div>
+						<StyledButton
+							color="bprimary"
+							disabled={!formState.isValid}
+							type="submit"
+							variant="contained"
+							size="small"
+							startIcon={<SaveIcon />}>
+							Update Activity Setup
+						</StyledButton>
+						&nbsp; &nbsp;
+						<StyledButton
+							variant="contained"
+							color="blight"
+							size="small"
+							onClick={() => {
+								dispatch(redirectToActivitySetupList());
+							}}
+							startIcon={<CancelIcon />}>
+							CLOSE
+						</StyledButton>
+					</form>
+					<ExtraFeildModel
+						modalOpen={openExtraFieldModel}
+						handleModalOpen={setOpenExtraFieldModel}
+					/>
+				</CardContent>
+			</Card>
+		</Page>
+	);
+};
+
+export default ActivitySetupUpdate;

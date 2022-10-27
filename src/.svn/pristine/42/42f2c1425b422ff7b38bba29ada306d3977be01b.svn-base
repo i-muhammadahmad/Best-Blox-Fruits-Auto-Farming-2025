@@ -1,0 +1,207 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import { TextField, Popper, ButtonGroup, Button, Paper } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import {
+  clientDropdownListFetch
+} from 'actions';
+import { isEmpty, includes, find, isArray, forEach, map } from 'lodash'
+
+const useStyles = makeStyles(theme => ({
+  root: {}
+}));
+
+const ClientDropdown = props => {
+  const { officesIds, employeesIds, ClientValue, setClientValue, selectedId, clientOnChange, id, name, size, renderInput, showSelectAllOption, setAllCampIds, ...attr } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const clientState = useSelector(state => state.clientState);
+  const [clientList, setClientList] = useState([]);
+  const [offIds, setOffIds] = useState(officesIds);
+  const [empIds, setEmpIds] = useState(employeesIds);
+
+  useEffect(() => {
+    let offices_ids = [];
+    if (!includes(offIds, 'all')) {
+      offices_ids = offIds;
+    }
+
+    let emp_ids = [];
+    if (!includes(empIds, 'all')) {
+      emp_ids = empIds;
+    }
+
+    dispatch(clientDropdownListFetch(offIds, emp_ids));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    setOffIds(officesIds);
+  }, [officesIds]);
+
+  useEffect(() => {
+    setEmpIds(employeesIds);
+  }, [employeesIds]);
+
+  useEffect(() => {
+    let offices_ids = [];
+    if (!includes(offIds, 'all')) {
+      offices_ids = offIds
+    }
+
+    let emp_ids = [];
+    if (!includes(empIds, 'all')) {
+      emp_ids = empIds
+    }
+
+    dispatch(clientDropdownListFetch(offIds, emp_ids))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offIds, empIds]);
+
+  useEffect(() => {
+    if (clientState.clientDropdownList) {
+      if (typeof setAllCampIds === 'function') {
+        setAllCampIds(map(clientState.clientDropdownList, 'id'));
+      }
+
+      let first = {
+        id: 'all',
+        client_name: 'All',
+      }
+      if (!isEmpty(selectedId)) {
+        if (isArray(selectedId)) {
+          let sclient = [];
+          forEach(selectedId, function (value, key) {
+            if(value === 'all'){
+              sclient.push(first);
+            }
+            else{
+              let item = find(clientState.clientDropdownList, ['id', value]);
+              if (!isEmpty(item)) {
+                sclient.push(item);
+              }
+            }  
+          });
+          setClientValue(sclient);
+
+        }
+        else {
+          if(selectedId === 'all'){
+            setClientValue(first);
+          }
+          else{
+            let selected_camp = find(clientState.clientDropdownList, ['id', selectedId]);
+            if (!isEmpty(selected_camp)) {
+              setClientValue(selected_camp);
+            }
+            else {
+              setClientValue(null);
+            }
+          }  
+        }
+      }
+
+      let client_list = {
+        ...clientState.clientDropdownList
+      }
+      client_list = Object.values(client_list);
+
+      if (attr.multiple === true && !isEmpty(client_list) && showSelectAllOption === true) {
+        
+        client_list.unshift(first);
+      }
+
+      setClientList(Object.values(client_list));
+      
+      //filtering selected options
+      if(!isEmpty(ClientValue)){
+        let cam_val = [];
+        if(!isEmpty(ClientValue[0])){
+          forEach(ClientValue, function(c_value, key) {
+            if(find(client_list, ['id', c_value.id])){
+              cam_val.push(c_value);
+            }
+          });
+          clientOnChange('', cam_val);
+        }
+        else{
+          clientOnChange('', ClientValue);
+        }  
+      }
+
+      
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientState.clientDropdownList]);
+
+  const addAllClick = (e) => {
+    setClientValue(clientState.clientDropdownList);
+    console.log("Add All");
+    alert('--ab--');
+  };
+  const clearClick = (e) => {
+    setClientValue([]);
+    console.log("Clear");
+  };
+
+  const MyPopper = function (props) {
+
+    return (
+      <Paper {...props} onClick={(e) => { alert('abcd'); }}>
+
+        <p color="primary" >
+          Select All
+        </p>
+        <p color="primary" >
+          Clear
+        </p>
+        {props.children}
+      </Paper>
+    );
+  };
+
+  return (
+    <>
+      {(clientList) ?
+        <Autocomplete
+          value={ClientValue}
+          onChange={(event, newValue) => {
+            clientOnChange(event, newValue)
+          }}
+          options={clientList}
+          getOptionLabel={(option) => option.client_name}
+          id={id}
+          size={size}
+          name={name}
+          renderInput={renderInput}
+          {...attr}
+        />
+
+        : ''}
+    </>
+  );
+}
+
+ClientDropdown.propTypes = {
+  clientOnChange: PropTypes.any.isRequired,
+  setClientValue: PropTypes.any.isRequired,
+  renderInput: PropTypes.any.isRequired
+};
+
+ClientDropdown.defaultProps = {
+  officesIds: [],
+  employeesIds: [],
+  ClientValue: [],
+  setAllCampIds: [],
+  id: 'client_id',
+  name: 'client_id',
+  size: 'small',
+  selectedId: '',
+  showSelectAllOption: true
+};
+
+export default ClientDropdown;

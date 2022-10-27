@@ -1,0 +1,246 @@
+import axios from 'axios';
+import {API_URL} from 'configs'
+export const USERS_REQUEST = 'USERS_REQUEST'
+export const USERS_SUCCESS = 'USERS_SUCCESS'
+export const USERS_VALIDATION_ERROR = 'USERS_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_USERS_FEILD_VALIDATION_ERROR = "HIDE_USERS_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_USERS_LIST = 'REDIRECT_TO_USERS_LIST'
+export const USERS_GET_SUCCESS = 'USERS_GET_SUCCESS'
+export const USERS_DROPDOWN_LIST_SUCCESS = 'USERS_DROPDOWN_LIST_SUCCESS'
+export const USERS_SERVER_SUCCESS = 'USERS_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+  const usersRequest = () => ({
+      type: USERS_REQUEST,
+  })
+
+  export const usersServerListSuccess = () => ({
+    type: USERS_SERVER_SUCCESS,
+  }) 
+  
+  const usersListSuccess = usersList => ({
+    type: USERS_SUCCESS,
+    usersList: usersList,
+  }) 
+
+  const usersFailure = notification => ({
+      type: SHOW_SNACKBAR,
+      snackbar_notification: notification,
+      snackbar_notification_type: 'general_error'
+  })
+  const validationError = notification => ({
+    type: USERS_VALIDATION_ERROR,
+    validation_error: notification,
+  })
+  const tokenError = notification => ({
+    type: SHOW_SNACKBAR,
+    snackbar_notification: notification,
+    snackbar_notification_type: 'token_expire'
+  })
+  
+  const usersAddUpadteSuccess = (message,action,dispatch) => {
+    dispatch(usersSuccessNotification(message))
+    dispatch(redirectToUsersList())
+  }
+
+  export const redirectToUsersList = () => ({
+    type: REDIRECT_TO_USERS_LIST,
+  })
+
+  const getUsersSuccess = (response,action) => ({
+    type: USERS_GET_SUCCESS,
+    record: response,
+    actionType: action
+  })
+
+  const usersSuccessNotification = message => ({
+    type: SHOW_SNACKBAR,
+    snackbar_notification: message,
+    snackbar_notification_type: 'success'
+  })
+
+
+  export const hideUsersValidationError = (feild_key) => ({
+    type: HIDE_USERS_FEILD_VALIDATION_ERROR,
+    feild_key: feild_key
+  })
+
+  /*
+  * users dropdown list fetch methods
+  */
+  const usersDropdownListSuccess = usersDropdownList => ({
+    type: USERS_DROPDOWN_LIST_SUCCESS,
+    usersDropdownList: usersDropdownList,
+  })
+
+  export const usersDropdownListFetch = (object_viewed_id, offices_ids, client_ids) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(usersRequest())
+      return axios(API_URL+"user/getAllForDropdown", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data: {
+          offices_ids: offices_ids,
+          client_ids: client_ids,
+          object_viewed_id: object_viewed_id
+        }
+      })
+      .then((response) => {
+        dispatch(usersDropdownListSuccess(response.data))
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+      });
+        
+    }
+  }
+
+  export const usersListFetch = (object_viewed_id = '') => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(usersRequest())
+      return axios(API_URL+"user/getAll", {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        params: {object_viewed_id: object_viewed_id}
+      })
+      .then((response) => {
+        dispatch(usersListSuccess(response.data))
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+      });
+        
+    }
+  }
+
+  export const addUsers = (data) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(usersRequest())
+      return axios(API_URL+"user/create", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data: data,
+      })
+      .then((response) => {
+        usersAddUpadteSuccess('User Added Successfully','create',dispatch)
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+      });
+        
+    }
+  }
+
+  export const updateUsers = (data) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(usersRequest())
+      return axios(API_URL+"user/update/"+data.id, {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer  '+token
+        },
+        data: data
+      })
+      .then((response) => {
+        usersAddUpadteSuccess('User Updated Successfully','update',dispatch)
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+      });
+        
+    }
+  }  
+
+  export const getUsersById = (id,action) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(usersRequest())
+      return axios(API_URL+"user/getById/"+id, {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer  '+token
+        },
+      })
+      .then((response) => {
+        dispatch(getUsersSuccess(response.data,action))
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+      });
+        
+    }
+  } 
+
+  export const deleteUsers = (usersId, object_viewed_id) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(usersRequest())
+        return axios(API_URL+"user/delete/"+usersId, {
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Authorization':'Bearer '+token
+          },
+          data:{
+            object_viewed_id
+          }
+        })
+        .then((response) => {
+            dispatch(usersSuccessNotification('User deleted successfully'))
+        }, (error) => {
+          handleErrorResponse(error,dispatch)
+        });
+      }  
+        
+  }
+ 
+// handling error reponse   
+const handleErrorResponse = (error,dispatch) => {
+  try{
+    if(error.response.status === 422 && error.response.data.error){
+      dispatch(validationError(error.response.data.error))
+    }
+    else if(error.response.status === 401 && error.response.data.error){
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else{
+      let err = '';
+      if(error.response.data.error){
+        err = error.response.data.error.toString()
+      }
+      else{
+        err = error.response.status+` `+error.response.statusText
+      }
+      dispatch(usersFailure(err))
+    }
+  }
+  catch(e){
+    dispatch(usersFailure('Unable to perform action.Something went wrong'))
+  }  
+}   

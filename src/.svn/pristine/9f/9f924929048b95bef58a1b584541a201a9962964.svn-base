@@ -1,0 +1,414 @@
+import axios from 'axios';
+import {API_URL} from 'configs'
+
+export const ACTIVITY_LOG_REQUEST = 'ACTIVITY_LOG_REQUEST'
+export const ACTIVITY_LOG_SUCCESS = 'ACTIVITY_LOG_SUCCESS'
+export const ACTIVITY_LOG_VALIDATION_ERROR = 'ACTIVITY_LOG_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_ACTIVITY_LOG_FEILD_VALIDATION_ERROR = "HIDE_ACTIVITY_LOG_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_ACTIVITY_LOG_LIST = 'REDIRECT_TO_ACTIVITY_LOG_LIST'
+export const ACTIVITY_LOG_GET_SUCCESS = 'ACTIVITY_LOG_GET_SUCCESS'
+export const ACTIVITY_STATUSES_LOG_SUCCESS = 'ACTIVITY_STATUSES_LOG_SUCCESS'
+export const MY_ACTIVITIES_REPORT_SUCCESS = 'MY_ACTIVITIES_REPORT_SUCCESS'
+export const ALL_ACTIVITIES_REPORT_SUCCESS = 'ALL_ACTIVITIES_REPORT_SUCCESS'
+export const USERS_LOG_SUCCESS = 'USERS_LOG_SUCCESS'
+export const MY_ACTIVITIES_SUMMARY_REPORT_SUCCESS = 'MY_ACTIVITIES_SUMMARY_REPORT_SUCCESS'
+export const ALL_ACTIVITIES_SUMMARY_REPORT_SUCCESS = "ALL_ACTIVITIES_SUMMARY_REPORT_SUCCESS"
+export const ACTIVITY_LOG_SERVER_SUCCESS = "ACTIVITY_LOG_SERVER_SUCCESS"
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+  const activityLogRequest = () => ({
+    type: ACTIVITY_LOG_REQUEST,
+  })
+  
+  export const activityLogServerListSuccess = () => ({
+    type: ACTIVITY_LOG_SERVER_SUCCESS,
+  })
+
+  const activityLogListSuccess = activityLogList => ({
+    type: ACTIVITY_LOG_SUCCESS,
+    activityLogList: activityLogList,
+  }) 
+
+  const statusesByCategoryIdSuccess =  statusesByCategoryId => ({
+    type: ACTIVITY_STATUSES_LOG_SUCCESS,
+    statusesByCategoryId: statusesByCategoryId,
+  }) 
+
+  const myLoggedActivitiesReportSuccess =  report_data => ({
+    type: MY_ACTIVITIES_REPORT_SUCCESS,
+    report_data: report_data,
+  }) 
+
+  const usersLogSuccess = (usersList) => ({
+    type: USERS_LOG_SUCCESS,
+    usersList: usersList,
+  })
+
+  const allLoggedActivitiesReportSuccess =  report_data => ({
+    type: ALL_ACTIVITIES_REPORT_SUCCESS,
+    report_data: report_data,
+  }) 
+
+  const myLoggedActivitiesSummaryReportSuccess = report_data => ({
+    type: MY_ACTIVITIES_SUMMARY_REPORT_SUCCESS,
+    report_data: report_data,
+  }) 
+
+  const allLoggedActivitiesSummaryReportSuccess = report_data => ({
+    type: ALL_ACTIVITIES_SUMMARY_REPORT_SUCCESS,
+    report_data: report_data,
+  }) 
+      
+  const activityLogFailure = notification => ({
+      type: SHOW_SNACKBAR,
+      snackbar_notification: notification,
+      snackbar_notification_type: 'general_error'
+  })
+  const validationError = notification => ({
+    type: ACTIVITY_LOG_VALIDATION_ERROR,
+    validation_error: notification,
+  })
+  const tokenError = notification => ({
+    type: SHOW_SNACKBAR,
+    snackbar_notification: notification,
+    snackbar_notification_type: 'token_expire'
+  })
+  
+  const activityLogAddUpadteSuccess = (message,action,dispatch) => {
+    dispatch(activityLogSuccessNotification(message))
+    dispatch(redirectToActivityLogList())
+  }
+
+  export const redirectToActivityLogList = () => ({
+    type: REDIRECT_TO_ACTIVITY_LOG_LIST,
+  })
+
+  const getActivityLogSuccess = (response,action) => ({
+    type: ACTIVITY_LOG_GET_SUCCESS,
+    record: response,
+    actionType: action
+  })
+
+  const activityLogSuccessNotification = message => ({
+    type: SHOW_SNACKBAR,
+    snackbar_notification: message,
+    snackbar_notification_type: 'success'
+  })
+
+  export const hideActivityLogValidationError = (feild_key) => ({
+    type: HIDE_ACTIVITY_LOG_FEILD_VALIDATION_ERROR,
+    feild_key: feild_key
+  })
+
+  
+  export const activityLogListFetch = () => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_log/getMyRecentActivities", {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+      })
+      .then((response) => {
+        dispatch(activityLogListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+  
+  export const getStatusesByCategories = (category_ids) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_categories_status/getStatusesByCategories", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data:{ category_ids  }
+      })
+      .then((response) => {
+        dispatch(statusesByCategoryIdSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+
+  export const addActivityLog = (data) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_log/create", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data: data,
+      })
+      .then((response) => {
+        activityLogAddUpadteSuccess('Activity Log Added Successfully','create',dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const updateActivityLog = (data) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_log/update/"+data.id, {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer  '+token
+        },
+        data: data
+      })
+      .then((response) => {
+        activityLogAddUpadteSuccess('Activity Log Updated Successfully','update',dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }  
+
+  export const getActivityLogById = (id,action) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_log/getById/"+id, {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer  '+token
+        },
+      })
+      .then((response) => {
+        dispatch(getActivityLogSuccess(response.data,action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  } 
+
+  export const deleteActivityLog = (activityLogId, object_viewed_id) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+        return axios(API_URL+"activity_log/delete/"+activityLogId, {
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Authorization':'Bearer '+token
+          },
+          data:{
+            object_viewed_id
+          }
+        })
+        .then((response) => {
+          dispatch(activityLogSuccessNotification('Activity Log deleted successfully'))
+          dispatch(activityLogListFetch())
+          dispatch(hideCommonLoader())
+        }, (error) => {
+          handleErrorResponse(error,dispatch)
+          dispatch(hideCommonLoader())
+        });
+      }  
+        
+  }
+
+  export const getMyLoggedActivities = (filters) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_reports/myLoggedActivities", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data:filters  
+      })
+      .then((response) => {
+        dispatch(myLoggedActivitiesReportSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const getMyLoggedActivitiesSummary = (filters) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_reports/myLoggedActivitiesSummary", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data:filters  
+      })
+      .then((response) => {
+        dispatch(myLoggedActivitiesSummaryReportSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const getAllLoggedActivitiesSummary = (filters) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_reports/allLoggedActivitiesSummary", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data:filters  
+      })
+      .then((response) => {
+        dispatch(allLoggedActivitiesSummaryReportSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+ 
+  export const getAllLoggedActivities = (filters) => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"activity_reports/getAllLoggedActivities", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+        data:filters  
+      })
+      .then((response) => {
+        dispatch(allLoggedActivitiesReportSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+
+  export const getUsers = () => {
+    var token  = localStorage.getItem("token")
+    return dispatch => {
+      dispatch(activityLogRequest())
+      dispatch(showCommonLoader())
+      return axios(API_URL+"user/getAll", {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Authorization':'Bearer '+token
+        },
+      })
+      .then((response) => {
+        dispatch(usersLogSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error,dispatch)
+        dispatch(hideCommonLoader())
+      });
+        
+    }
+  }
+  
+
+// handling error reponse   
+const handleErrorResponse = (error,dispatch) => {
+  try{
+    if(error.response.status === 422 && error.response.data.error){
+      dispatch(validationError(error.response.data.error))
+    }
+    else if(error.response.status === 401 && error.response.data.error){
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else{
+      let err = '';
+      if(error.response.data.error){
+        err = error.response.data.error.toString()
+      }
+      else{
+        err = error.response.status+` `+error.response.statusText
+      }
+      dispatch(activityLogFailure(err))
+    }
+  }
+  catch(e){
+    dispatch(activityLogFailure('Unable to perform action.Something went wrong'))
+  }  
+}   

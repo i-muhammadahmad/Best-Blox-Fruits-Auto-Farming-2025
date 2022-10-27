@@ -1,0 +1,176 @@
+import React, { useEffect } from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components';
+import {
+  makeStyles,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const CompanyContactView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const companyContactState = useSelector(state => state.companyContactState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (companyContactState.redirect_to_list) {
+      router.history.push('/company-contact');
+    }
+  }, [companyContactState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    if (!companyContactState.showUpdateForm && !companyContactState.showViewPage) {
+      router.history.push('/company-contact');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyContactState.showUpdateForm, companyContactState.showViewPage]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Company Contact View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Company Contact View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Company Name </TableCell>
+                  <TableCell>
+                    {(companyContactState.companyContactRecord.company_record) ? 
+                      companyContactState.companyContactRecord.company_record.name 
+                      : ''
+                    }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > First Name </TableCell>
+                  <TableCell>
+                    {companyContactState.companyContactRecord.firstname }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Name </TableCell>
+                  <TableCell>
+                    {companyContactState.companyContactRecord.lastname }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Gender </TableCell>
+                  <TableCell>
+                    {companyContactState.companyContactRecord.gender }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Designation </TableCell>
+                  <TableCell>
+                    {companyContactState.companyContactRecord.designation }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Is Primary Contact </TableCell>
+                  <TableCell>
+                    {(companyContactState.companyContactRecord.is_primary_contact === 1) ? 'Yes' : 'No' }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Contact Email's </TableCell>
+                  <TableCell>
+                    {(companyContactState.companyContactRecord.contact_email)?
+                      companyContactState.companyContactRecord.contact_email.map((cemail, eindex) => (
+                        <div key={eindex}>
+                          {cemail}
+                        </div> 
+                      ))
+                      : ''
+                    }  
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Phone No's </TableCell>
+                  <TableCell>
+                    {(companyContactState.companyContactRecord.contact_phoneno)?
+                      companyContactState.companyContactRecord.contact_phoneno.map((cphone, pindex) => (
+                        <div key={pindex}>
+                          {cphone}
+                        </div> 
+                      ))
+                      : ''
+                    } 
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(companyContactState.companyContactRecord.created_by_user) ?
+                      companyContactState.companyContactRecord.created_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{companyContactState.companyContactRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(companyContactState.companyContactRecord.updated_by_user) ?
+                      companyContactState.companyContactRecord.updated_by_user.email : ''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{companyContactState.companyContactRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="CompanyContact Description" />
+        <CardContent>
+          <div
+            className="ck-content" dangerouslySetInnerHTML={{ __html: companyContactState.companyContactRecord.description }}
+          />
+        </CardContent>
+      </Card>
+    </Page>
+  );
+}
+
+export default CompanyContactView;

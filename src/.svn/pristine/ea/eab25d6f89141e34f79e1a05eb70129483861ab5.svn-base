@@ -1,0 +1,530 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton, FilesDropzone } from 'components';
+import {
+  Header,
+  EmployeeAssetsModal
+} from './components';
+import {
+  addEmployeeAttrition,
+  hideEmployeeAttritionValidationError,
+  redirectToEmployeeAttritionList,
+  employeeAttritionTypeListFetch,
+  employeeAttritionDropdownListFetch,
+  getEmployeeAllAssets
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import moment from 'moment';
+import { CK_CONFIGS } from 'configs';
+import { OfficesDropdown, ClientDropdown, EmployeeDropdown } from 'commonDropdowns';
+
+const schema = {
+  office_id: {
+    presence: { allowEmpty: false, message: '^ please select office' },
+  },
+  client_id: {
+    presence: { allowEmpty: false, message: '^ please select client' },
+  },
+  employee_id: {
+    presence: { allowEmpty: false, message: '^ please select employee' },
+  },
+  separation_date: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  attrition_type_id: {
+    presence: { allowEmpty: false, message: '^ please select attrition type' },
+  },
+  attrition_reason_id: {
+    presence: { allowEmpty: false, message: '^ please select attrition reason' },
+  }
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const EmployeeAttritionAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const employeeAttritionState = useSelector(state => state.employeeAttritionState);
+  const employeeAttritionReasonState = useSelector(state => state.employeeAttritionReasonState);
+  const employeesState = useSelector(state => state.employeesState);
+  const session = useSelector(state => state.session);
+
+  const [showAssetsPopup, setShowAssetsPopup] = useState(false);
+  const [submitBtnClicked, setSubmitBtnClicked] = useState(false);
+  const [officeValue, setOfficeValue] = useState(null);
+  const [clientValue, setClientValue] = useState(null);
+  const [employeeValue, setEmployeeValue] = useState(null);
+  const [attritionTypeValue, setAttritionTypeValue] = useState(null);
+  const [attritionReasonValue, setAttritionReasonValue] = useState(null);
+  const [selectedOfficeId, setSelectedOfficeId] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [serverFileErrors, setServerFileErrors] = useState([]);
+  const [dropZoneConfig, setDropZoneConfig] = useState({
+    maxSize: 5000000,
+  });
+  const [attachmentList, setAttachmentList] = useState([]);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      separation_date: moment(moment().toDate()).format('YYYY-MM-DD'),
+    },
+    touched: {
+      'object_viewed_id': true,
+      separation_date: true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(employeeAttritionState.validation_error)) {
+      const errors = employeeAttritionState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [employeeAttritionState.validation_error]);
+
+  useEffect(() => {
+    if (employeeAttritionState.redirect_to_list) {
+      router.history.push('/employee-attrition');
+    }
+  }, [employeeAttritionState.redirect_to_list, router.history]);
+
+  useEffect(() => {
+    dispatch(employeeAttritionTypeListFetch());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if(!isEmpty(employeesState.employeeAssetsList) && submitBtnClicked){
+      setShowAssetsPopup(true);
+    }
+    else{
+      if(submitBtnClicked){
+        handleSubmit();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeesState.employeeAssetsList]);
+
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description': description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError(event.target.name))
+  }
+
+  const OfficeOnChange = (event, newValue) => {
+    if (newValue) {
+      setOfficeValue(newValue);
+      setOfficeId(newValue.id);
+      setSelectedOfficeId([newValue.id]);
+    }
+    else {
+      setOfficeValue(newValue);
+      setOfficeId('');
+      setSelectedOfficeId([]);
+    }
+
+    setClientValue(null);
+    setClientId('')
+    setSelectedClientId([]);
+
+    setEmployeeValue(null);
+    setEmployeeId('')
+
+  }
+
+  const setOfficeId = office_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'office_id': office_id
+      },
+      touched: {
+        ...formState.touched,
+        'office_id': true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError('office_id'));
+  }
+
+  const clientOnChange = (event, newValue) => { 
+    if (newValue) {
+      setClientValue(newValue)
+      setClientId(newValue.id)
+      setSelectedClientId([newValue.id]);
+    }
+    else {
+      setClientValue(newValue)
+      setClientId('')
+      setSelectedClientId([]);
+    }
+    setEmployeeValue(null);
+    setEmployeeId('')
+  }
+
+  const setClientId = client_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'client_id': client_id
+      },
+      touched: {
+        ...formState.touched,
+        'client_id': true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError('client_id'))
+  }
+
+  const employeeOnChange = (event, newValue) => {
+    if (newValue) {
+      setEmployeeValue(newValue)
+      setEmployeeId(newValue.id)
+    }
+    else {
+      setEmployeeValue(newValue)
+      setEmployeeId('')
+    }
+  }
+
+  const setEmployeeId = employee_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values, 
+        'employee_id': employee_id
+      },
+      touched: {
+        ...formState.touched,
+        'employee_id': true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError('employee_id'))
+  }
+
+  const attritionTypeOnChange = (event, newValue) => {
+    if (newValue) {
+      setAttritionTypeValue(newValue)
+      setAttritionTypeId(newValue.id)
+      dispatch(employeeAttritionDropdownListFetch([newValue.id]));
+    }
+    else {
+      setAttritionTypeValue(newValue)
+      setAttritionTypeId('')
+      dispatch(employeeAttritionDropdownListFetch([]));
+    }
+
+    setAttritionReasonValue(null);
+    setAttritionReasonId('');
+
+  }
+
+  const setAttritionTypeId = attrition_type_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'attrition_type_id': attrition_type_id
+      },
+      touched: {
+        ...formState.touched,
+        'attrition_type_id': true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError('attrition_type_id'));
+  }
+
+  const attritionReasonOnChange = (event, newValue) => {
+    if (newValue) {
+      setAttritionReasonValue(newValue)
+      setAttritionReasonId(newValue.id)
+    }
+    else {
+      setAttritionReasonValue(newValue)
+      setAttritionReasonId('')
+    }
+  }
+
+  const setAttritionReasonId = attrition_reason_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'attrition_reason_id': attrition_reason_id
+      },
+      touched: {
+        ...formState.touched,
+        'attrition_reason_id': true
+      }
+    }));
+    dispatch(hideEmployeeAttritionValidationError('attrition_reason_id'));
+  }
+
+  const handleSubmit = async () => {
+    //event.preventDefault();
+
+    //apending media
+    let data = new FormData();
+
+    //appending form state to data object
+    forEach(formState.values, function (value, key) {
+      data.append(key, value);
+    });
+
+    if (!isEmpty(files)) {
+      forEach(files, function(value) {
+        data.append('attachments[]', value);
+      });
+
+    }
+
+    dispatch(addEmployeeAttrition(data));
+  }
+
+  const showAssetsListPopup = async event => {
+    event.preventDefault();
+    await setSubmitBtnClicked(true);
+    await dispatch(getEmployeeAllAssets(formState.values.employee_id));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Employee Attrition"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Employee Attrition" />
+        <CardContent>
+          <form
+            onSubmit={showAssetsListPopup}
+          >
+            <div className={classes.formGroup}>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={4}>
+                  <OfficesDropdown
+                    OfficeValue={officeValue}
+                    setOfficeValue={setOfficeValue}
+                    id="office_id"
+                    name="office_id"
+                    officeOnChange={OfficeOnChange}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Office" variant="outlined" error={hasError('office_id')} helperText={hasError('office_id') ? formState.errors.office_id[0] : null} />}
+                  />
+                </Grid>  
+                <Grid item xs={6} sm={4}>
+                  <ClientDropdown
+                    ClientValue={clientValue}
+                    setClientValue={setClientValue}
+                    id="client_id"
+                    name="client_id"
+                    clientOnChange={clientOnChange}
+                    officesIds={selectedOfficeId}
+                    disabled={isEmpty(selectedOfficeId)}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Client" variant="outlined" error={hasError('client_id')} helperText={hasError('client_id') ? formState.errors.client_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <EmployeeDropdown
+                    EmployeeValue={employeeValue}
+                    setEmployeeValue={setEmployeeValue}
+                    id="employee_id"
+                    name="employee_id"
+                    disabled={isEmpty(selectedOfficeId) || isEmpty(selectedClientId)}
+                    officesIds={selectedOfficeId}
+                    clientIds={selectedClientId}
+                    employeeOnChange={employeeOnChange}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select Employee" variant="outlined" error={hasError('employee_id')} helperText={hasError('employee_id') ? formState.errors.employee_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    className={classes.field}
+                    value={formState.values.separation_date || ''}
+                    fullWidth
+                    label="Separation Date"
+                    name="separation_date"
+                    onChange={handleChange}
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    error={hasError('separation_date')}
+                    helperText={hasError('separation_date') ? formState.errors.separation_date[0] : null}
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  {(employeeAttritionReasonState.employeeAttritionReasonParentsList)?
+                    <Autocomplete
+                      id="attrition_type_id"
+                      value={attritionTypeValue}
+                      onChange={(event, newValue) => {
+                        attritionTypeOnChange(event, newValue);
+                      }}
+                      options={employeeAttritionReasonState.employeeAttritionReasonParentsList}
+                      getOptionLabel={(option) => option.opt_display}
+                      size="small"
+                      renderInput={(params) => <TextField {...params} label="Select Attrition Type" variant="outlined" error={hasError('attrition_type_id')} helperText={hasError('attrition_type_id') ? formState.errors.attrition_type_id[0] : null} />}
+                    />
+                  :''}
+                </Grid>
+                <Grid item xs={6} sm={4}>
+                  <Autocomplete
+                    id="attrition_reason_id"
+                    value={attritionReasonValue}
+                    onChange={(event, newValue) => {
+                      attritionReasonOnChange(event, newValue);
+                    }}
+                    options={employeeAttritionReasonState.employeeAttritionReasonDropdownList}
+                    getOptionLabel={(option) => option.opt_display}
+                    size="small"
+                    disabled={isEmpty(formState.values.attrition_type_id)}
+                    renderInput={(params) => <TextField {...params} label="Select Attrition Reason" variant="outlined" error={hasError('attrition_reason_id')} helperText={hasError('attrition_reason_id') ? formState.errors.attrition_reason_id[0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12}>
+                  <FilesDropzone
+                    files={files}
+                    setFiles={setFiles}
+                    thumbsAt={'right'}
+                    customDZconfigs={dropZoneConfig}
+                    title={'Attrition Attachments'}
+                    serverRejectedFiles={serverFileErrors}
+                  />
+                </Grid>
+              </Grid>
+            </div>
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={formState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>  
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Create Employee Attrition
+            </StyledButton> &nbsp; &nbsp;
+            <StyledButton
+              variant="contained"
+              color="blight"
+              size="small"
+              onClick={() => { dispatch(redirectToEmployeeAttritionList()) }}
+              startIcon={<CancelIcon />}
+            >
+              CLOSE
+            </StyledButton>
+
+          </form>
+
+        </CardContent>
+      </Card>
+
+      <EmployeeAssetsModal 
+        showAssetsPopup={showAssetsPopup}
+        setShowAssetsPopup={setShowAssetsPopup}
+        handleSubmit={handleSubmit}
+      />
+
+    </Page>
+  );
+};
+
+export default EmployeeAttritionAdd;

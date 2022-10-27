@@ -1,0 +1,147 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, DeleteAlert, StyledFab } from 'components';
+import { Header, Results } from './components';
+import {
+  deleteTranscribeConfig,
+  getTranscribeConfigById,
+} from 'actions';
+import { forEach } from 'lodash';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import useRouter from 'utils/useRouter';
+import VisibilityIcon from '@material-ui/icons/Visibility'
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+}));
+
+const TranscribeConfigList = () => {
+  const classes = useStyles();
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [transcribeConfig, setTranscribeConfig] = useState([]);
+  const [transcribeConfigId, setTranscribeConfigId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const transcribeConfigState = useSelector(state => state.transcribeConfigState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (transcribeConfigState.showUpdateForm) {
+      router.history.push('/transcribe-config/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcribeConfigState.showUpdateForm]);
+
+  useEffect(() => {
+    if (transcribeConfigState.showViewPage) {
+      router.history.push('/transcribe-config/view');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcribeConfigState.showViewPage]);
+
+  const deleteRecord = async () => {
+    await dispatch(deleteTranscribeConfig(transcribeConfigId, session.current_page_permissions.object_id));
+    setRefershDataTable(true);
+  }
+
+  const showDeleteModal = (id) => {
+    setTranscribeConfigId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setTranscribeConfigId('')
+  }
+
+  const updateRecord = (id) => {
+    dispatch(getTranscribeConfigById(id, 'update'))
+  }
+
+  const viewRecord = (id) => {
+    dispatch(getTranscribeConfigById(id, 'view'))
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        { (session.current_page_permissions.rights_edit == '1')? 
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          :''
+        }  
+        { (session.current_page_permissions.rights_view == '1')? 
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewRecord(value.id)}
+          >
+            <VisibilityIcon />
+          </StyledFab>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</>
+          :''
+        }
+        { (session.current_page_permissions.rights_delete == '1')?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab> 
+          : ''
+        }  
+      </div>
+    )
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Transcribe Config List"
+    >
+      <Header />
+      <Results
+        className={classes.results}
+        refershDataTable={refershDataTable}
+        setRefershDataTable={setRefershDataTable}
+        actionsCol={getActions}
+      />
+      <DeleteAlert
+        title="Transcribe Config Delete"
+        alertText="Are you sure, You want delete this Transcribe Config?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />
+    </Page>
+  );
+};
+
+export default TranscribeConfigList;

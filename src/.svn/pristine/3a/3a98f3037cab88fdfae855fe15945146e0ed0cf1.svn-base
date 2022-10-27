@@ -1,0 +1,120 @@
+import React, {useEffect} from 'react';
+import { Page } from 'components';
+import useRouter from 'utils/useRouter';
+import {
+  Header
+} from './components'; 
+import { 
+  makeStyles,
+  Paper,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Card,
+  CardHeader,
+  CardContent
+} from '@material-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const BreakTypesView = () => {
+  const classes = useStyles();
+  const router = useRouter();
+  const breakTypesState = useSelector(state => state.breakTypesState);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if(breakTypesState.redirect_to_list){
+      router.history.push('/break-types');
+    } 
+  }, [breakTypesState.redirect_to_list, router.history]);
+
+  useEffect(()=> {
+    if(!breakTypesState.showViewPage && !breakTypesState.showUpdateForm){
+      router.history.push('/break-types');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[breakTypesState.showViewPage, breakTypesState.showUpdateForm]);
+
+  return (
+    <Page
+      className={classes.root}
+      title="Break Types View"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Break Types View" />
+        <CardContent>
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="simple table">
+              <TableBody>
+                <TableRow>
+                  <TableCell variant="head" > Break Type Name </TableCell>
+                  <TableCell>{breakTypesState.breakTypesRecord.opt_display}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created By </TableCell>
+                  <TableCell>{
+                    !isEmpty(breakTypesState.breakTypesRecord.created_by_user)?
+                    breakTypesState.breakTypesRecord.created_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Created At </TableCell>
+                  <TableCell>{breakTypesState.breakTypesRecord.date_created}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated By </TableCell>
+                  <TableCell>{
+                    !isEmpty(breakTypesState.breakTypesRecord.created_by_user)?
+                    breakTypesState.breakTypesRecord.updated_by_user.email:''
+                  }</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell variant="head" > Last Updated At </TableCell>
+                  <TableCell>{breakTypesState.breakTypesRecord.date_last_modified}</TableCell>
+                </TableRow>
+              </TableBody> 
+            </Table> 
+          </TableContainer>    
+        </CardContent>
+      </Card> 
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Break Type Description" />
+        <CardContent>
+          <div 
+            className="ck-content" dangerouslySetInnerHTML={{ __html: breakTypesState.breakTypesRecord.description }} 
+          />  
+        </CardContent>  
+      </Card>   
+    </Page>  
+  );
+}
+
+export default BreakTypesView;

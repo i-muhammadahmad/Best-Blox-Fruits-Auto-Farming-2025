@@ -1,0 +1,803 @@
+import React, { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import PropTypes from 'prop-types';
+import PerfectScrollbar from 'react-perfect-scrollbar';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography,
+  Grid,
+  TextField,
+  Paper,
+  FormHelperText,
+  FormControl,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from '@material-ui/core';
+import {
+  Autocomplete
+} from '@material-ui/lab';
+import CloseIcon from '@material-ui/icons/Close';
+import { StyledFab, StyledButton } from 'components';
+import { isEmpty, forEach, find, filter, sum } from 'lodash';
+import FeedbackIcon from '@material-ui/icons/Feedback';
+import {
+  addAuditReviews,
+  redirectToAuditReviewsList,
+  updateAuditReviews
+} from 'actions';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import SaveIcon from '@material-ui/icons/Save';
+import ImageIcon from '@material-ui/icons/Image';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS, API_URL } from 'configs';
+import ReviewImageViewModel from '../ReviewImageViewModel';
+
+const useStyles = makeStyles(theme => ({
+  root: {},
+  content: {
+    padding: theme.spacing(3)
+  },
+  inner: {
+    minWidth: 700
+  },
+  nameCell: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  avatar: {
+    height: 42,
+    width: 42,
+    marginRight: theme.spacing(1)
+  },
+  actions: {
+    padding: theme.spacing(1),
+    justifyContent: 'flex-end'
+  },
+  panelPrimary: {
+    borderColor: '#337ab7',
+    border: '1px solid transparent',
+    borderRadius: '4px',
+    marginBottom: '20px'
+  }
+}));
+
+const ReviewForm = props => {
+  const {
+    activityLogId,
+    setActivityLogId,
+    ...rest
+  } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const session = useSelector(state => state.session);
+  const auditErrorCategoryState = useSelector(state => state.auditErrorCategoryState);
+  const auditReviewsState = useSelector(state => state.auditReviewsState);
+  const activityLogState = useSelector(state => state.activityLogState);
+  const auditInfractionsState = useSelector(state => state.auditInfractionsState);
+
+  const [categoryScore, setCategoryScore] = useState({
+    0: '',
+    1: '',
+    2: '',
+    3: '',
+    4: '',
+    5: '',
+    6: '',
+    7: '',
+    8: '',
+    9: '',
+  });
+
+  const [categoryValue, setCategoryValue] = useState({
+    0: null,
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+    6: null,
+    7: null,
+    8: null,
+    9: null,
+  });
+  const [infractionValue, setInfractionValue] = useState({
+    0: null,
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+    6: null,
+    7: null,
+    8: null,
+    9: null,
+  });
+  const [infractionList, setInfractionList] = useState({
+    0: [],
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: [],
+    6: [],
+    7: [],
+    8: [],
+    9: [],
+  });
+  const [fileUploadError, setFileUploadError] = useState({});
+  const [reviewError, setReviewError] = useState('');
+  const [openImageViewModel, setOpenImageViewModel] = useState(false);
+  const [imageRecord, setImageRecord] = useState('');
+
+  const [schema, setSchema] = useState({
+    error_categoty_0: {
+      presence: { allowEmpty: false, message: '^Please Select Error Category' },
+    },
+    error_infraction_0: {
+      presence: { allowEmpty: false, message: '^Please Select Infraction' },
+    }
+  });
+
+  const [reviewsFormState, setReviewsFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'activity_log_id': activityLogId,
+      'review_score': 100,
+      'audit_status': 'pass'
+    },
+    touched: {
+      'object_viewed_id': true,
+      'activity_log_id': true,
+      'audit_status': true,
+      'review_score': true,
+    },
+    errors: {}
+  });
+
+  const [auidtReviews, setAuidtReviews] = useState({
+    added_reviews: [
+      {
+        'review_detail_id': '',
+        'error_category_id': '',
+        'infraction_id': '',
+        'review_image': '',
+      }
+    ],
+    removed_reviews: []
+  });
+
+  useEffect(() => {
+    const errors = validate(reviewsFormState.values, schema);
+
+    setReviewsFormState(reviewsFormState => ({
+      ...reviewsFormState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [reviewsFormState.values]);
+
+  useEffect(() => {
+    if (auidtReviews.added_reviews.length > 10 || auidtReviews.added_reviews.length < 1) {
+      setReviewError('Min 1 and Max 10 reviews allowed');
+    }
+    else {
+      setReviewError('');
+    }
+  }, [auidtReviews]);
+
+  useEffect(() => {
+    
+    //calculating review score
+    let overall_score = sum(Object.values(categoryScore));
+    let r_score = 100 - parseFloat(overall_score);
+    r_score = (r_score < 0) ? 0 : r_score;
+
+    //calculating audit status
+    let log_Record = activityLogState.activityLogRecord;
+    let passing_score = 100;
+    if(!isEmpty(log_Record && log_Record.activity_record)){
+      passing_score = parseFloat(log_Record.activity_record.passing_score);
+    }
+    let audit_status;
+    if(r_score >= passing_score){
+      audit_status = 'pass';
+    }
+    else{
+      audit_status = 'fail';
+    }
+
+    setReviewsFormState(reviewsFormState => ({
+      ...reviewsFormState,
+      values: {
+        ...reviewsFormState.values,
+        ['review_score']: r_score,
+        ['audit_status']: audit_status,
+      },
+    }));
+  }, [categoryScore]);
+
+  useEffect(() => {
+    //reseting validation schema 
+    resetValidationSchema();
+
+    //reseting formstate
+    setReviewsFormState(reviewsFormState => ({
+      isValid: false,
+      values: {
+        'object_viewed_id': reviewsFormState.values.object_viewed_id,
+        'activity_log_id': reviewsFormState.values.activity_log_id,
+        'audit_review_id': reviewsFormState.values.audit_review_id,
+        'review_score': reviewsFormState.values.review_score,
+        'audit_status': reviewsFormState.values.audit_status,
+        'description': reviewsFormState.values.description
+      },
+      touched: {
+        'object_viewed_id': reviewsFormState.touched.object_viewed_id,
+        'activity_log_id': reviewsFormState.touched.activity_log_id,
+        'audit_review_id': reviewsFormState.touched.audit_review_id,
+        'review_score': reviewsFormState.touched.review_score,
+        'audit_status': reviewsFormState.touched.audit_status,
+        'description': reviewsFormState.touched.description
+      },
+      errors: {}
+    }));
+
+    //adding audit review validation
+    forEach(auidtReviews.added_reviews, function (review, key) {
+      setSchema(schema => ({
+        ...schema,
+        ['error_categoty_' + key]: {
+          presence: { allowEmpty: false, message: '^Please Select Error Category' },
+        },
+        ['error_infraction_' + key]: {
+          presence: { allowEmpty: false, message: '^Please Select Infraction' },
+        },
+      }));
+
+      //setting review form state
+      setReviewsFormState(reviewsFormState => ({
+        ...reviewsFormState,
+        values: {
+          ...reviewsFormState.values,
+          ['error_categoty_' + key]: review.error_category_id,
+          ['error_infraction_' + key]: review.infraction_id,
+        }
+      }));
+
+      //setting error cat value
+      let error_cat = find(auditErrorCategoryState.auditErrorCategoryByClientList, ['id', review.error_category_id]);
+      setCategoryValue(categoryValue => ({
+        ...categoryValue,
+        [key]: error_cat,
+      }));
+
+      //setting error cat score weigth
+      if(!isEmpty(error_cat)){
+        setCategoryScore(categoryScore => ({
+          ...categoryScore,
+          [key]: parseFloat(error_cat.extra_col1)
+        }));
+      }  
+
+      //setting infraction val
+      let cat_ifractions = filter(auditInfractionsState.infractionsList, ['parent_id', review.error_category_id]);
+      setInfractionList(prev_state => ({
+        ...prev_state,
+        [key]: !isEmpty(cat_ifractions) ? cat_ifractions : {},
+      }));
+
+      let error_infraction = find(auditInfractionsState.infractionsList, ['id', review.infraction_id]);
+      setInfractionValue(prev_state => ({
+        ...prev_state,
+        [key]: error_infraction,
+      }));
+
+    });
+
+  }, [auidtReviews.added_reviews.length]);
+
+  useEffect(() => {
+
+    let record = auditReviewsState.auditReviewsRecord;
+
+    if (!isEmpty(record)) {
+      setReviewsFormState(reviewsFormState => ({
+        ...reviewsFormState,
+        values: {
+          ...reviewsFormState.values,
+          'audit_review_id': record.id,
+          'review_score': record.review_score,
+          'audit_status': record.audit_status,
+          'description': record.description
+        },
+        touched: {
+          ...reviewsFormState.touched,
+          'audit_review_id': true,
+          'review_score': true,
+          'audit_status': true,
+          'description': true
+        },
+      }));
+
+      //setting error category
+      setAuidtReviews(prvStateValue => ({
+        ...prvStateValue,
+        added_reviews: record.review_details,
+      }));
+
+    }
+  }, [auditReviewsState.auditReviewsRecord]);
+
+  const imageViewOnClick = (index) => {
+    let image;
+    if (!isEmpty(auidtReviews.added_reviews[index]['review_image'])) {
+      image = auidtReviews.added_reviews[index]['review_image'];
+    }
+    else {
+      image = API_URL + auidtReviews.added_reviews[index]['image_name'];
+    }
+    setImageRecord(image);
+    setOpenImageViewModel(true);
+  }
+
+  const resetValidationSchema = () => {
+    setSchema({
+      error_categoty_0: {
+        presence: { allowEmpty: false, message: '^Please Select Error Category' },
+      },
+      error_infraction_0: {
+        presence: { allowEmpty: false, message: '^Please Select Infraction' },
+      }
+    });
+  }
+
+  const setDescription = description => {
+    setReviewsFormState(reviewsFormState => ({
+      ...reviewsFormState,
+      values: {
+        ...reviewsFormState.values,
+        'description': description
+      },
+      touched: {
+        ...reviewsFormState.touched,
+        'description': true
+      }
+    }));
+  }
+
+  const handleInfractionChange = (infraction, infraction_id, index) => {
+    //setting audit review value
+    let added_reviews = auidtReviews.added_reviews;
+    added_reviews[index].infraction_id = infraction_id;
+
+    setAuidtReviews(prvStateValue => ({
+      ...prvStateValue,
+      added_reviews: added_reviews,
+    }));
+
+    setReviewsFormState(reviewsFormState => ({
+      ...reviewsFormState,
+      values: {
+        ...reviewsFormState.values,
+        ['error_infraction_' + index]: infraction_id,
+      },
+      touched: {
+        ...reviewsFormState.touched,
+        ['error_infraction_' + index]: true,
+      },
+    }));
+
+    //setting infraction val
+    let infraction_vals = infractionValue;
+    infraction_vals[index] = infraction;
+    setInfractionValue(infraction_vals);
+  }
+
+  const handleErrorCatChange = async (err_cat, err_cat_id, index) => {
+    //setting infractions on error category change
+    let infraction_lists = { ...infractionList };
+    let cat_ifractions = filter(auditInfractionsState.infractionsList, ['parent_id', err_cat_id]);
+    if (!isEmpty(cat_ifractions)) {
+      infraction_lists[index] = cat_ifractions;
+    }
+    else {
+      infraction_lists[index] = [];
+    }
+    console.log(err_cat_id);
+    await setInfractionList(infraction_lists);
+
+    //setting infraction val
+    let infraction_vals = infractionValue;
+    infraction_vals[index] = '';
+    await setInfractionValue(infraction_vals);
+
+    //setting audit review value
+    let added_reviews = auidtReviews.added_reviews;
+    added_reviews[index].error_category_id = err_cat_id;
+    added_reviews[index].infraction_id = '';
+    added_reviews[index].infraction_id = '';
+    await setAuidtReviews(prvStateValue => ({
+      ...prvStateValue,
+      added_reviews: added_reviews,
+    }));
+
+    await setReviewsFormState(reviewsFormState => ({
+      ...reviewsFormState,
+      values: {
+        ...reviewsFormState.values,
+        ['error_categoty_' + index]: added_reviews[index].error_category_id,
+        ['error_infraction_' + index]: '',
+      },
+      touched: {
+        ...reviewsFormState.touched,
+        ['error_categoty_' + index]: true,
+        ['error_infraction_' + index]: true,
+      },
+    }));
+
+    //setting error_cat_val 
+    let err_cats = categoryValue;
+    err_cats[index] = err_cat;
+    setCategoryValue(err_cats);
+
+    //setting error cat score weigth
+    if(!isEmpty(err_cat)){
+      setCategoryScore(categoryScore => ({
+        ...categoryScore,
+        [index]: parseFloat(err_cat.extra_col1)
+        
+      }));
+    }  
+  }
+
+  const handleAttachmentChange = (e, index) => {
+    const file = e.target.files[0];
+    if (file['type'].split('/')[0] !== 'image') {
+      e.target.value = null;
+      setFileUploadError(prvStateValue => ({
+        ...prvStateValue,
+        [index]: 'Please upload only image',
+      }));
+    }
+    else if (file['size'] > 2097152) {
+      e.target.value = null;
+      setFileUploadError(prvStateValue => ({
+        ...prvStateValue,
+        [index]: 'Maximum file size of 2MB exceeds',
+      }));
+    }
+    else {
+      let added_reviews = auidtReviews.added_reviews;
+
+      //removing error message
+      setFileUploadError(prvStateValue => ({
+        ...prvStateValue,
+        [index]: '',
+      }));
+
+      var reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      reader.onload = function () {
+        console.log(reader.result);//base64encoded string
+        added_reviews[index].review_image = reader.result;
+        setAuidtReviews(prvStateValue => ({
+          ...prvStateValue,
+          added_reviews: added_reviews,
+        }));
+      };
+
+      reader.onerror = function (error) {
+        //removing error message
+        setFileUploadError(prvStateValue => ({
+          ...prvStateValue,
+          [index]: error,
+        }));
+      };
+    }
+  }
+
+  const removeAuditReview = (index) => {
+    if (auidtReviews.added_reviews.length > 1) {
+      //deleting audit reviews
+      let added_reviews = auidtReviews.added_reviews;
+      let rm_reviews = auidtReviews.removed_reviews;
+      if (!isEmpty(added_reviews[index].review_detail_id)) {
+        rm_reviews.push(added_reviews[index].review_detail_id);
+      }
+      delete added_reviews[index];
+      added_reviews = Object.values(added_reviews);
+      setAuidtReviews(prvStateValue => ({
+        ...prvStateValue,
+        added_reviews: added_reviews,
+        removed_reviews: rm_reviews
+      }));
+    }
+  }
+
+  const addAuditReview = () => {
+
+    if (auidtReviews.added_reviews.length < 10) {
+      let added_reviews = auidtReviews.added_reviews;
+      added_reviews.push(
+        {
+          'review_detail_id': '',
+          'error_category_id': '',
+          'infraction_id': '',
+          'review_image': '',
+        }
+      );
+      setAuidtReviews(prvStateValue => ({
+        ...prvStateValue,
+        added_reviews: added_reviews,
+      }));
+    }
+  }
+
+  const handleSubmit = () => {
+    let data = reviewsFormState.values;
+    data['reviews'] = auidtReviews;
+    if (!isEmpty(data['audit_review_id'])) {
+      dispatch(updateAuditReviews(data));
+    }
+    else {
+      dispatch(addAuditReviews(data));
+    }
+
+  }
+
+  const hasError = field =>
+    reviewsFormState.touched[field] && reviewsFormState.errors[field] ? true : false;
+
+  return (
+    <div
+      {...rest}
+      className={classes.root}
+    >
+      <Typography
+        color="textSecondary"
+        gutterBottom
+        variant="body2"
+      >
+      </Typography>
+      <Card>
+        <CardHeader
+          title="Audit Reviews"
+          subheader={
+            <div>
+              {!isEmpty(reviewError) ?
+                <FormControl error={true} >
+                  <FormHelperText component='div' id="component-error-text">{reviewError}</FormHelperText>
+                </FormControl>
+                : ''}
+            </div>
+          }
+        />
+        <Divider />
+        <CardContent className={classes.content}>
+          <div className={classes.inner}>
+            <Grid container spacing={3}  >
+              <Grid item xs={6} sm={6} style={{paddingTop: '0px', marginBottom: '20px'}}>
+                <Table  size="small" aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head" > User Name </TableCell>
+                      <TableCell>{
+                        !isEmpty(activityLogState.activityLogRecord.created_by_user)?
+                        activityLogState.activityLogRecord.created_by_user.email:''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Activity Name </TableCell>
+                      <TableCell>{
+                        !isEmpty(activityLogState.activityLogRecord.activity_record)?
+                        activityLogState.activityLogRecord.activity_record.name:''
+                      }</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Activity Log Name </TableCell>
+                      <TableCell>{activityLogState.activityLogRecord.name}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Unit Processed </TableCell>
+                      <TableCell>{activityLogState.activityLogRecord.activity_units_logged}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>  
+              </Grid> 
+              <Grid item xs={3} sm={3} style={{paddingTop: '0px', marginBottom: '20px'}}>
+              </Grid>
+              <Grid item xs={3} sm={3} style={{paddingTop: '0px', marginBottom: '20px'}}>
+              <Table  size="small" aria-label="simple table">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell 
+                        colSpan={2} 
+                        variant="head" 
+                        style={{textAlign: 'center'}}
+                      > 
+                        OVERALL SCORE 
+                      </TableCell>
+                    </TableRow>
+                    <TableRow >
+                      <TableCell 
+                        colSpan={2}  
+                        variant="head"
+                        style={{textAlign: 'center', fontSize: 'large', height: '65px'}} 
+                      > 
+                        {reviewsFormState.values.review_score}% 
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head" > Audit Result </TableCell>
+                      <TableCell style={{textTransform: 'uppercase'}} > {reviewsFormState.values.audit_status} </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Grid>
+            </Grid>   
+            {auidtReviews.added_reviews.map((review, index) => (
+              <Grid container spacing={3} className={classes.panelPrimary} key={index}>
+                <Grid item xs={5} sm={3}>
+                  <Autocomplete
+                    id={'error_categoty_' + index}
+                    name={'error_categoty_' + index}
+                    value={!isEmpty(categoryValue[index]) ? categoryValue[index] : null}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        handleErrorCatChange(newValue, newValue.id, index)
+                      }
+                      else {
+                        handleErrorCatChange(newValue, '', index)
+                      }
+
+                    }}
+                    options={auditErrorCategoryState.auditErrorCategoryByClientList}
+                    getOptionLabel={(option) => option.opt_display}
+                    size="small"
+                    renderInput={(params) => <TextField {...params} label="Select Error Category" variant="outlined" error={hasError('error_categoty_' + index)} helperText={hasError('error_categoty_' + index) ? reviewsFormState.errors['error_categoty_' + index][0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={5} sm={3}>
+                  <Autocomplete
+                    id={'error_infraction_' + index}
+                    name={'error_infraction_' + index}
+                    value={!isEmpty(infractionValue[index]) ? infractionValue[index] : null}
+                    onChange={(event, newValue) => {
+                      if (newValue) {
+                        handleInfractionChange(newValue, newValue.id, index)
+                      }
+                      else {
+                        handleInfractionChange(newValue, '', index)
+                      }
+                    }}
+                    disabled={isEmpty(infractionList[index])}
+                    options={infractionList[index]}
+                    getOptionLabel={(option) => option.opt_display}
+                    size="small"
+                    renderInput={(params) => <TextField {...params} label="Select Infraction" variant="outlined" error={hasError('error_infraction_' + index)} helperText={hasError('error_infraction_' + index) ? reviewsFormState.errors['error_infraction_' + index][0] : null} />}
+                  />
+                </Grid>
+                <Grid item xs={5} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="Upload Attachment"
+                    name="review_image"
+                    onChange={(e) => { handleAttachmentChange(e, index) }}
+                    type="file"
+                    variant="outlined"
+                    size="small"
+                    error={!isEmpty(fileUploadError[index])}
+                    helperText={!isEmpty(fileUploadError[index]) ? fileUploadError[index] : ''}
+                    inputProps={{
+                      accept: "image/*"
+                    }}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={4} sm={3}>
+                  {(!isEmpty(auidtReviews.added_reviews[index]['review_image']) || !isEmpty(auidtReviews.added_reviews[index]['image_name'])) ?
+                    <StyledFab
+                      color="bprimary" aria-label="view"
+                      size="small"
+                      onClick={() => { imageViewOnClick(index) }}
+                    >
+                      <ImageIcon />
+                    </StyledFab>
+                    : <> &nbsp; &nbsp; &nbsp; &nbsp; </>
+                  }
+                  &nbsp; &nbsp; &nbsp;
+                  <StyledFab
+                    color="bdanger" aria-label="edit"
+                    size="small"
+                    onClick={() => { removeAuditReview(index) }}
+                    disabled={(auidtReviews.added_reviews.length <= 1)}
+                  >
+                    <CloseIcon />
+                  </StyledFab>
+                </Grid>
+              </Grid>
+            ))}
+            <Grid
+              container
+              direction="row"
+              justify="flex-end"
+              alignItems="flex-start"
+            >
+              <Grid item style={{ marginTop: '10px', marginBottom: '20px' }}>
+                <StyledButton
+                  color="bsuccess"
+                  size="small"
+                  type="button"
+                  variant="contained"
+                  startIcon={<FeedbackIcon />}
+                  onClick={() => { addAuditReview() }}
+                  disabled={(auidtReviews.added_reviews.length >= 10)}
+                >
+                  Add Another Review
+                </StyledButton>
+              </Grid>
+            </Grid>
+          </div>
+          <div className={classes.formGroup}>
+            <CKEditor
+              editor={ClassicEditor}
+              config={CK_CONFIGS(localStorage.getItem("token"))}
+              data={!isEmpty(auditReviewsState.auditReviewsRecord) ? auditReviewsState.auditReviewsRecord.description : reviewsFormState.values.description}
+              onChange={(event, editor) => {
+                const data = editor.getData();
+                setDescription(data)
+              }}
+            />
+            <FormControl error={hasError('description')} >
+              <FormHelperText id="component-error-text">{hasError('description') ? reviewsFormState.errors.description[0] : null}</FormHelperText>
+            </FormControl>
+          </div>
+          <StyledButton
+            color="bprimary"
+            disabled={!reviewsFormState.isValid}
+            size="small"
+            variant="contained"
+            onClick={() => { handleSubmit() }}
+            startIcon={<SaveIcon />}
+          >
+            Save
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+            variant="contained"
+            color="blight"
+            size="small"
+            onClick={() => { dispatch(redirectToAuditReviewsList()) }}
+            startIcon={<CancelIcon />}
+          >
+            CLOSE
+          </StyledButton>
+        </CardContent>
+      </Card>
+
+      <ReviewImageViewModel
+        modalOpen={openImageViewModel}
+        handleModalOpen={setOpenImageViewModel}
+        imageRecord={imageRecord}
+        setImageRecord={setImageRecord}
+      />
+
+    </div>
+  );
+};
+
+export default ReviewForm;

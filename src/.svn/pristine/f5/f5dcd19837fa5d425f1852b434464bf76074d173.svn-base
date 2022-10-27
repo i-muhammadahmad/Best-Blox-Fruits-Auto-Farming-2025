@@ -1,0 +1,476 @@
+/* eslint-disable react/display-name */
+import React, { useState, forwardRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { makeStyles } from '@material-ui/styles';
+import {
+  ListItem,
+  Button,
+  Collapse,
+  colors,
+  Box,
+  Grid,
+  Checkbox,
+  FormControlLabel,
+  TextField,
+  MenuItem
+} from '@material-ui/core';
+import { has, find, isEmpty } from 'lodash';
+import { StyledButton } from 'components';
+import AddIcon from '@material-ui/icons/Add';
+import RemoveIcon from '@material-ui/icons/Remove';
+import LocationSearchingIcon from '@material-ui/icons/LocationSearching';
+
+const right_access_dropdown = [
+  {
+    value: 'disabled',
+    label: 'Disabled',
+  },
+  {
+    value: 'self',
+    label: 'Self',
+  },
+  {
+    value: 'peers',
+    label: 'Peers'
+  },
+  {
+    value: 'direct',
+    label: 'Reporting To Directly',
+  },
+  {
+    value: 'indirect',
+    label: 'Reporting To Directly/Indirectly',
+  },
+  {
+    value: 'peers_directly',
+    label: 'Peers and Reporting To Directly'
+  },
+  {
+    value: 'all',
+    label: 'All',
+  },
+];
+
+const useStyles = makeStyles(theme => ({
+  item: {
+    display: 'block',
+    paddingTop: 0,
+    paddingBottom: '5px',
+  },
+  itemLeaf: {
+    display: 'flex',
+    paddingTop: 0,
+    paddingBottom: '0px',
+
+  },
+  box: {
+    background: theme.palette.bbggray.main,
+    color: theme.palette.bbggray.contrastText,
+    padding: '10px 8px',
+    justifyContent: 'flex-start',
+    textTransform: 'none',
+    letterSpacing: 0,
+    '&:hover': {
+      background: theme.palette.bbggray.main,
+      color: theme.palette.bbggray.contrastText,
+    }
+  },
+  boxLeaf: {
+    background: theme.palette.bbggray.main,
+    color: theme.palette.bbggray.contrastText,
+    padding: '10px 8px',
+    justifyContent: 'flex-start',
+    textTransform: 'none',
+    letterSpacing: 0,
+    width: '100%',
+    fontWeight: theme.typography.fontWeightRegular,
+    '&.depth-0': {
+      fontWeight: theme.typography.fontWeightMedium
+    },
+    '&:hover': {
+      background: theme.palette.bbggray.main,
+      color: theme.palette.bbggray.contrastText,
+    }
+  },
+  expandIcon: {
+    marginLeft: 'auto',
+    height: 16,
+    width: 16,
+    float: 'right'
+  },
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    marginLeft: 'auto'
+
+  },
+  active: {
+    color: theme.palette.primary.contrastText,
+    fontWeight: theme.typography.fontWeightMedium,
+    '& $icon': {
+      color: theme.palette.primary.contrastText
+    }
+  },
+  rightsCheckbox: {
+    color: theme.palette.bbggray.contrastText,
+    padding: 0
+  },
+  rightsLabel: {
+    color: theme.palette.bbggray.contrastText,
+  },
+  rigthsDropdown: {
+    width: '100%',
+  },
+}));
+
+const Page = props => {
+  const {
+    title,
+    depth,
+    children,
+    className,
+    open: openProp,
+    label: Label,
+    objectType,
+    formState,
+    setFormState,
+    objectListItem,
+    handleModalOpen,
+    setObjectId,
+    ...rest
+  } = props;
+
+  const classes = useStyles();
+  const [open, setOpen] = useState(openProp);
+  const objectsState = useSelector(state => state.objectsState);
+  const session = useSelector(state => state.session);
+
+  const handleToggle = () => {
+    setOpen(open => !open);
+  };
+
+  const handleChange = (event, id, accessType, parent_id, current = true) => {
+    //setiing permission for current object
+    setObjectPermission(event, id, accessType, current);
+
+    //setting permission for parent
+    let objectsList = objectsState.objectsList;
+    if (!isEmpty(parent_id) && accessType === 'view' && event.target.checked) {
+      let item = find(objectsList, { 'id': parent_id });
+      handleChange(event, item.id, accessType, item.parent_id, false)
+    }
+
+    //setting view button on edit/add/delete
+    if (["add", "edit", "delete", "view_deleted"].includes(accessType) && event.target.checked) {
+      handleChange(event, id, 'view', parent_id, false)
+    }
+
+    //setting view button on edit/add/delete
+    if (["reporting_access_edit", "reporting_access_delete", "reporting_access_view"].includes(accessType) && event.target.value != 'disabled') {
+      handleChange(event, id, 'view', parent_id, false)
+    }
+
+  };
+
+  const setObjectPermission = (event, id, accessType, current) => {
+    let a_type = (event.target.type === 'checkbox') ? !(formState.values.role_access_rights[id][accessType]) : event.target.value
+    console.log(a_type); 
+    console.log(accessType); 
+    //let a_type = event.target.value; //!(formState.values.role_access_rights[id][accessType]);
+    if (!current)
+      a_type = true;
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        role_access_rights: {
+          ...formState.values.role_access_rights,
+          [id]: {
+            ...formState.values.role_access_rights[id],
+            [accessType]: a_type,
+          }
+        }
+      }
+    }));
+  };
+
+  let marginLeft = 0;
+  if (depth > 0) {
+    marginLeft = 20 * depth;
+  }
+
+  const style = {
+    marginLeft
+  };
+
+
+  if (children) {
+    return (
+      <ListItem
+        {...rest}
+        className={clsx(classes.item, className)}
+        disableGutters
+      >
+        <Box
+          className={classes.box}
+          style={style}
+        >
+          <Grid container spacing={3}>
+            <Grid item sm={2}>
+              {title}
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['add'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'add', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Add"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={2}>
+              <TextField
+                helperText="Please select edit access"
+                className={classes.rigthsDropdown}
+                select
+                value={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['reporting_access_edit'] : 'disabled'}
+                onChange={(event) => { handleChange(event, objectListItem.id, 'reporting_access_edit', objectListItem.parent_id) }}
+              >
+                {right_access_dropdown.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem> 
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item sm={2}>
+              <TextField
+                helperText="Please select delete access"
+                className={classes.rigthsDropdown}
+                select
+                value={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['reporting_access_delete'] : 'disabled'}
+                onChange={(event) => { handleChange(event, objectListItem.id, 'reporting_access_delete', objectListItem.parent_id) }}
+              >
+                {right_access_dropdown.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem> 
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item sm={2}>
+              <TextField
+                helperText="Please select view access"
+                className={classes.rigthsDropdown}
+                select
+                value={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['reporting_access_view'] : 'disabled'}
+                onChange={(event) => { handleChange(event, objectListItem.id, 'reporting_access_view', objectListItem.parent_id) }}
+              >
+                {right_access_dropdown.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem> 
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item sm={3}>
+              {(session.user.is_super_admin === 'y')?
+              
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['view_deleted'] : false}
+                      onChange={(event) => { handleChange(event, objectListItem.id, 'view_deleted', objectListItem.parent_id) }}
+                      color="primary"
+                      className={classes.rightsCheckbox}
+                    />
+                  }
+                  label="View Deleted"
+                  classes={{
+                    label: classes.rightsLabel
+                  }}
+                />
+              :''}
+            
+              <StyledButton
+                color="bsuccess"
+                size="small"
+                type="button"
+                variant="contained"
+                startIcon={<LocationSearchingIcon />}
+                onClick={()=>{ handleModalOpen(true);setObjectId(objectListItem.id); }}
+              >
+                Define Scope
+              </StyledButton>
+            
+              {open ? (
+                <RemoveIcon
+                  className={classes.expandIcon}
+                  color="inherit"
+                  onClick={handleToggle}
+                />
+              ) : (
+                <AddIcon
+                  className={classes.expandIcon}
+                  color="inherit"
+                  onClick={handleToggle}
+                />
+              )}
+            </Grid>
+          </Grid>
+        </Box>
+        <Collapse in={open}>{children}</Collapse>
+      </ListItem>
+    );
+  } else {
+    return (
+      <ListItem
+        {...rest}
+        className={clsx(classes.itemLeaf, className)}
+        disableGutters
+      >
+        <Box
+          className={clsx(classes.boxLeaf, `depth-${depth}`)}
+          style={style}
+        >
+          <Grid container spacing={3}>
+            <Grid item sm={2}>
+              {title}
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['add'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'add', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Add"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={2}>
+              <TextField
+                helperText="Please select edit access"
+                className={classes.rigthsDropdown}
+                select
+                value={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['reporting_access_edit'] : 'disabled'}
+                onChange={(event) => { handleChange(event, objectListItem.id, 'reporting_access_edit', objectListItem.parent_id) }}
+              >
+                {right_access_dropdown.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem> 
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item sm={2}>
+              <TextField
+                helperText="Please select delete access"
+                className={classes.rigthsDropdown}
+                select
+                value={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['reporting_access_delete'] : 'disabled'}
+                onChange={(event) => { handleChange(event, objectListItem.id, 'reporting_access_delete', objectListItem.parent_id) }}
+              >
+                {right_access_dropdown.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem> 
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item sm={2}>
+              <TextField
+                helperText="Please select view access"
+                className={classes.rigthsDropdown}
+                select
+                value={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['reporting_access_view'] : 'disabled'}
+                onChange={(event) => { handleChange(event, objectListItem.id, 'reporting_access_view', objectListItem.parent_id) }}
+              >
+                {right_access_dropdown.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem> 
+                ))}
+              </TextField>
+              {/*<FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['view'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'view', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="View"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />*/}
+            </Grid>
+            <Grid item sm={3}>
+              {(session.user.is_super_admin === 'y')?
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['view_deleted'] : false}
+                      onChange={(event) => { handleChange(event, objectListItem.id, 'view_deleted', objectListItem.parent_id) }}
+                      color="primary"
+                      className={classes.rightsCheckbox}
+                    />
+                  }
+                  label="View Deleted"
+                  classes={{
+                    label: classes.rightsLabel
+                  }}
+                />
+              :''}
+              <StyledButton
+                color="bsuccess"
+                size="small"
+                type="button"
+                variant="contained"
+                startIcon={<LocationSearchingIcon />}
+                onClick={()=>{ handleModalOpen(true);setObjectId(objectListItem.id); }}
+              >
+                Define Scope
+              </StyledButton>
+            </Grid>
+          </Grid>
+        </Box>
+      </ListItem>
+    );
+  }
+};
+
+Page.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  depth: PropTypes.number.isRequired,
+  label: PropTypes.any,
+  open: PropTypes.bool,
+  title: PropTypes.string.isRequired,
+  objectType: PropTypes.string.isRequired
+};
+
+Page.defaultProps = {
+  depth: 0,
+  open: false,
+  objectType: 'Page'
+};
+
+export default Page;

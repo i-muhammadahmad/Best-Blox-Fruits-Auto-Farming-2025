@@ -1,0 +1,110 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import { TextField } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import {
+  officesDropdownListFetch
+} from 'actions';
+import { isEmpty, find, isArray, forEach } from 'lodash'
+
+const useStyles = makeStyles(theme => ({
+  root: {}
+}));
+
+const OfficesDropdown = props => {
+  const { OfficeValue, setOfficeValue, selectedId, officeOnChange, id, name, size, renderInput, showSelectAllOption, ...attr } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const officesState = useSelector(state => state.officesState);
+  const [officeList, setOfficeList] = useState([]);
+
+  useEffect(() => {
+    dispatch(officesDropdownListFetch())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (officesState.officesDropdownList) {
+
+      if (!isEmpty(selectedId)) {
+        if(isArray(selectedId)){
+          let sOffices = [];
+          forEach(selectedId, function (value, key) {
+            let item = find(officesState.officesDropdownList, ['id', value]);
+            if (!isEmpty(item)){
+              sOffices.push(item);
+            }  
+          });
+          setOfficeValue(sOffices);
+          
+        }
+        else{
+          let selected_office = find(officesState.officesDropdownList, ['id', selectedId]);
+          if(!isEmpty(selected_office)){
+            setOfficeValue(selected_office);
+          }
+          else{
+            setOfficeValue(null);
+          }
+        }  
+      }
+
+      let office_list = {
+        ...officesState.officesDropdownList
+      }
+      office_list = Object.values(office_list);
+
+      if (attr.multiple === true  && !isEmpty(office_list) && showSelectAllOption === true) {
+        let first = {
+          id: 'all',
+          name: 'All',
+        }
+        office_list.unshift(first);
+      }
+      
+      setOfficeList(Object.values(office_list));
+      
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officesState.officesDropdownList]);
+
+  return (
+    <>
+      {(officeList) ?
+        <Autocomplete
+          value={OfficeValue}
+          onChange={(event, newValue) => {
+            officeOnChange(event, newValue)
+          }}
+          options={officeList}
+          getOptionLabel={(option) => option.name}
+          id={id}
+          size={size}
+          name={name}
+          renderInput={renderInput}
+          {...attr}
+        />
+
+        : ''}
+    </>
+  );
+}
+
+OfficesDropdown.propTypes = {
+  officeOnChange: PropTypes.any.isRequired,
+  renderInput: PropTypes.any.isRequired
+};
+
+OfficesDropdown.defaultProps = {
+  OfficeValue: [],
+  id: 'office_id',
+  name: 'office_id',
+  size: 'small',
+  selectedId: '',
+  showSelectAllOption: true
+};
+
+export default OfficesDropdown;

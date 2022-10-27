@@ -1,0 +1,92 @@
+import React, { useState, useEffect } from 'react';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { makeStyles } from '@material-ui/styles';
+import { Card, Typography, Avatar, LinearProgress } from '@material-ui/core';
+import DoneIcon from '@material-ui/icons/Done';
+import { useSelector, useDispatch } from 'react-redux';
+import { API_URL, APP_URL } from 'configs';
+import gradients from 'utils/gradients';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  content: {
+    flexGrow: 1
+  },
+  details: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap'
+  },
+  progress: {
+    margin: theme.spacing(0, 1),
+    flexGrow: 1
+  },
+  avatar: {
+    backgroundImage: gradients.orange,
+    height: 48,
+    width: 48
+  }
+}));
+
+const CompliantOffices = props => {
+  const { className, ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const complianceState = useSelector(state => state.complianceState);
+  const [complienceData, setComplienceData] = useState([]);
+
+  useEffect(() => {
+      
+    setComplienceData(complianceState.officeComplienceSummary);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [complianceState.officeComplienceSummary]);
+
+  return (
+    <>
+    {complienceData.map(row_d => (
+      <Card
+        {...rest}
+        className={clsx(classes.root, className)}
+      >
+      
+        <div className={classes.content}>
+          <Typography
+            component="h3"
+            gutterBottom
+            variant="overline"
+          >
+            {row_d.office_name}
+          </Typography>
+          <div className={classes.details}>
+            <Typography variant="h3">{(row_d.compliance_per === 'N/A')? row_d.compliance_per: <a target='_blank' href={APP_URL+'course-report?office_id='+row_d.id+'&is_complience=true'}>{row_d.compliance_per+'%'}</a> }</Typography>
+            <LinearProgress
+              className={classes.progress}
+              value={(row_d.compliance_per === 'N/A')? 0: row_d.compliance_per }
+              variant="determinate"
+            />
+          </div>
+        </div>
+        <Avatar
+          alt="Flag"
+          className={classes.avatar}
+          src={API_URL + row_d.flag_image}
+        />
+       
+      </Card>
+    ))} 
+    </>  
+  );
+};
+
+CompliantOffices.propTypes = {
+  className: PropTypes.string
+};
+
+export default CompliantOffices;

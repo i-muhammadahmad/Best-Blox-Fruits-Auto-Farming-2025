@@ -1,0 +1,1255 @@
+/* eslint-disable react/no-multi-comp */
+/* eslint-disable react/display-name */
+
+import React, { lazy } from 'react';
+import { Redirect } from 'react-router-dom';
+
+import AuthLayout from './layouts/Auth';
+import ErrorLayout from './layouts/Error';
+import DashboardLayout from './layouts/Dashboard';
+import DashboardAnalyticsView from './views/DashboardAnalytics';
+import DashboardDefaultView from './views/DashboardDefault';
+import OverviewView from './views/Overview';
+import PresentationView from './views/Presentation';
+
+const routes = [
+  {
+    path: '/',
+    exact: true,
+    component: () => <Redirect to="/dashboards/default" />
+  },
+  {
+    path: '/auth',
+    component: AuthLayout,
+    routes: [
+      {
+        path: '/auth/login',
+        exact: true,
+        component: lazy(() => import('views/Login'))
+      },
+      {
+        path: '/auth/register',
+        exact: true,
+        component: lazy(() => import('views/Register'))
+      },
+      {
+        component: () => <Redirect to="/errors/error-404" />
+      }
+    ]
+  },
+  {
+    path: '/errors',
+    component: ErrorLayout,
+    routes: [
+      {
+        path: '/errors/error-401',
+        exact: true,
+        component: lazy(() => import('views/Error401'))
+      },
+      {
+        path: '/errors/error-404',
+        exact: true,
+        component: lazy(() => import('views/Error404'))
+      },
+      {
+        path: '/errors/error-500',
+        exact: true,
+        component: lazy(() => import('views/Error500'))
+      },
+      {
+        component: () => <Redirect to="/errors/error-404" />
+      }
+    ]
+  },
+  {
+    route: '*',
+    component: DashboardLayout,
+    routes: [
+      {
+        path: '/changelog',
+        exact: true,
+        component: lazy(() => import('views/Changelog'))
+      },
+      {
+        path: '/chat',
+        exact: true,
+        component: lazy(() => import('views/Chat'))
+      },
+      {
+        path: '/chat/:id',
+        exact: true,
+        component: lazy(() => import('views/Chat'))
+      },
+      {
+        path: '/dashboards/analytics',
+        exact: true,
+        component: DashboardAnalyticsView
+      },
+      {
+        path: '/dashboards/default',
+        exact: true,
+        component: DashboardDefaultView
+      },
+      {
+        path: '/invoices/:id',
+        exact: true,
+        component: lazy(() => import('views/InvoiceDetails'))
+      },
+      {
+        path: '/kanban-board',
+        exact: true,
+        component: lazy(() => import('views/KanbanBoard'))
+      },
+      {
+        path: '/mail',
+        exact: true,
+        component: lazy(() => import('views/Mail'))
+      },
+      {
+        path: '/management/customers',
+        exact: true,
+        component: lazy(() => import('views/CustomerManagementList'))
+      },
+      {
+        path: '/management/customers/:id',
+        exact: true,
+        component: lazy(() => import('views/CustomerManagementDetails'))
+      },
+      {
+        path: '/management/customers/:id/:tab',
+        exact: true,
+        component: lazy(() => import('views/CustomerManagementDetails'))
+      },
+      {
+        path: '/management/projects',
+        exact: true,
+        component: lazy(() => import('views/ProjectManagementList'))
+      },
+      {
+        path: '/management/orders',
+        exact: true,
+        component: lazy(() => import('views/OrderManagementList'))
+      },
+      {
+        path: '/management/orders/:id',
+        exact: true,
+        component: lazy(() => import('views/OrderManagementDetails'))
+      },
+      {
+        path: '/overview',
+        exact: true,
+        component: OverviewView
+      },
+      {
+        path: '/presentation',
+        exact: true,
+        component: PresentationView
+      },
+      {
+        path: '/profile/:id',
+        exact: true,
+        component: lazy(() => import('views/Profile'))
+      },
+      {
+        path: '/profile/:id/:tab',
+        exact: true,
+        component: lazy(() => import('views/Profile'))
+      },
+      {
+        path: '/projects/create',
+        exact: true,
+        component: lazy(() => import('views/ProjectCreate'))
+      },
+      {
+        path: '/projects/:id',
+        exact: true,
+        component: lazy(() => import('views/ProjectDetails'))
+      },
+      {
+        path: '/projects/:id/:tab',
+        exact: true,
+        component: lazy(() => import('views/ProjectDetails'))
+      },
+      {
+        path: '/projects',
+        exact: true,
+        component: lazy(() => import('views/ProjectList'))
+      },
+      /*{
+        path: '/settings',
+        exact: true,
+        component: lazy(() => import('views/Settings'))
+      },
+      {
+        path: '/settings/:tab',
+        exact: true,
+        component: lazy(() => import('views/Settings'))
+      },*/
+      {
+        path: '/social-feed',
+        exact: true,
+        component: lazy(() => import('views/SocialFeed'))
+      },
+      {
+        path: '/getting-started',
+        exact: true,
+        component: lazy(() => import('views/GettingStarted'))
+      },
+      {
+        path: '/activity-category',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategory'))
+      },
+      {
+        path: '/activity-category/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategory/add'))
+      },
+      {
+        path: '/activity-category/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategory/update'))
+      },
+      {
+        path: '/activity-category/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategory/view'))
+      },
+      {
+        path: '/activity-category-status',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategoryStatus'))
+      },
+      {
+        path: '/activity-category-status/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategoryStatus/add'))
+      },
+      {
+        path: '/activity-category-status/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategoryStatus/update'))
+      },
+      {
+        path: '/activity-category-status/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityCategoryStatus/view'))
+      },
+      {
+        path: '/activity-setup',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivitySetup'))
+      },
+      {
+        path: '/activity-setup/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivitySetup/add'))
+      },
+      {
+        path: '/activity-setup/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivitySetup/update'))
+      },
+      {
+        path: '/activity-setup/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivitySetup/view'))
+      },
+      {
+        path: '/activity-log',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityLog'))
+      },
+      {
+        path: '/activity-log/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityLog/add'))
+      },
+      {
+        path: '/activity-log/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityLog/update'))
+      },
+      {
+        path: '/activity-log/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityLog/view'))
+      },
+      {
+        path: '/activity-access',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAccess'))
+      },
+      {
+        path: '/activity-access/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAccess/add'))
+      },
+      {
+        path: '/activity-access/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAccess/update'))
+      },
+      {
+        path: '/activity-access/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAccess/view'))
+      },
+      {
+        path: '/activity-reports/myLoggedActivites',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/Reports/MyLogReport'))
+      },
+      {
+        path: '/activity-reports/allLoggedActivites',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/Reports/AllLogReport'))
+      },
+      {
+        path: '/activity-reports/myLoggedActivitesSummary',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/Reports/MyLogSummaryReport'))
+      },
+      {
+        path: '/activity-reports/allLoggedActivitesSummary',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/Reports/AllLogSummaryReport'))
+      },
+      {
+        path: '/activity-audit/infractions',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/Infractions'))
+      },
+      {
+        path: '/activity-audit/infractions/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/Infractions/add'))
+      },
+      {
+        path: '/activity-audit/infractions/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/Infractions/update'))
+      },
+      {
+        path: '/activity-audit/infractions/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/Infractions/view'))
+      },
+      {
+        path: '/activity-audit/error-category',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorCategory'))
+      },
+      {
+        path: '/activity-audit/error-category/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorCategory/add'))
+      },
+      {
+        path: '/activity-audit/error-category/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorCategory/update'))
+      },
+      {
+        path: '/activity-audit/error-category/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorCategory/view'))
+      },
+      {
+        path: '/activity-audit/error-severity',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity'))
+      },
+      {
+        path: '/activity-audit/error-severity/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity/add'))
+      },
+      {
+        path: '/activity-audit/error-severity/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity/update'))
+      },
+      {
+        path: '/activity-audit/error-severity/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity/view'))
+      },
+      {
+        path: '/activity-audit/audit-reviews',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/AuditReviews'))
+      },
+      {
+        path: '/activity-audit/audit-reviews/add',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity/add'))
+      },
+      {
+        path: '/activity-audit/audit-reviews/update',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity/update'))
+      },
+      {
+        path: '/activity-audit/audit-reviews/view',
+        exact: true,
+        component: lazy(() => import('views/ActivityManagement/ActivityAudit/ErrorSeverity/view'))
+      },
+      {
+        path: '/bulk-activity-setup',
+        exact: true,
+        component: lazy(() => import('views/BulkActivityManagement/BulkActivitySetup'))
+      },
+      {
+        path: '/bulk-activity-setup/add',
+        exact: true,
+        component: lazy(() => import('views/BulkActivityManagement/BulkActivitySetup/add'))
+      },
+      {
+        path: '/bulk-activity-setup/update',
+        exact: true,
+        component: lazy(() => import('views/BulkActivityManagement/BulkActivitySetup/update'))
+      },
+      {
+        path: '/bulk-activity-setup/view',
+        exact: true,
+        component: lazy(() => import('views/BulkActivityManagement/BulkActivitySetup/view'))
+      },
+      {
+        path: '/bulk-activity-log',
+        exact: true,
+        component: lazy(() => import('views/BulkActivityManagement/BulkActivityLog'))
+      },
+      {
+        path: '/holiday-category',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/HolidayCategory'))
+      },
+      {
+        path: '/holiday-category/add',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/HolidayCategory/add'))
+      },
+      {
+        path: '/holiday-category/update',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/HolidayCategory/update'))
+      },
+      {
+        path: '/holiday-category/view',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/HolidayCategory/view'))
+      },
+      {
+        path: '/holiday',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/Holiday'))
+      },
+      {
+        path: '/holiday/add',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/Holiday/add'))
+      },
+      {
+        path: '/holiday/update',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/Holiday/update'))
+      },
+      {
+        path: '/holiday/view',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/Holiday/view'))
+      },
+      {
+        path: '/holiday/calendar',
+        exact: true,
+        component: lazy(() => import('views/HolidaysManagement/Holiday/Calendar'))
+      },
+      {
+        path: '/client',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/Client'))
+      },
+      {
+        path: '/client/add',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/Client/add'))
+      },
+      {
+        path: '/client/update',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/Client/update'))
+      },
+      {
+        path: '/client/view',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/Client/view'))
+      },
+      {
+        path: '/contact-board',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ContactBoard'))
+      },
+      {
+        path: '/contact-board/add',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ContactBoard/add'))
+      },
+      {
+        path: '/contact-board/update',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ContactBoard/update'))
+      },
+      {
+        path: '/contact-board/view',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ContactBoard/view'))
+      },
+      {
+        path: '/user-reports/userActivityTrackReport',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Reports/UserActivityTrackReport'))
+      },
+      {
+        path: '/user-reports/userClockInImagesReport',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Reports/UserClockInImagesReport'))
+      },
+      {
+        path: '/users',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Users'))
+      },
+      {
+        path: '/users/add',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Users/add'))
+      },
+      {
+        path: '/users/update',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Users/update'))
+      },
+      {
+        path: '/users/view',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Users/view'))
+      },
+      {
+        path: '/roles',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Roles'))
+      },
+      {
+        path: '/roles/add',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Roles/add'))
+      },
+      {
+        path: '/roles/update',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Roles/update'))
+      },
+      {
+        path: '/roles/view',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Roles/view'))
+      },
+      {
+        path: '/timeZones',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/TimeZones'))
+      },
+      {
+        path: '/timeZones/add',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/TimeZones/add'))
+      },
+      {
+        path: '/timeZones/update',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/TimeZones/update'))
+      },
+      {
+        path: '/timeZones/view',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/TimeZones/view'))
+      },
+      {
+        path: '/objects',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Objects'))
+      },
+      {
+        path: '/objects/add',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Objects/add'))
+      },
+      {
+        path: '/objects/update',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Objects/update'))
+      },
+      {
+        path: '/objects/view',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/Objects/view'))
+      },
+      {
+        path: '/object-types',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/ObjectTypes'))
+      },
+      {
+        path: '/object-types/add',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/ObjectTypes/add'))
+      },
+      {
+        path: '/object-types/update',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/ObjectTypes/update'))
+      },
+      {
+        path: '/object-types/view',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/ObjectTypes/view'))
+      },
+      {
+        path: '/rolesAccess',
+        exact: true,
+        component: lazy(() => import('views/UserManagement/RolesAccess/add'))
+      },
+      {
+        path: '/designation-category',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/DesignationCategory'))
+      },
+      {
+        path: '/designation-category/add',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/DesignationCategory/add'))
+      },
+      {
+        path: '/designation-category/update',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/DesignationCategory/update'))
+      },
+      {
+        path: '/designation-category/view',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/DesignationCategory/view'))
+      },
+      {
+        path: '/designation',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/Designation'))
+      },
+      {
+        path: '/designation/add',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/Designation/add'))
+      },
+      {
+        path: '/designation/update',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/Designation/update'))
+      },
+      {
+        path: '/designation/view',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/Designation/view'))
+      },
+      {
+        path: '/hr-reports/UserImageCaptureReport',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/Reports/UserImageCaptureReport'))
+      },
+      {
+        path: '/hr-reports/UserImageCaptureChartReport',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/Reports/UserImageCaptureChartReport'))
+      },
+      {
+        path: '/offices',
+        exact: true,
+        component: lazy(() => import('views/Setups/Offices'))
+      },
+      {
+        path: '/offices/add',
+        exact: true,
+        component: lazy(() => import('views/Setups/Offices/add'))
+      },
+      {
+        path: '/offices/update',
+        exact: true,
+        component: lazy(() => import('views/Setups/Offices/update'))
+      },
+      {
+        path: '/offices/view',
+        exact: true,
+        component: lazy(() => import('views/Setups/Offices/view'))
+      },
+      {
+        path: '/departments',
+        exact: true,
+        component: lazy(() => import('views/Setups/Departments'))
+      },
+      {
+        path: '/departments/add',
+        exact: true,
+        component: lazy(() => import('views/Setups/Departments/add'))
+      },
+      {
+        path: '/departments/update',
+        exact: true,
+        component: lazy(() => import('views/Setups/Departments/update'))
+      },
+      {
+        path: '/departments/view',
+        exact: true,
+        component: lazy(() => import('views/Setups/Departments/view'))
+      },
+      {
+        path: '/workstations',
+        exact: true,
+        component: lazy(() => import('views/Setups/Workstations'))
+      },
+      {
+        path: '/workstations/add',
+        exact: true,
+        component: lazy(() => import('views/Setups/Workstations/add'))
+      },
+      {
+        path: '/workstations/update',
+        exact: true,
+        component: lazy(() => import('views/Setups/Workstations/update'))
+      },
+      {
+        path: '/workstations/view',
+        exact: true,
+        component: lazy(() => import('views/Setups/Workstations/view'))
+      },
+      {
+        path: '/settings',
+        exact: true,
+        component: lazy(() => import('views/Setups/Settings/add'))
+      },
+      {
+        path: '/leave-configs',
+        exact: true,
+        component: lazy(() => import('views/Setups/Leave/add'))
+      },
+      {
+        path: '/shifts',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Shifts'))
+      },
+      {
+        path: '/shifts/add',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Shifts/add'))
+      },
+      {
+        path: '/shifts/update',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Shifts/update'))
+      },
+      {
+        path: '/shifts/view',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Shifts/view'))
+      },
+      {
+        path: '/shift-breaks',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/ShiftBreaks'))
+      },
+      {
+        path: '/shift-breaks/add',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/ShiftBreaks/add'))
+      },
+      {
+        path: '/shift-breaks/update',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/ShiftBreaks/update'))
+      },
+      {
+        path: '/shift-breaks/view',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/ShiftBreaks/view'))
+      },
+      {
+        path: '/break-types',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/BreakTypes'))
+      },
+      {
+        path: '/break-types/add',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/BreakTypes/add'))
+      },
+      {
+        path: '/break-types/update',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/BreakTypes/update'))
+      },
+      {
+        path: '/break-types/view',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/BreakTypes/view'))
+      },
+      {
+        path: '/employees',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Employees'))
+      },
+      {
+        path: '/employees/add',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Employees/add'))
+      },
+      {
+        path: '/employees/update',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Employees/update'))
+      },
+      {
+        path: '/employees/view',
+        exact: true,
+        component: lazy(() => import('views/EmployeeManagement/Employees/view'))
+      },
+      {
+        path: '/transcribe-config',
+        exact: true,
+        component: lazy(() => import('views/TranscribeManagement/TranscribeConfig'))
+      },
+      {
+        path: '/transcribe-config/add',
+        exact: true,
+        component: lazy(() => import('views/TranscribeManagement/TranscribeConfig/add'))
+      },
+      {
+        path: '/transcribe-config/update',
+        exact: true,
+        component: lazy(() => import('views/TranscribeManagement/TranscribeConfig/update'))
+      },
+      {
+        path: '/transcribe-config/view',
+        exact: true,
+        component: lazy(() => import('views/TranscribeManagement/TranscribeConfig/view'))
+      },
+      {
+        path: '/transcribe-job',
+        exact: true,
+        component: lazy(() => import('views/TranscribeManagement/TranscribeJob'))
+      },
+      {
+        path: '/transcribe-job/view',
+        exact: true,
+        component: lazy(() => import('views/TranscribeManagement/TranscribeJob/view'))
+      },
+      {
+        path: '/company-type',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyType'))
+      },
+      {
+        path: '/company-type/add',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyType/add'))
+      },
+      {
+        path: '/company-type/update',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyType/update'))
+      },
+      {
+        path: '/company-type/view',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyType/view'))
+      },
+      {
+        path: '/company-contact',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyContact'))
+      },
+      {
+        path: '/company-contact/add',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyContact/add'))
+      },
+      {
+        path: '/company-contact/update',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyContact/update'))
+      },
+      {
+        path: '/company-contact/view',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CompanyContact/view'))
+      },
+      {
+        path: '/company',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/Company'))
+      },
+      {
+        path: '/company/add',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/Company/add'))
+      },
+      {
+        path: '/company/update',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/Company/update'))
+      },
+      {
+        path: '/company/view',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/Company/view'))
+      },
+      {
+        path: '/quiz',
+        exact: true,
+        component: lazy(() => import('views/QuizManagement/Quiz'))
+      },
+      {
+        path: '/quiz/view',
+        exact: true,
+        component: lazy(() => import('views/QuizManagement/Quiz/view'))
+      },
+      {
+        path: '/quiz-setup',
+        exact: true,
+        component: lazy(() => import('views/QuizManagement/QuizSetup'))
+      },
+      {
+        path: '/quiz-setup/add',
+        exact: true,
+        component: lazy(() => import('views/QuizManagement/QuizSetup/add'))
+      },
+      {
+        path: '/quiz-setup/update',
+        exact: true,
+        component: lazy(() => import('views/QuizManagement/QuizSetup/update'))
+      },
+      {
+        path: '/quiz-setup/view',
+        exact: true,
+        component: lazy(() => import('views/QuizManagement/QuizSetup/view'))
+      },
+      {
+        path: '/asset-types',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/AssetTypes'))
+      },
+      {
+        path: '/asset-types/add',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/AssetTypes/add'))
+      },
+      {
+        path: '/asset-types/update',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/AssetTypes/update'))
+      },
+      {
+        path: '/asset-types/view',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/AssetTypes/view'))
+      },
+      {
+        path: '/assets',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/Assets'))
+      },
+      {
+        path: '/assets/add',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/Assets/add'))
+      },
+      {
+        path: '/assets/update',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/Assets/update'))
+      },
+      {
+        path: '/assets/view',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/Assets/view'))
+      },
+      {
+        path: '/assets-report',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/Reports/AssetsReport'))
+      },
+      {
+        path: '/kpi',
+        exact: true,
+        component: lazy(() => import('views/Performance/ActivityCategory'))
+      },
+      {
+        path: '/kpi/add',
+        exact: true,
+        component: lazy(() => import('views/Performance/ActivityCategory/add'))
+      },
+      {
+        path: '/kpi/update',
+        exact: true,
+        component: lazy(() => import('views/Performance/ActivityCategory/update'))
+      },
+      {
+        path: '/kpi/view',
+        exact: true,
+        component: lazy(() => import('views/Performance/ActivityCategory/view'))
+      },
+      {
+        path: '/leave-type',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveType'))
+      },
+      {
+        path: '/leave-type/add',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveType/add'))
+      },
+      {
+        path: '/leave-type/update',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveType/update'))
+      },
+      {
+        path: '/leave-type/view',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveType/view'))
+      },
+      {
+        path: '/leave-schedule',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveSchedule'))
+      },
+      {
+        path: '/leave-schedule/add',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveSchedule/add'))
+      },
+      {
+        path: '/leave-schedule/update',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveSchedule/update'))
+      },
+      {
+        path: '/leave-schedule/view',
+        exact: true,
+        component: lazy(() => import('views/AttendanceManagement/LeaveSchedule/view'))
+      },
+      {
+        path: '/approval-profile',
+        exact: true,
+        component: lazy(() => import('views/Admin/ApprovalProfiles'))
+      },
+      {
+        path: '/approval-profile/add',
+        exact: true,
+        component: lazy(() => import('views/Admin/ApprovalProfiles/add'))
+      },
+      {
+        path: '/approval-profile/update',
+        exact: true,
+        component: lazy(() => import('views/Admin/ApprovalProfiles/update'))
+      },
+      {
+        path: '/approval-profile/view',
+        exact: true,
+        component: lazy(() => import('views/Admin/ApprovalProfiles/view'))
+      },
+      {
+        path: '/audit-form-infraction',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormInfraction'))
+      },
+      {
+        path: '/audit-form-infraction/add',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormInfraction/add'))
+      },
+      {
+        path: '/audit-form-infraction/update',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormInfraction/update'))
+      },
+      {
+        path: '/audit-form-infraction/view',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormInfraction/view'))
+      },
+      {
+        path: '/audit-form-setup',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormSetup'))
+      },
+      {
+        path: '/audit-form-setup/add',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormSetup/add'))
+      },
+      {
+        path: '/audit-form-setup/update',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditFormSetup/update'))
+      },
+      {
+        path: '/audit-form-setup/view',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditForm/view'))
+      },
+      {
+        path: '/audit-form',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditForm'))
+      },
+      {
+        path: '/audit-form/add',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditForm/add'))
+      },
+      {
+        path: '/audit-form/update',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditForm/update'))
+      },
+      {
+        path: '/audit-form/view',
+        exact: true,
+        component: lazy(() => import('views/AuditFormManagement/AuditForm/view'))
+      },
+      {
+        path: '/asset-approvals',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/AssetApprovals'))
+	    },
+      {
+        path: '/client-headcount',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ClientHeadcount'))
+      },
+      {
+        path: '/client-headcount/add',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ClientHeadcount/add'))
+      },
+      {
+        path: '/client-headcount/update',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ClientHeadcount/update'))
+      },
+      {
+        path: '/client-headcount/view',
+        exact: true,
+        component: lazy(() => import('views/ClientManagement/ClientHeadcount/view'))
+      },
+      {
+        path: '/headcount',
+        exact: true,
+        component: lazy(() => import('views/PremierMenu/PremierHeadcount'))
+      },
+      {
+        path: '/client-headcount-report',
+        exact: true,
+        component: lazy(() => import('views/PremierMenu/ClientHeadCountReport'))
+      },
+      {
+        path: '/seats-utilization-report',
+        exact: true,
+        component: lazy(() => import('views/PremierMenu/SeatsUtilizationReport'))
+      },
+      {
+        path: '/setup-floor-plan',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/SetupFloorPlan'))
+      },
+      {
+        path: '/setup-floor-plan/add',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/SetupFloorPlan/add'))
+      },
+      {
+        path: '/setup-floor-plan/update',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/SetupFloorPlan/update'))
+      },
+      {
+        path: '/setup-floor-plan/view',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/SetupFloorPlan/view'))
+      },
+      {
+        path: '/display-floor-plan',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/FloorPlan'))
+      },
+      {
+        path: '/unreturned-assets-employees',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/UnreturnedAssetsEmployees'))
+      },
+      {
+        path: '/unreturned-assets-employees/view',
+        exact: true,
+        component: lazy(() => import('views/AssetManagement/UnreturnedAssetsEmployees/view'))
+      },
+      {
+        path: '/attrition-reasons',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttritionReason'))
+      },
+      {
+        path: '/attrition-reasons/add',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttritionReason/add'))
+      },
+      {
+        path: '/attrition-reasons/update',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttritionReason/update'))
+      },
+      {
+        path: '/attrition-reasons/view',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttritionReason/view'))
+      },
+      {
+        path: '/employee-attrition',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttrition'))
+      },
+      {
+        path: '/employee-attrition/add',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttrition/add'))
+      },
+      {
+        path: '/employee-attrition/update',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttrition/update'))
+      },
+      {
+        path: '/employee-attrition/view',
+        exact: true,
+        component: lazy(() => import('views/HRManagement/EmployeeAttrition/view'))
+      },
+      {
+        path: '/unauthorized',
+        exact: true,
+        component: lazy(() => import('views/Error401'))
+      },
+      {
+        component: () => <Redirect to="/errors/error-404" />
+      }
+    ]
+  }
+];
+
+export default routes;

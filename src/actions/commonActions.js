@@ -1,0 +1,87 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+import { logout } from './sessionActions';
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_SNACKBAR = 'HIDE_SNACKBAR';
+export const TOKEN_EXPIRE = 'TOKEN_EXPIRE';
+export const SHOW_LOADER = 'SHOW_LOADER';
+export const HIDE_LOADER = 'HIDE_LOADER'; 
+
+
+export const hideNotificationError = () => ({
+  type: HIDE_SNACKBAR,
+}) 
+
+const tokenExpire = () => ({
+  type: TOKEN_EXPIRE 
+})
+
+export const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+export const showGeneralError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+
+export const hideSnackBarNotifications = type => {
+    if(type === 'token_expire'){
+      localStorage.setItem("token","")
+      return dispatch => {
+        dispatch(hideNotificationError())
+        dispatch(tokenExpire())
+      }
+    }
+    else if(type === 'general_error' || type === 'success'){
+      return {
+        type: HIDE_SNACKBAR
+      }
+    }
+    
+}
+
+export const logUrlVisted = (urlVisted) => {
+  var token = localStorage.getItem("token");
+  return dispatch => {
+    return axios(API_URL + "user/logUrlVisted", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: { urlVisted },
+    })
+      .then((response) => {
+        //Successfully logged
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+ 
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      /*let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      //dispatch(clockinFailure(err)*/
+    }
+  }
+  catch (e) {
+    //dispatch(clockinFailure('Unable to perform action.Something went wrong'))
+  }
+}  

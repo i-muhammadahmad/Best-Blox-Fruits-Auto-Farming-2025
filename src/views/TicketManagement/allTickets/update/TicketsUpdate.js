@@ -1,0 +1,348 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledButton, StyledChip, AttachmentsPreviewer } from 'components';
+import { Header, AddCommentModel, ListMenu } from './components';
+import {
+	ticketsCategoryDropdownListFetch,
+	ticketsStatusDropdownListFetch
+} from 'actions';
+import {
+	Card,
+	CardHeader,
+	CardContent,
+	TextField,
+	Grid,
+	FormControl,
+	FormHelperText,
+	Paper,
+	Typography,
+	TableContainer,
+	Table,
+	TableBody,
+	TableRow,
+	TableCell
+} from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, forEach, find } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import DoubleArrowIcon from '@material-ui/icons/DoubleArrow';
+import AddCircleIcon from '@material-ui/icons/AddCircle';
+import { CK_CONFIGS, API_URL } from 'configs';
+import DetailsModel from './components/detailsModel';
+
+const schema = {
+	title: {
+		presence: { allowEmpty: false, message: 'is required' }
+	},
+	description: {
+		presence: { allowEmpty: false, message: 'is required' }
+	}
+};
+
+const useStyles = makeStyles(theme => ({
+	root: {
+		width: theme.breakpoints.values.lg,
+		maxWidth: '100%',
+		margin: '0 auto',
+		padding: theme.spacing(3, 3, 6, 3),
+		fontFamily: 'Roboto',
+		fontSize: '14px'
+	},
+	projectDetails: {
+		marginTop: theme.spacing(3)
+	},
+	formGroup: {
+		marginBottom: theme.spacing(3)
+	},
+	noTopPad: {
+		paddingTop: '0px !important'
+	},
+	title: {
+		fontSize: 14
+	},
+	borderWhite: {
+		borderColor: 'white'
+	},
+	detailHead: {
+		color: 'grey'
+	},
+	detailBody: {
+		color: '#000'
+	}
+}));
+
+const getTicketStatus = status => {
+	if (status === 'Closed') {
+		return <StyledChip size="small" color="bsuccess" label="Closed" />;
+	} else if (status === 'In Progress') {
+		return <StyledChip size="small" color="bprimary" label="In Progress" />;
+	} else if (status === 'Pending') {
+		return <StyledChip size="small" color="bwarning" label="Pending" />;
+	}
+};
+
+const TicketsUpdate = () => {
+	const classes = useStyles();
+	const dispatch = useDispatch();
+	const router = useRouter();
+	const ticketsState = useSelector(state => state.ticketsState);
+	const ticketsCategoryState = useSelector(state => state.ticketsCategoryState);
+	const session = useSelector(state => state.session);
+
+	const [recordState, setRecordState] = useState('');
+	const [ticketActivty, setTicketActivity] = useState([]);
+	const [showAddCommentModel, setShowAddCommentModel] = useState(false);
+	const [showDetailsModel, setShowDetailsModel] = useState(false);
+	const [categoryDropdown, setCategoryDropdown] = useState([]);
+	const [statusDropdown, setStatusDropdown] = useState([]);
+
+	const handleModalOpen = () => {
+		setShowAddCommentModel(true);
+	};
+
+	const handleDetailsModalOpen = () => {
+		setShowDetailsModel(true);
+	};
+
+	useEffect(() => {
+		dispatch(ticketsCategoryDropdownListFetch(session.current_page_permissions.object_id));
+		dispatch(ticketsStatusDropdownListFetch(session.current_page_permissions.object_id));
+	}, []);
+
+	useEffect(() => {
+		let record = ticketsCategoryState.ticketsCategoryDropdownList;
+		record.forEach(function(obj) {
+			obj.name = obj.category_name;
+			delete obj.category_name;
+		});
+		setCategoryDropdown(record);
+	}, [ticketsCategoryState.ticketsCategoryDropdownList]);
+
+	useEffect(() => {
+		let record = ticketsState.ticketsStatusDropdownList;
+		record.forEach(function(obj) {
+			obj.name = obj.status;
+			delete obj.status;
+		});
+		setStatusDropdown(record);
+	}, [ticketsState.ticketsStatusDropdownList]);
+
+	useEffect(() => {
+		let record = ticketsState.ticketsRecord;
+		setRecordState(record);
+		setTicketActivity(record.ticket_activity);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ticketsState.ticketsRecord]);
+
+	useEffect(() => {
+		if (!ticketsState.showViewPage && !ticketsState.showUpdateForm) {
+			router.history.push('/all-tickets');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ticketsState.showUpdateForm, ticketsState.showViewPage]);
+
+	useEffect(() => {
+		if (ticketsState.redirect_to_list) {
+			router.history.push('/all-tickets');
+		}
+	}, [ticketsState.redirect_to_list, router.history]);
+
+	const downloadAttachment = (e, record_id) => {
+		window.location.href =
+			API_URL + 'tickets/downloadTicketAttachment?id=' + record_id;
+	};
+
+	return (
+		<>
+			<Page className={classes.root} title="Ticket Discussion">
+				<Header />
+				<Card className={classes.projectDetails}>
+					<CardHeader title="Tickets Discussion" />
+					<CardContent>
+						<div className={classes.formGroup}>
+							<Grid container spacing={3}>
+								<Grid item xs={8} sm={8}>
+								{!isEmpty(recordState.ticket_status) &&
+									recordState.ticket_status.status !== 'Closed' ? (
+										<>
+											<div style={{ textAlign: 'right' }}>
+												<StyledButton
+													color="bprimary"
+													size="small"
+													type="button"
+													variant="contained"
+													startIcon={<AddCircleIcon />}
+													onClick={handleModalOpen}>
+													Add New Comment
+												</StyledButton>
+											</div>
+											<br />
+										</>
+									) : (
+										''
+									)}
+									{ticketActivty.map((data, index) => (
+										<Card
+											key={index}
+											className={index > 0 ? classes.projectDetails : ''}>
+											{index == 0 ? (
+												<CardHeader title={recordState.title} />
+											) : (
+												''
+											)}
+											<CardContent
+												className={index == 0 ? classes.noTopPad : ''}>
+												{index > 0 ? (
+													<Typography
+														className={classes.title}
+														color="textSecondary"
+														gutterBottom>
+														Added By {data.created_by_user.email}{' '}
+														<DoubleArrowIcon style={{ fontSize: '10px' }} />{' '}
+														{data.date_created}
+													</Typography>
+												) : (
+													''
+												)}
+												<div
+													className="ck-content"
+													dangerouslySetInnerHTML={{
+														__html: data.description
+													}}
+												/>
+												<br />
+												<div>
+													<AttachmentsPreviewer
+														attachmentList={data.ticket_attachment}
+														setAttachmentList={() => {}}
+														showDeleteButton={false}
+														downloadCallback={downloadAttachment}
+														colHeight={120}
+														noOfCols={5}
+													/>
+												</div>
+											</CardContent>
+										</Card>
+									))}
+								</Grid>
+								<Grid item xs={4} sm={4}>
+									<Card>
+										<CardHeader title="Ticket Details" />
+										<CardContent className={classes.noTopPad}>
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>Tracking ID:</div>
+												&nbsp;
+												<div className={classes.detailBody}>
+													{!isEmpty(recordState) ? recordState.tracking_id : ''}
+												</div>
+											</div>
+											<br />
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>Category:</div>
+												&nbsp;
+												<div className={classes.detailBody}>
+													{!isEmpty(recordState.ticket_category)
+														? recordState.ticket_category.category_name
+														: ''}
+													&nbsp;
+													{!isEmpty(recordState.ticket_status) &&
+													recordState.ticket_status.status !== 'Closed' ? (
+														<ListMenu
+															name="category"
+															ticketId={recordState.id}
+															options={categoryDropdown}></ListMenu>
+													) : (
+														''
+													)}
+												</div>
+											</div>
+											<br />
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>Ticket Status:</div>
+												&nbsp;
+												<div>
+													{getTicketStatus(
+														!isEmpty(recordState.ticket_status)
+															? recordState.ticket_status.status
+															: ''
+													)}
+													&nbsp;
+													{!isEmpty(recordState.ticket_status) &&
+													recordState.ticket_status.status !== 'Closed' ? (
+														<ListMenu
+															name="status"
+															ticketId={recordState.id}
+															options={statusDropdown}></ListMenu>
+													) : (
+														''
+													)}
+												</div>
+											</div>
+											<br />
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>Created On:</div>
+												&nbsp;
+												<div className={classes.detailBody}>
+													{!isEmpty(recordState)
+														? recordState.date_created
+														: ''}
+												</div>
+											</div>
+											<br />
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>
+													Last Updated On:
+												</div>
+												&nbsp;
+												<div className={classes.detailBody}>
+													{!isEmpty(recordState)
+														? recordState.date_last_modified
+														: ''}
+												</div>
+											</div>
+											<br />
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>Created by:</div>
+												&nbsp;
+												<div className={classes.detailBody}>
+													{!isEmpty(recordState)
+														? recordState.created_by_user.email
+														: ''}
+												</div>
+											</div>
+											<br />
+											<div style={{ display: 'flex' }}>
+												<div className={classes.detailHead}>
+													Last Updated by:
+												</div>
+												&nbsp;
+												<div className={classes.detailBody}>
+													{!isEmpty(recordState)
+														? recordState.updated_by_user.email
+														: ''}
+												</div>
+											</div>
+										</CardContent>
+									</Card>
+								</Grid>
+							</Grid>
+						</div>
+					</CardContent>
+				</Card>
+			</Page>
+
+			<AddCommentModel
+				showAddCommentModel={showAddCommentModel}
+				setShowAddCommentModel={setShowAddCommentModel}
+			/>
+		</>
+	);
+};
+
+export default TicketsUpdate;

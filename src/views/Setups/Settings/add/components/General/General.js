@@ -1,0 +1,282 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import {  StyledButton } from 'components';
+import {
+  saveSettings,
+  getGeneralSettings,
+  hideSettingsValidationError,
+  getNotiRefreshTime
+} from 'actions'
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  MenuItem
+} from '@material-ui/core';
+import { isEmpty, forEach } from 'lodash';
+import useRouter from 'utils/useRouter';
+import SaveIcon from '@material-ui/icons/Save';
+import { CK_CONFIGS } from 'configs';
+import AccessRights from 'utils/AccessRights';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const schema = {
+  
+  approval_noti_refersh_time_sec: {
+    presence: { allowEmpty: false, message: '^ This field is required' },
+  },
+  noti_refersh_time: {
+    presence: { allowEmpty: false, message: '^ This field is required.' },
+  },
+}  
+
+const approve_notifications = [
+  {
+    value: 0,
+    label: 'At Login',
+  },
+  {
+    value: 39,
+    label: '30 Min',
+  },
+  {
+    value: 15,
+    label: '15 Min',
+  },
+  {
+    value: 10,
+    label: '10 Min',
+  },
+];
+
+const notifications = [
+  {
+    value: 0,
+    label: 'At Login',
+  },
+  {
+    value: 2,
+    label: '2 Min',
+  },
+  {
+    value: 5,
+    label: '5 Min',
+  },
+  {
+    value: 10,
+    label: '10 Min',
+  },
+  {
+    value: 15,
+    label: '15 Min',
+  },
+];
+
+const General = (props) => {
+  const { activeTab, ...other } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const settingsState = useSelector(state => state.settingsState);
+  const session = useSelector(state => state.session);
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'approval_noti_refersh_time_sec': 0,
+      'noti_refersh_time': 0,
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'setting_type': 'General',
+      'settings': {},
+      'setting_descriptor': {
+        'setting_type': 'This settings is used to save General Setting',
+        'setting_key': 'Field index',
+        'setting_val': 'Field Value'
+      }
+    },
+    touched: {
+      'approval_noti_refersh_time_sec': true,
+      'noti_refersh_time': true,
+      'object_viewed_id': true,
+      'setting_type': true
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    dispatch(getGeneralSettings('General', session.current_page_permissions.object_id));
+  }, []);
+
+  useEffect(() => {
+    const e_settings = {};
+    forEach(settingsState.settingsGeneral, function(set, key) {
+      e_settings[set.setting_key] = set.setting_val;
+    });
+    setFormState(formState => ({
+      ...formState,
+      values:{
+        ...formState.values,
+        settings: e_settings
+      }
+    }))  
+  }, [settingsState.settingsGeneral]);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(settingsState.validation_error)) {
+      const errors = settingsState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [settingsState.validation_error]);
+
+  useEffect(() => {
+    if (settingsState.redirect_to_list) {
+      router.history.push('/settings');
+    }
+  }, [settingsState.redirect_to_list, router.history]);
+
+  const handleChange = (event, setting_key) => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value,
+        settings:{
+          ...formState.values.settings,
+          [setting_key]: event.target.value
+        }   
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideSettingsValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(saveSettings(formState.values));
+    dispatch(getNotiRefreshTime());
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  return (
+    <Card
+      className={classes.projectDetails}
+    >
+      <CardContent>
+        <form
+          onSubmit={handleSubmit}
+        >
+          <div className={classes.formGroup}>
+              <Grid container spacing={3} >
+                <Grid item xs={6} sm={4}>
+                <TextField
+                  id="approval_noti_refersh_time_sec"
+                  select
+                  error={hasError('approval_noti_refersh_time_sec')}
+                  fullWidth
+                  helperText={hasError('approval_noti_refersh_time_sec') ? formState.errors['approval_noti_refersh_time_sec'][0] : null}
+                  label={'Refersh Approval Notification After'}
+                  name={'approval_noti_refersh_time_sec'}
+                  onChange={(e) => {handleChange(e, 'approval_noti_refersh_time_sec')}}
+                  value={formState.values.settings['approval_noti_refersh_time_sec'] || ''}
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                >
+                  {approve_notifications.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                </Grid>
+
+                <Grid item xs={6} sm={4}>
+                  <TextField
+                    id="noti_refersh_time"
+                    select
+                    error={hasError('noti_refersh_time')}
+                    fullWidth
+                    helperText={hasError('noti_refersh_time') ? formState.errors['noti_refersh_time'][0] : null}
+                    label={'Refersh Notification After'}
+                    name={'noti_refersh_time'}
+                    onChange={(e) => {handleChange(e, 'noti_refersh_time')}}
+                    value={formState.values.settings['noti_refersh_time'] || ''}
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                  >
+                    {notifications.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                
+              </Grid> 
+          </div>
+          { (AccessRights(session.current_page_permissions, 'add'))?
+            <StyledButton
+              color="bprimary"
+              disabled={!formState.isValid}
+              size="small"
+              type="submit"
+              variant="contained"
+              startIcon={<SaveIcon />}
+            >
+              Save Settings
+            </StyledButton>
+            :''
+          }
+
+        </form>
+
+      </CardContent>
+    </Card>
+  );
+};
+
+export default General;

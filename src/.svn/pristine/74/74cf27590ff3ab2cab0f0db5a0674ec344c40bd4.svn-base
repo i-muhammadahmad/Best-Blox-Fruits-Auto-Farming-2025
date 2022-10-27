@@ -1,0 +1,309 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import { Page, StyledFab, StyledButton } from 'components';
+import {
+  Header
+} from './components';
+import { 
+  addDesignation,
+  designationCategoryListFetch,
+  hideDesignationValidationError,
+  redirectToDesignationList
+} from 'actions'
+import { 
+  Card, 
+  CardHeader, 
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+ } from '@material-ui/core';
+import CloseIcon from '@material-ui/icons/Close';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, remove } from 'lodash';
+import useRouter from 'utils/useRouter';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import { CK_CONFIGS } from 'configs';
+
+const schema = {
+  name: {
+    presence: { allowEmpty: false, message: 'is required' },
+  },
+  category_id: {
+    presence: { allowEmpty: false, message: 'is required' },
+  }, 
+}
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const DesignationAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const designationState = useSelector(state => state.designationState);
+  const designationCategoryState = useSelector(state => state.designationCategoryState);
+  const session = useSelector(state => state.session);
+
+  const [CategoryValue, setCategoryValue] = useState(null);
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values]);
+
+  useEffect(() => {
+    if(!isEmpty(designationState.validation_error)){
+      const errors = designationState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }  
+  }, [designationState.validation_error]);
+
+  useEffect(() => {
+    if(designationState.redirect_to_list){
+      router.history.push('/designation');
+    } 
+  }, [designationState.redirect_to_list, router.history]);
+
+
+
+  useEffect(() => {
+    dispatch(designationCategoryListFetch(session.current_page_permissions.object_id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
+
+  
+  const setCategoryId = category_id => { 
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'category_id':category_id
+      },
+      touched: {
+        ...formState.touched,
+        'category_id': true
+      }
+    }));
+    dispatch(hideDesignationValidationError('category_id'))
+  }
+
+  const setDesignationLevel = level => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'level': level
+      },
+      touched: {
+        ...formState.touched,
+        'level': true
+      }
+    }));
+    dispatch(hideDesignationValidationError('level'))
+  }
+
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description':description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideDesignationValidationError('description'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideDesignationValidationError(event.target.name))
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    dispatch(addDesignation(formState.values));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+  
+  return (
+    <Page
+      className={classes.root}
+      title="Add Designation"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Designation" />
+        <CardContent>
+        <form
+          onSubmit={handleSubmit}
+        >
+          <div className={classes.formGroup}>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={3}>
+                <TextField
+                  error={hasError('name')}
+                  fullWidth
+                  helperText={hasError('name') ? formState.errors.name[0] : null}
+                  label="Designation Name"
+                  name="name"
+                  onChange={handleChange}
+                  value={formState.values.name || ''}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid> 
+              <Grid item xs={6} sm={3}>
+                {(designationCategoryState.designationCategoryList)?
+                <Autocomplete
+                  id="category_id"
+                  value={CategoryValue}
+                  onChange={(event, newValue) => {
+                    if(newValue){
+                      setCategoryValue(newValue)
+                      setCategoryId(newValue.id)
+                      setDesignationLevel(newValue.level)
+                    }
+                    else{
+                      setCategoryValue(newValue)
+                      setCategoryId('')
+                      setDesignationLevel('')
+                    }
+                    
+                  }}
+                  options={designationCategoryState.designationCategoryList}
+                  getOptionLabel={(option) => option.opt_display}
+                  size="small"
+                  renderInput={(params) => <TextField {...params} label="Select Designation Category" variant="outlined" error={hasError('category_id')} helperText={hasError('category_id') ? formState.errors.category_id[0] : null} />}
+                />
+                
+                :''}
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <TextField
+                  error={hasError('level')}
+                  fullWidth
+                  helperText={hasError('level') ? formState.errors.level[0] : null}
+                  label="Designation Level"
+                  name="level"
+                  value={formState.values.level || ''}
+                  variant="outlined"
+                  size="small"
+                  disabled
+                />
+              </Grid> 
+            </Grid>
+
+          </div>
+          <div className={classes.formGroup}>
+            <CKEditor
+              editor={ ClassicEditor }
+              config={CK_CONFIGS(localStorage.getItem("token"))}
+              data={formState.values.description || ''}
+              onChange={ ( event, editor ) => {
+                  const data = editor.getData();
+                  setDescription(data)
+              }}
+            />
+            <FormControl error={hasError('description')} >  
+              <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+            </FormControl> 
+          </div>
+          <StyledButton
+            color="bprimary"
+            disabled={!formState.isValid}
+            size="small"
+            type="submit"
+            variant="contained"
+            startIcon={<SaveIcon />}
+          >
+            Create Designation
+          </StyledButton>
+          &nbsp; &nbsp;
+          <StyledButton
+            variant="contained"
+            color="blight"
+            size="small"
+            onClick={ ()=>{ dispatch(redirectToDesignationList()) } }
+            startIcon={<CancelIcon />}
+          >
+            CLOSE
+          </StyledButton>
+        </form>
+
+        </CardContent>
+      </Card>
+      
+    </Page>
+  );
+};
+
+export default DesignationAdd;

@@ -1,0 +1,144 @@
+import * as actionTypes from 'actions';
+
+const initialState = {
+  loggedIn: false,
+  user: {},
+  verify_user: {},
+  loginLoading: false,
+  is_disclaimer_shown: false,
+  show_email_varification: false,
+  error: "",
+  error_type: "",
+  nested_menus: [],
+  user_Permissions: [],
+  approval_notifications: [],
+  current_page_permissions: []
+};
+
+const sessionReducer = (state = initialState, action) => {
+  switch (action.type) {
+    case actionTypes.SESSION_LOGIN: {
+      return {
+        ...initialState
+      };
+    }
+    case actionTypes.SESSION_LOGOUT: {
+      return {
+        ...state,
+        loggedIn: false,
+        user: {},
+        loginLoading: false,
+        error: "",
+        error_type: '',
+        is_disclaimer_shown: false,
+        show_email_varification: false
+      };
+    }
+    case actionTypes.LOGIN_REQUEST:
+      return {
+        ...state,
+        loginLoading: true,
+        error: "",
+        error_type: '',
+        user: [],
+        is_disclaimer_shown: false,
+      }
+    case actionTypes.LOGIN_SUCCESS:
+      return {
+        ...state,
+        loginLoading: false,
+        user: action.payload,
+        user_Permissions: action.user_Permissions,
+        nested_menus: action.nested_menus,
+        approval_notifications: action.approval_notifications,
+        error: "",
+        loggedIn: true,
+        error_type: '',
+        is_disclaimer_shown: false
+      }
+    case actionTypes.SHOW_VARIFICATION_SCREEN:
+      return {
+        ...state,
+        loginLoading: false,
+        verify_user: action.userObj,
+        show_email_varification: action.show_email_varification,
+        error: "",
+        loggedIn: false,
+        error_type: '',
+        is_disclaimer_shown: false
+      }
+    case actionTypes.RESET_SESSION:
+      return {
+        ...state,
+        loggedIn: false,
+        user: {},
+        verify_user: {},
+        loginLoading: false,
+        is_disclaimer_shown: false,
+        show_email_varification: false,
+        error: "",
+        error_type: "",
+        nested_menus: [],
+        user_Permissions: [],
+        approval_notifications: [],
+        current_page_permissions: []
+      }
+    case actionTypes.CURRENT_PAGE_PERMISSIONS:
+      return {
+        ...state,
+        current_page_permissions: action.current_page,
+      }
+    case actionTypes.LOGIN_FAILURE:
+      return {
+        ...state,
+        loginLoading: false,
+        user: [],
+        error: action.payload,
+        error_type: action.error_type,
+      }
+    case actionTypes.HIDE_ERROR:
+      return {
+        ...state,
+        loginLoading: false,
+        user: [],
+        error: '',
+        error_type: '',
+      }
+    case actionTypes.HIDE_FEILD_VALIDATION_ERROR:
+      delete state.error[action.feild_key]
+      return {
+        ...state,
+        loginLoading: false,
+        user: [],
+        error: state.error
+      }
+    case actionTypes.TOKEN_EXPIRE:
+      return {
+        ...state,
+        loggedIn: false,
+        user: [],
+      }
+    case actionTypes.HIDE_DISCLAIMER:
+      return {
+        ...state,
+        is_disclaimer_shown: true,
+      }
+    case actionTypes.SET_APPROVAL_NOTIFICATIONS: {
+      return {
+        ...state,
+        approval_notifications: action.approval_notifications
+      };
+    }
+    case actionTypes.UPDATE_USER_INFO:
+      return {
+        ...state,
+        user: action.updated_user,
+      }
+
+    default: {
+      return state;
+    }
+  }
+};
+
+export default sessionReducer;

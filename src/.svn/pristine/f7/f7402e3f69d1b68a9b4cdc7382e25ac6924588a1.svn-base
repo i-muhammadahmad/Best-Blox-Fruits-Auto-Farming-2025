@@ -1,0 +1,299 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+import { HOLIDAY_CATEGORY_GET_SUCCESS } from './HolidayCategoryActions';
+
+export const HOLIDAY_REQUEST = 'HOLIDAY_REQUEST'
+export const HOLIDAY_SUCCESS = 'HOLIDAY_SUCCESS'
+export const HOLIDAY_VALIDATION_ERROR = 'HOLIDAY_VALIDATION_ERROR'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_HOLIDAY_FEILD_VALIDATION_ERROR = "HIDE_HOLIDAY_FEILD_VALIDATION_ERROR"
+export const REDIRECT_TO_HOLIDAY_LIST = 'REDIRECT_TO_HOLIDAY_LIST'
+export const HOLIDAY_GET_SUCCESS = 'HOLIDAY_GET_SUCCESS'
+export const HOLIDAY_CATEGORY_SUCCESS = 'HOLIDAY_CATEGORY_SUCCESS'
+export const HOLIDAY_CALENDAR_SUCCESS = 'HOLIDAY_CALENDAR_SUCCESS'
+export const HOLIDAY_SERVER_SUCCESS = 'HOLIDAY_SERVER_SUCCESS'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const holidayRequest = () => ({
+  type: HOLIDAY_REQUEST,
+})
+
+const holidayListSuccess = holidayList => ({
+  type: HOLIDAY_SUCCESS,
+  holidayList: holidayList,
+})
+
+const holidayCalendarListSuccess = holidayCalendarList => ({
+  type: HOLIDAY_CALENDAR_SUCCESS,
+  holidayCalendarList: holidayCalendarList,
+})
+
+export const holidayServerListSuccess = () => ({
+  type: HOLIDAY_SERVER_SUCCESS,
+})
+
+const holidayCategoryListSuccess = holidayCategoryList => ({
+  type: HOLIDAY_CATEGORY_SUCCESS,
+  holidayCategoryList: holidayCategoryList,
+})
+
+const holidayFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+})
+const validationError = notification => ({
+  type: HOLIDAY_VALIDATION_ERROR,
+  validation_error: notification,
+})
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const holidayAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(holidaySuccessNotification(message))
+  dispatch(redirectToHolidayList())
+}
+
+export const redirectToHolidayList = () => ({
+  type: REDIRECT_TO_HOLIDAY_LIST,
+})
+
+const getHolidaySuccess = (response, action) => ({
+  type: HOLIDAY_GET_SUCCESS,
+  record: response,
+  actionType: action
+})
+
+const holidaySuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+export const hideHolidayValidationError = (feild_key) => ({
+  type: HIDE_HOLIDAY_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const holidayListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "/holiday/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(holidayListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const holidayCalendarListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "/holiday/getCalendarList", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(holidayCalendarListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const holidayCategoryListFetch = (object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "holiday_categories/getAll", {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(holidayCategoryListSuccess(response.data))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addHoliday = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "holiday/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        holidayAddUpadteSuccess('Holiday Added Successfully', 'create', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const updateHoliday = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "holiday/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: data
+    })
+      .then((response) => {
+        holidayAddUpadteSuccess('Holiday Updated Successfully', 'update', dispatch)
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const getHolidayById = (id, action, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "holiday/getById/" + id, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer  ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(getHolidaySuccess(response.data, action))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const deleteHoliday = (holidayId, object_viewed_id = '') => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(holidayRequest());
+    dispatch(showCommonLoader());
+    return axios(API_URL + "holiday/delete/" + holidayId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        'object_viewed_id': object_viewed_id
+      }
+    })
+      .then((response) => {
+        dispatch(holidaySuccessNotification('Holiday deleted successfully'))
+        dispatch(holidayListFetch())
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch)
+        dispatch(hideCommonLoader())
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(holidayFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(holidayFailure('Unable to perform action.Something went wrong'))
+  }
+}   

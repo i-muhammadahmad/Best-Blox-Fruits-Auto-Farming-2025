@@ -1,0 +1,108 @@
+import React from 'react';
+import CancelIcon from '@material-ui/icons/Cancel';
+import {
+  TextField,
+  makeStyles,
+  Backdrop,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  Paper
+} from '@material-ui/core';
+import { StyledButton } from 'components';
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { API_URL } from 'configs'
+
+const useStylesModal = makeStyles((theme) => ({
+  modal: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paper: {
+    backgroundColor: theme.palette.background.paper,
+    border: '2px solid #000',
+    boxShadow: theme.shadows[5],
+    padding: theme.spacing(2, 4, 3),
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    width: '100%',
+  },
+  selectEmpty: {
+    marginTop: theme.spacing(2),
+  },
+  small_img: {
+    width: theme.spacing(3),
+    height: theme.spacing(3),
+    display: 'inline-block'
+  },
+}));
+
+const ImagePreviewModel = (props) => {
+
+  const {
+    modalOpen,
+    handleModalOpen,
+    imageRecord,
+    setImageRecord
+  } = props;
+
+  const [fullWidth, setFullWidth] = React.useState(true);
+  const [maxWidth, setMaxWidth] = React.useState('md');
+  const classes = useStylesModal();
+
+  const handleClose = () => {
+    setImageRecord([]);
+    handleModalOpen(false);
+  };
+
+  return (
+    <div>
+      <Dialog
+        aria-labelledby="transition-modal-title"
+        aria-describedby="transition-modal-description"
+        fullWidth={true}
+        maxWidth={'md'}
+        className={classes.modal}
+        open={modalOpen}
+        onClose={handleClose}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          timeout: 500,
+        }}
+      >
+        <DialogTitle id="form-dialog-title">Supporting Document View</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={12}>
+              <Paper variant="outlined">
+                <img alt="Supporting Doc Image" src={API_URL + imageRecord.document_name} />
+              </Paper>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <StyledButton
+            variant="contained"
+            color="bsecondary"
+            size="small"
+            className={classes.button}
+            startIcon={<CancelIcon />}
+            onClick={handleClose}
+          >
+            CLOSE
+          </StyledButton>
+        </DialogActions>
+      </Dialog>
+
+    </div>
+  );
+}
+
+export default ImagePreviewModel;

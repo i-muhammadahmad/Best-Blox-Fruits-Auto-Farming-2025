@@ -1,0 +1,420 @@
+import axios from 'axios';
+import { API_URL } from 'configs';
+
+export const SESSION_LOGIN = 'SESSION_LOGIN';
+export const SESSION_LOGOUT = 'SESSION_LOGOUT';
+export const LOGIN_REQUEST = 'LOGIN_REQUEST';
+export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
+export const LOGIN_FAILURE = 'LOGIN_FAILURE';
+export const HIDE_ERROR = 'HIDE_ERROR';
+export const HIDE_FEILD_VALIDATION_ERROR = 'HIDE_FEILD_VALIDATION_ERROR';
+export const TOKEN_EXPIRE = 'TOKEN_EXPIRE';
+export const CURRENT_PAGE_PERMISSIONS = 'CURRENT_PAGE_PERMISSIONS';
+export const HIDE_DISCLAIMER = 'HIDE_DISCLAIMER';
+export const SET_APPROVAL_NOTIFICATIONS = 'SET_APPROVAL_NOTIFICATIONS';
+export const SET_NOTIFICATIONS = 'SET_NOTIFICATIONS';
+export const SHOW_VARIFICATION_SCREEN = 'SHOW_VARIFICATION_SCREEN';
+export const RESET_SESSION = 'RESET_SESSION';
+export const SET_NOTIFICATION_REFRESH_TIME = 'SET_NOTIFICATION_REFRESH_TIME'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+
+const showCommonLoader = (label = '') => ({
+	type: SHOW_LOADER,
+	common_loder_label: label
+});
+const hideCommonLoader = () => ({
+	type: HIDE_LOADER
+});
+
+export const setApprovalNotifications = approval_notifications => ({
+	type: SET_APPROVAL_NOTIFICATIONS,
+	approval_notifications: approval_notifications
+});
+
+const setNotifications = notifications => ({
+	type: SET_NOTIFICATIONS,
+	notifications: notifications
+});
+
+const setNotificationRefreshTime = noti_refresh_time => ({
+	type: SET_NOTIFICATION_REFRESH_TIME,
+	noti_refresh_time: noti_refresh_time
+});
+
+export const login = () => dispatch =>
+	dispatch({
+		type: SESSION_LOGIN
+	});
+
+const logoutRequest = () =>{
+	return {
+		type: SESSION_LOGOUT
+	};
+};
+
+export const logout = () => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    return axios(API_URL + "logout", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+    .then((response) => {
+			dispatch(logoutRequest());
+    }, (error) => {
+      handleNotificationsErrorResponse(error, dispatch);
+    });
+
+  }
+}
+
+//setting current page permission in state
+export const setCurrentPagePermissions = current_page => ({
+	type: CURRENT_PAGE_PERMISSIONS,
+	current_page: current_page
+});
+
+const loginRequest = () => {
+	return {
+		type: LOGIN_REQUEST
+	};
+};
+
+const loginSuccess = (
+	userObj,
+	user_Permissions,
+	user_permissions_raw,
+	user_reporting,
+	nested_menus,
+	approval_notifications,
+	notifications
+) => ({
+	type: LOGIN_SUCCESS,
+	payload: userObj,
+	user_Permissions: user_Permissions,
+	user_permissions_raw: user_permissions_raw,
+	user_reporting: user_reporting,
+	nested_menus: nested_menus,
+	approval_notifications: approval_notifications,
+	notifications: notifications
+});
+
+const showVarificationScreen = userObj => ({
+	type: SHOW_VARIFICATION_SCREEN,
+	userObj: userObj,
+	show_email_varification: true
+});
+
+const loginFailure = error => ({
+	type: LOGIN_FAILURE,
+	payload: error,
+	error_type: 'general'
+});
+
+const fetchNotificationsFailure = notification => ({
+	type: SHOW_SNACKBAR,
+	snackbar_notification: notification,
+	snackbar_notification_type: 'general_error'
+  })
+
+const codeResendSuccess = error => ({
+	type: LOGIN_FAILURE,
+	payload: error,
+	error_type: 'message'
+});
+
+const validationError = error => ({
+	type: LOGIN_FAILURE,
+	payload: error,
+	error_type: 'validation'
+});
+
+export const resetSessionState = () => ({
+	type: RESET_SESSION
+});
+
+export const hideError = () => ({
+	type: HIDE_ERROR
+});
+
+export const hideFeildValidationError = feild_key => ({
+	type: HIDE_FEILD_VALIDATION_ERROR,
+	feild_key: feild_key
+});
+
+export const userLoginFetch = user => {
+	return dispatch => {
+		dispatch(loginRequest());
+		dispatch(showCommonLoader());
+		return axios(API_URL + 'login', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+			data: user
+		}).then(
+			response => {
+				//localStorage.setItem("token", response.data.access_token)
+				if(response.data.is_2fa_enable == true){ 
+					dispatch(showVarificationScreen(response.data.user));
+				}
+				else{
+					localStorage.setItem('token', response.data.access_token);
+					dispatch(
+						loginSuccess(
+							response.data.user,
+							response.data.user_Permissions,
+							response.data.user_permissions_raw,
+							response.data.user_reporting,
+							response.data.nested_menus,
+							response.data.approval_notifications
+						)
+					);
+					dispatch(setNotifications(response.data.notifications));
+					dispatch(setNotificationRefreshTime(response.data.noti_refresh_time));
+				}
+				
+				dispatch(hideCommonLoader());
+			},
+			error => {
+				dispatch(hideCommonLoader());
+				handleErrorResponse(error, dispatch);
+			}
+		);
+	};
+};
+
+export const verifyEmailCode = (user_id, verification_code) => {
+	return dispatch => {
+		//dispatch(loginRequest())
+		dispatch(showCommonLoader());
+		return axios(API_URL + 'verifyEmail', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+			data: {
+				id: user_id,
+				verification_code: verification_code
+			}
+		}).then(
+			response => {
+				localStorage.setItem('token', response.data.access_token);
+				dispatch(
+					loginSuccess(
+						response.data.user,
+						response.data.user_Permissions,
+						response.data.user_permissions_raw,
+						response.data.user_reporting,
+						response.data.nested_menus,
+						response.data.approval_notifications
+					)
+				);
+				dispatch(setNotifications(response.data.notifications));
+				dispatch(setNotificationRefreshTime(response.data.noti_refresh_time));
+				dispatch(hideCommonLoader());
+			},
+			error => {
+				dispatch(hideCommonLoader());
+				handleErrorResponse(error, dispatch);
+			}
+		);
+	};
+};
+
+export const resendVerificationCode = user_id => {
+	return dispatch => {
+		//dispatch(loginRequest())
+		dispatch(showCommonLoader());
+		return axios(API_URL + 'resendCode', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+			data: {
+				id: user_id
+			}
+		}).then(
+			response => {
+				dispatch(codeResendSuccess('Code resend successfully'));
+				//localStorage.setItem("token", response.data.access_token)
+				//dispatch(showVarificationScreen(response.data.user));
+				dispatch(hideCommonLoader());
+			},
+			error => {
+				dispatch(hideCommonLoader());
+				handleErrorResponse(error, dispatch);
+			}
+		);
+	};
+};
+
+//Microsoft azure login functions
+export const showMsalError = err => {
+	return dispatch => {
+		dispatch(loginFailure(err));
+	};
+};
+
+export const loginWithMsal = data => {
+	return dispatch => {
+		dispatch(loginRequest());
+		dispatch(showCommonLoader());
+		return axios(API_URL + 'loginWithMsal', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+			data: {
+				accessToken: data.accessToken,
+				email: data.mail
+			}
+		}).then(
+			response => {
+				localStorage.setItem('token', response.data.access_token);
+				dispatch(
+					loginSuccess(
+						response.data.user,
+						response.data.user_Permissions,
+						response.data.user_permissions_raw,
+						response.data.user_reporting,
+						response.data.nested_menus,
+						response.data.approval_notifications,
+					)
+				);
+				dispatch(setNotifications(response.data.notifications));
+				dispatch(setNotificationRefreshTime(response.data.noti_refresh_time));
+				dispatch(hideCommonLoader());
+			},
+			error => {
+				dispatch(hideCommonLoader());
+				handleErrorResponse(error, dispatch);
+			}
+		);
+	};
+};
+
+//Disclaimer functions
+export const hideDisclaimer = () => ({
+	type: HIDE_DISCLAIMER
+});
+
+// Get All Unread Notifications
+export const getAllUnreadNotifications = (employee_id, timezone_id) => {
+  return dispatch => {
+		return axios(API_URL + 'getAllUnreadNotifications', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+			data: {
+        employee_id: employee_id,
+        timezone_id: timezone_id
+      }
+		}).then(
+			response => {
+				dispatch(setNotifications(response.data));
+			},
+			error => {
+				handleNotificationsErrorResponse(error, dispatch);
+			}
+		);
+	};
+}
+
+// Read Notification Function
+export const readNotification = notification_id => {
+	return axios(API_URL + 'readNotification', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json'
+		},
+		data: { id: notification_id }
+	}).then(
+		response => {},
+		error => {}
+	);
+};
+
+// Read All Notification Function
+export const readAllNotifications = (employee_id) => {
+	return axios(API_URL + 'readAllNotifications', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json'
+		},
+		data: {employee_id: employee_id}
+	}).then(
+		response => {},
+		error => {}
+	);
+};
+
+// Get Notification Refresh Time
+export const getNotiRefreshTime = () => {
+	return dispatch => {
+		return axios(API_URL + 'settings/getNotificationRefreshTime', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+		}).then(
+			response => {
+				dispatch(setNotificationRefreshTime(response.data));
+			},
+			error => {
+				handleErrorResponse(error, dispatch);
+			}
+		);
+	};
+};
+
+const handleErrorResponse = (error, dispatch) => {
+	try {
+		if (error.response.status === 422) {
+			dispatch(validationError(error.response.data.error));
+		} else {
+			let err = '';
+			if (error.response.data.error) {
+				err = error.response.data.error.toString();
+			} else {
+				err = error.response.status + ` ` + error.response.statusText;
+			}
+			dispatch(loginFailure(err));
+		}
+	} catch (e) {
+		dispatch(loginFailure('Unable to perform action.Something went wrong'));
+	}
+};
+
+const handleNotificationsErrorResponse = (error, dispatch) => {
+	try {
+		if (error.response.status === 422) {
+			dispatch(validationError(error.response.data.error));
+		} else {
+			let err = '';
+			if (error.response.data.error) {
+				err = error.response.data.error.toString();
+			} else {
+				err = error.response.status + ` ` + error.response.statusText;
+			}
+			dispatch(fetchNotificationsFailure(err));
+		}
+	} catch (e) {
+		dispatch(fetchNotificationsFailure('Unable to perform action. Something went wrong'));
+	}
+}

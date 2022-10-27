@@ -1,0 +1,141 @@
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { useSelector, useDispatch } from 'react-redux';
+import useRouter from 'utils/useRouter';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Typography,
+  Grid,
+} from '@material-ui/core';
+import { 
+  redirectToQuizSetupList,
+  getQuizSetupById,
+  showCommonLoader,
+  quizSlidesListFetch,
+  quizBindingListFetch,
+  deleteQuizSetup
+} from 'actions';
+import { StyledButton, ViewActionButtons, DeleteAlert } from 'components';
+import CancelIcon from '@material-ui/icons/Cancel';
+import CachedIcon from '@material-ui/icons/Cached';
+import { isEmpty } from 'lodash';
+
+const useStyles = makeStyles(() => ({
+  root: {}
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const quizSetupState = useSelector(state => state.quizSetupState);
+  const session = useSelector(state => state.session);
+  const [openDeleteModel, setOpenDeleteModel] = useState(false); 
+  const [btnToShow, setBtnToShow] = useState(['close', 'edit']);
+
+  useEffect(() => {
+    if (!isEmpty(quizSetupState.quizSetupRecord) && quizSetupState.quizSetupRecord.is_published == 'n' ) {
+      setBtnToShow(['delete', 'close', 'edit']);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.quizSetupRecord]);
+
+  useEffect(() => {
+    if (quizSetupState.showUpdateForm) {
+      router.history.push('/quiz-setup/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizSetupState.showUpdateForm]);
+
+  const refershView = () => {
+    dispatch(showCommonLoader());
+    dispatch(getQuizSetupById(quizSetupState.quizSetupRecord.id, 'view'))
+    dispatch(quizSlidesListFetch(quizSetupState.quizSetupRecord.id, session.current_page_permissions.object_id));
+    dispatch(quizBindingListFetch(quizSetupState.quizSetupRecord.id, session.current_page_permissions.object_id));
+  }
+
+  const deleteRecord = async () => {
+    await dispatch(deleteQuizSetup(quizSetupState.quizSetupRecord.id, session.current_page_permissions.object_id));
+    closeView();
+  }
+
+  const showDeleteModal = () => {
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+  }
+
+  const updateRecord = () => {
+    dispatch(getQuizSetupById(quizSetupState.quizSetupRecord.id, 'update'))
+  }
+
+  const closeView = () => {
+    dispatch(redirectToQuizSetupList())
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Grid
+        alignItems="flex-end"
+        container
+        justify="space-between"
+        spacing={3}
+      >
+        <Grid item>
+          <Typography
+            component="h2"
+            gutterBottom
+            variant="overline"
+          >
+            Quiz Management
+          </Typography>
+          <Typography
+            component="h1"
+            variant="h3"
+          >
+            Quiz Setup
+          </Typography>
+        </Grid>
+        <Grid item style={{display: 'flex'}}>
+          <StyledButton
+            variant="contained"
+            color="bprimary"
+            size="small"
+            onClick={() => { refershView() }}
+            startIcon={<CachedIcon />}
+          >
+            Refersh
+          </StyledButton>&nbsp; &nbsp;
+          <ViewActionButtons  
+            btnToShow={btnToShow}
+            updateRecord={updateRecord}
+            deleteRecord={showDeleteModal}
+            closeView={closeView}
+            currentRecord={quizSetupState.quizSetupRecord}
+          />
+        </Grid>
+      </Grid>
+      <DeleteAlert
+        title="Quiz Delete"
+        alertText="Are you sure, You want delete this Quiz?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+export default Header;

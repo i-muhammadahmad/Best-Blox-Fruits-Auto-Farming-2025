@@ -1,0 +1,582 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import { makeStyles } from '@material-ui/styles';
+import {
+  Header,
+  ClientImage,
+  ClientOfficesModel
+} from './components';
+import { 
+  addClient,
+  hideClientValidationError,
+  redirectToClientList,
+  addRemoveOffices,
+  clientCompaniesListFetch
+} from 'actions'
+import { 
+  Card, 
+  CardHeader, 
+  CardContent,
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  MenuItem
+ } from '@material-ui/core';
+import CloseIcon from '@material-ui/icons/Close';
+import { Page, StyledButton, StyledFab } from 'components';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react'
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import { isEmpty, find, remove, findIndex, forEach, times } from 'lodash';
+import useRouter from 'utils/useRouter';
+import moment from 'moment';
+import SaveIcon from '@material-ui/icons/Save';
+import CancelIcon from '@material-ui/icons/Cancel';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+import { EmployeeDropdown } from 'commonDropdowns';
+import { CK_CONFIGS } from 'configs';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: theme.breakpoints.values.lg,
+    maxWidth: '100%',
+    margin: '0 auto',
+    padding: theme.spacing(3, 3, 6, 3)
+  },
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const ClientAdd = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const clientState = useSelector(state => state.clientState);
+  const companyState = useSelector(state => state.companyState);
+  const session = useSelector(state => state.session);
+
+  const [files, setFiles] = useState([]);
+  const [clientCompany, setClientCompany] = useState(null);
+  const [clientmanager, setClientManager] = useState(null);
+  const [openOfficeModel, setOpenOfficeModel] = React.useState(false);
+
+  const [schema, setSchema] = React.useState(
+    {
+      client_name: {
+        presence: { allowEmpty: false, message: '^Name is required' },
+      },
+      company_id: {
+        presence: { allowEmpty: false, message: '^Please Select Company' },
+      },
+      manager_id: {
+        presence: { allowEmpty: false, message: '^Please Select Client Manager' },
+      },
+      start_date: {
+        presence: { allowEmpty: false, message: '^Start Date is required' },
+      },
+      invoices_per_month:{
+        presence: { allowEmpty: false, message: '^Please Select Invoices Per Month' },
+      }
+    }
+  );
+
+  const [formState, setFormState] = useState({
+    isValid: false,
+    values: { 
+      start_date: moment(moment().toDate()).format('YYYY-MM-DD'),
+      'object_viewed_id': session.current_page_permissions.object_id,
+    },
+    touched: {
+      start_date: true,
+      'object_viewed_id': true,
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    dispatch(clientCompaniesListFetch(session.current_page_permissions.object_id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const errors = validate(formState.values, schema);
+
+    setFormState(formState => ({
+      ...formState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [formState.values, schema]);
+
+  useEffect(() => {
+    if(!isEmpty(clientState.validation_error)){
+      const errors = clientState.validation_error;
+      setFormState(formState => ({
+        ...formState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }  
+  }, [clientState.validation_error]);
+
+  useEffect(() => {
+    if(clientState.redirect_to_list){
+      router.history.push('/client');
+    } 
+  }, [clientState.redirect_to_list, router.history]);
+
+  const clientManagerOnChange = (event, newValue) => {
+    if(newValue){
+      setClientManager(newValue)
+      setManagerId(newValue.id)
+    }
+    else{
+      setClientManager(newValue)
+      setManagerId('')
+    }
+  }
+
+  const setManagerId = manager_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'manager_id':manager_id
+      },
+      touched: {
+        ...formState.touched,
+        'manager_id': true
+      }
+    }));
+    dispatch(hideClientValidationError('manager_id'))
+  }
+
+  const setCompanyId = company_id => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'company_id':company_id
+      },
+      touched: {
+        ...formState.touched,
+        'company_id': true
+      }
+    }));
+    dispatch(hideClientValidationError('company_id'))
+  }
+  const setDescription = description => {
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        'description':description
+      },
+      touched: {
+        ...formState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideClientValidationError('description'))
+  }
+
+  const handleInvoicePerMonthChange = event => {
+    handleChange(event);
+
+    if(event.target.value === 1){
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          'cut_off_day': ''
+        },
+        touched: {
+          ...formState.touched,
+          'cut_off_day': true
+        }
+      }));
+      dispatch(hideClientValidationError('cut_off_day'))
+    }  
+  }
+
+  const handleChange = event => {
+    event.persist();
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideClientValidationError(event.target.name))
+  }
+
+  const handleTotalSeatsChange = event => {
+    event.persist();
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...formState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideClientValidationError(event.target.name))
+
+    //updating added_offices state
+    let a_offices = clientState.availableOffices;
+    let added_offices = clientState.addedOffices;
+    let itemIndex = findIndex(added_offices, ['office_id', event.target.name]);
+    added_offices[itemIndex]['total_seats'] = event.target.value;
+    dispatch(addRemoveOffices(a_offices, added_offices));
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const form_data = new FormData();
+    if(!isEmpty(files[0])){
+      form_data.append('client_image', files[0]);
+    }  
+
+    //appending form state to data object
+    forEach(formState.values, function(value, key) {
+      form_data.append(key, value);
+    });
+    form_data.append('added_offices', JSON.stringify(clientState.addedOffices));
+    dispatch(addClient(form_data));
+  }
+
+  const hasError = field =>
+    formState.touched[field] && formState.errors[field] ? true : false;
+
+  const removeOffices = (feild_name) => {
+    let a_offices = clientState.availableOffices;
+    let added_offices = clientState.addedOffices;
+    const item = find(added_offices, ['office_id', feild_name]);
+    a_offices.push(item);
+    remove(added_offices, ['office_id', feild_name])
+    dispatch(addRemoveOffices(a_offices, added_offices));
+
+    let touch = {...formState.touched};
+    delete touch[feild_name];
+
+    let vals = {...formState.values};
+    delete vals[feild_name];
+
+    let errs = {...formState.errors};
+    delete vals[feild_name];
+    setFormState(formState => ({
+      ...formState,
+      values: vals,
+      touched: touch,
+      errors: errs
+    }));
+
+    let validators = {...schema}
+    delete validators[feild_name];
+    setSchema(validators);
+  }  
+
+  return (
+    <Page
+      className={classes.root}
+      title="Add Client"
+    >
+      <Header />
+      <Card
+        className={classes.projectDetails}
+      >
+        <CardHeader title="Add Client" />
+        <CardContent>
+        <form
+          onSubmit={handleSubmit}
+        >
+          <div className={classes.formGroup}>
+            <Grid container spacing={3}> 
+              <Grid item xs={12} sm={8}>
+                <Grid container spacing={3}>
+                  <Grid item xs={6} sm={4}>
+                    <TextField
+                      error={hasError('client_name')}
+                      fullWidth
+                      helperText={hasError('client_name') ? formState.errors.client_name[0] : null}
+                      label="Client Name"
+                      name="client_name"
+                      onChange={handleChange}
+                      value={formState.values.client_name || ''}
+                      variant="outlined"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                    {(companyState.clientCompaniesList)?
+                    <Autocomplete
+                      id="company_id"
+                      value={clientCompany}
+                      onChange={(event, newValue) => {
+                        if(newValue){
+                          setClientCompany(newValue)
+                          setCompanyId(newValue.id)
+                        }
+                        else{
+                          setClientCompany(newValue)
+                          setCompanyId('')
+                        }
+                      }}
+                      size="small"
+                      options={companyState.clientCompaniesList}
+                      getOptionLabel={(option) => option.name}
+                      renderInput={(params) => <TextField {...params} label="Select Company" variant="outlined" error={hasError('company_id')} helperText={hasError('company_id') ? formState.errors.company_id[0] : null} />}
+                    />
+                    :''}
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                    <EmployeeDropdown
+                      EmployeeValue={clientmanager}
+                      setEmployeeValue={setClientManager}
+                      id="manager_id"
+                      name="manager_id"
+                      employeeOnChange={clientManagerOnChange}
+                      renderInput={(params) => <TextField {...params} label="Select Client Manager" variant="outlined" error={hasError('manager_id')} helperText={hasError('manager_id') ? formState.errors.manager_id[0] : null} />}
+                    />
+                  </Grid>
+                </Grid>
+                <Grid container spacing={3}>
+                  <Grid item xs={6} sm={4}>
+                    <TextField
+                      className={classes.field}
+                      value={formState.values.start_date || ''}
+                      fullWidth
+                      label="Start Date"
+                      name="start_date"
+                      onChange={handleChange}
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      error={hasError('start_date')}
+                      helperText={hasError('start_date') ? formState.errors.start_date[0] : null}
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                    <TextField
+                      className={classes.field}
+                      value={formState.values.end_date || ''}
+                      fullWidth
+                      label="End Date"
+                      name="end_date"
+                      onChange={handleChange}
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      error={hasError('end_date')}
+                      helperText={hasError('end_date') ? formState.errors.end_date[0] : null}
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                    <TextField
+                      className={classes.field}
+                      value={formState.values.invoices_per_month || ''}
+                      fullWidth
+                      select
+                      label="Select Invoices Per Month"
+                      name="invoices_per_month"
+                      onChange={handleInvoicePerMonthChange}
+                      variant="outlined"
+                      size="small"
+                      error={hasError('invoices_per_month')}
+                      helperText={hasError('invoices_per_month') ? formState.errors.invoices_per_month[0] : null}
+                    >
+                      <MenuItem key={'inv_1'} value={1}>
+                        {1}
+                      </MenuItem>
+                      <MenuItem key={'inv_2'} value={2}>
+                        {2}
+                      </MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                    {(formState.values.invoices_per_month === 2)?
+                    <TextField
+                      className={classes.field}
+                      value={formState.values.cut_off_day || ''}
+                      fullWidth
+                      select
+                      label="Select Cut Off Day"
+                      name="cut_off_day"
+                      onChange={handleChange}
+                      variant="outlined"
+                      size="small"
+                      error={hasError('cut_off_day')}
+                      helperText={hasError('cut_off_day') ? formState.errors.cut_off_day[0] : null}
+                    >
+                      {times(31, (i) => (
+                        <MenuItem key={'inv_'+(i+1)} value={(i+1)}>
+                          {(i+1)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    : ''
+                    }
+                  </Grid>
+                </Grid>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={12}>
+                    {!isEmpty(clientState.addedOffices)?
+                    <TableContainer component={Paper}>
+                      <Table className={classes.table} aria-label="simple table">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Name</TableCell>
+                            <TableCell >Total Seats</TableCell>
+                            <TableCell align="right"></TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                        {clientState.addedOffices.map(aoffice => (
+                          <TableRow key={aoffice.office_id}>
+                            <TableCell component="th" scope="row">
+                              {aoffice.name} 
+                            </TableCell>
+                            <TableCell align="right">
+                              <TextField
+                                fullWidth
+                                label="Total Seats"
+                                name={aoffice.office_id}
+                                onChange={handleTotalSeatsChange}
+                                value={(formState.values[aoffice.office_id])? formState.values[aoffice.office_id] : ''}
+                                variant="outlined"
+                                size="small"
+                                type="number"
+                                error={hasError(aoffice.office_id)}
+                                helperText={hasError(aoffice.office_id) ? formState.errors[aoffice.office_id][0] : null}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                            <StyledFab
+                              color="bdanger" aria-label="delete"
+                              size="small"
+                              onClick={() => removeOffices(aoffice.office_id)}
+                            >
+                              <CloseIcon />
+                            </StyledFab>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    :''}  
+                  </Grid>
+                </Grid>
+                <Grid container spacing={3}> 
+                  <Grid item xs={12} sm={12}>
+                    <StyledButton
+                      color="bsuccess"
+                      type="button"
+                      variant="contained"
+                      onClick={() => setOpenOfficeModel(true)}
+                      size="small"
+                      startIcon={<AddCircleOutlineIcon />}
+                    >
+                      Add Offices
+                    </StyledButton>
+                  </Grid>  
+                </Grid>    
+                <Grid container spacing={3}> 
+                  <Grid item xs={12} sm={12}>    
+                    <CKEditor
+                      editor={ ClassicEditor }
+                      config={CK_CONFIGS(localStorage.getItem("token"))}
+                      data={formState.values.description || ''}
+                      onChange={ ( event, editor ) => {
+                          const data = editor.getData();
+                          setDescription(data)
+                      }}
+                    />
+                    <FormControl error={hasError('description')} >  
+                      <FormHelperText id="component-error-text">{hasError('description') ? formState.errors.description[0] : null}</FormHelperText>
+                    </FormControl>
+                  </Grid>  
+                </Grid> 
+              </Grid>  
+              <Grid item xs={4} sm={4}>  
+                <FormControl error={hasError('client_image')} >
+                  <FormHelperText id="component-error-text">{hasError('client_image') ? formState.errors.client_image[0] : null}</FormHelperText>
+                </FormControl>
+                <ClientImage
+                  files={files}
+                  setFiles={setFiles}
+                />
+              </Grid> 
+            </Grid>      
+          </div>
+          <StyledButton
+            color="bprimary"
+            disabled={!formState.isValid}
+            size="small"
+            type="submit"
+            variant="contained"
+            startIcon={<SaveIcon />}
+          >
+            Create Client
+          </StyledButton> &nbsp; &nbsp;
+          <StyledButton
+            variant="contained"
+            color="blight"
+            size="small"
+            onClick={() => { dispatch(redirectToClientList()) }}
+            startIcon={<CancelIcon />}
+          >
+            CLOSE
+          </StyledButton>
+        </form>
+        <ClientOfficesModel 
+          modalOpen={openOfficeModel} 
+          handleModalOpen={setOpenOfficeModel}
+          parentFormState={formState}
+          setParentFormState={setFormState}
+          ParentSchema={schema}
+          setParentSchema={setSchema}
+        />  
+        </CardContent>
+      </Card>
+    </Page>
+  );
+};
+
+export default ClientAdd;

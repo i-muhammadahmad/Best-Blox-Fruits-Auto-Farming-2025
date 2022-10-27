@@ -1,0 +1,152 @@
+/* eslint-disable react/display-name */
+import React, { useState, forwardRef, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { makeStyles } from '@material-ui/styles';
+import { ListItem, Button, Collapse, colors } from '@material-ui/core';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import Page from './Page';
+import Module from './Module';
+import Component from './Component';
+import { find, isEmpty } from 'lodash'
+
+const ObjectListItem = props => {
+  const {
+    title,
+    depth,
+    open,
+    label,
+    objectType,
+    formState,
+    setFormState,
+    objectListItem,
+    ...rest
+  } = props;
+
+  const rolesAccessState = useSelector(state => state.rolesAccessState);
+
+  useEffect(() => {
+    let permissions = rolesAccessState.permissionsListByRole;
+    let item = find(permissions, ['object_id', objectListItem.id]);
+    if(!isEmpty(item)){
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          role_access_rights: {
+            ...formState.values.role_access_rights,
+            [item.object_id]: {
+              ...formState.values[item.object_id],
+              'add': (item.rights_add == '1') ? true : false,
+              'edit': (item.rights_edit == '1') ? true : false,
+              'delete': (item.rights_delete == '1') ? true : false,
+              'view': (item.rights_view == '1') ? true : false,
+              'view_deleted': (item.rights_view_deleted == '1') ? true : false,
+              'object_id': item.object_id,
+              'office_wise_access': (item.office_wise_access == '1') ? true : false,
+              'client_wise_access': (item.client_wise_access == '1') ? true : false,
+              'client_ids': !isEmpty(item.client_ids)? JSON.parse(item.client_ids): item.client_ids,
+              'office_ids': !isEmpty(item.office_ids)? JSON.parse(item.office_ids): item.office_ids,
+              'id': item.id
+            }
+          }
+        }
+      }));
+    }
+    else{
+      setFormState(formState => ({
+        ...formState,
+        values: {
+          ...formState.values,
+          role_access_rights:{
+            ...formState.values.role_access_rights,
+            [objectListItem.id]: {
+              ...formState.values[objectListItem.id],
+              'add': false,
+              'edit': false,
+              'delete': false,
+              'view': false,
+              'view_deleted': false,
+              'object_id': objectListItem.id,
+              'office_wise_access': false,
+              'client_wise_access': false,
+              'client_ids': null,
+              'office_ids': null,
+            }
+          }
+        }
+      }));
+    }
+    
+  }, []);
+
+  if (objectType === 'Page') {
+    return (
+      <Page
+        depth={depth}
+        label={label}
+        open={open}
+        title={title}
+        objectType={objectType}
+        key={objectListItem.id}
+        objectListItem={objectListItem}
+        setFormState={setFormState}
+        formState={formState}
+        {...rest}
+      >
+      </Page>
+    );
+  } else if (objectType === 'Component') {
+    return (
+      <Component
+        depth={depth}
+        label={label}
+        open={open}
+        title={title}
+        objectType={objectType}
+        key={objectListItem.id}
+        objectListItem={objectListItem}
+        setFormState={setFormState}
+        formState={formState}
+        {...rest}
+      >
+      </Component>
+    );
+  } else {
+    return (
+      <Module
+        depth={depth}
+        label={label}
+        open={open}
+        title={title}
+        objectType={objectType}
+        key={objectListItem.id}
+        objectListItem={objectListItem}
+        setFormState={setFormState}
+        formState={formState}
+        {...rest}
+      >
+      </Module>
+    );
+  }
+};
+
+ObjectListItem.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  depth: PropTypes.number.isRequired,
+  label: PropTypes.any,
+  open: PropTypes.bool,
+  title: PropTypes.string.isRequired,
+  objectType: PropTypes.string.isRequired
+};
+
+ObjectListItem.defaultProps = {
+  depth: 0,
+  open: false,
+  objectType: 'Module'
+};
+
+export default ObjectListItem;

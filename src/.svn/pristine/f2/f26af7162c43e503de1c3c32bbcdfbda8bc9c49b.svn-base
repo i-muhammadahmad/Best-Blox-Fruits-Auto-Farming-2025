@@ -1,0 +1,608 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import validate from 'validate.js';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { StyledButton, DeleteAlert, StyledFab } from 'components';
+import { Results } from './bindingComponents';
+import {
+  TextField,
+  Grid,
+  FormControl,
+  FormHelperText,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel,
+  FormGroup,
+  Switch
+} from '@material-ui/core';
+import {
+  hideBindingValidationError,
+  rolesListFetch,
+  addQuizBinding,
+  deleteQuizBinding,
+  updateQuizBinding,
+  showCommonLoader,
+  hideCommonLoader
+} from 'actions';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CKEditor from '@ckeditor/ckeditor5-react';
+import ClassicEditor from 'ckeditor5-custom-build/build/ckeditor';
+import SaveIcon from '@material-ui/icons/Save';
+import ClearIcon from '@material-ui/icons/Clear';
+import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import { isEmpty, forEach, find, filter, map } from 'lodash';
+import { CK_CONFIGS } from 'configs';
+import moment from 'moment';
+import { UserDropdown } from 'commonDropdowns';
+
+const useStyles = makeStyles((theme) => ({
+  root: {},
+  projectDetails: {
+    marginTop: theme.spacing(3)
+  },
+  formGroup: {
+    marginBottom: theme.spacing(3)
+  }
+}));
+
+const useRadioStyles = makeStyles(theme => ({
+  root: {
+    width: 42,
+    height: 26,
+    padding: 0,
+    margin: theme.spacing(1),
+  },
+  switchBase: {
+    padding: 1,
+    '&$checked': {
+      transform: 'translateX(16px)',
+      color: theme.palette.common.white,
+      '& + $track': {
+        backgroundColor: theme.palette.bprimary.main,
+        opacity: 1,
+        border: 'none',
+      },
+    },
+    '&$focusVisible $thumb': {
+      color: theme.palette.bprimary.main,
+      border: '6px solid #fff',
+    },
+  },
+  thumb: {
+    width: 24,
+    height: 24,
+  },
+  track: {
+    borderRadius: 26 / 2,
+    border: `1px solid ${theme.palette.grey[400]}`,
+    backgroundColor: theme.palette.grey[50],
+    opacity: 1,
+    transition: theme.transitions.create(['background-color', 'border']),
+  },
+  checked: {},
+  focusVisible: {},
+}));
+
+const schema = {
+  binded_with: {
+    presence: { allowEmpty: false, message: '^Please Select Binded With' },
+  },
+  assigned_from: {
+    presence: { allowEmpty: false, message: ' is required' },
+  }
+}
+
+const QuizBinding = props => {
+  const { ...rest } = props;
+
+  const classes = useStyles();
+  const radio_classes = useRadioStyles();
+  
+  const dispatch = useDispatch();
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const quizSetupState = useSelector(state => state.quizSetupState);
+  const rolesState = useSelector(state => state.rolesState);
+  const session = useSelector(state => state.session);
+
+  const [quizBindingId, setQuizBindingId] = useState('');
+  const [openDeleteModel, setOpenDeleteModel] = React.useState(false);
+  const [UserValue, setUserValue] = useState([]);
+  const [UserGroupValue, setUserGroupValue] = useState([]);
+
+  const [bindingFormState, setbindingFormState] = useState({
+    isValid: false,
+    values: {
+      'object_viewed_id': session.current_page_permissions.object_id,
+      'binded_with': 'User',
+      'user_id': null,
+      'user_group_id': null,
+      'assigned_from': moment(moment().toDate()).format('YYYY-MM-DD'),
+      'compliance_requirement': false
+    },
+    touched: {
+      'object_viewed_id': true,
+      'binded_with': true,
+      'user_id': true,
+      'user_group_id': true,
+      'assigned_from': true,
+      'compliance_requirement': true
+      
+    },
+    errors: {}
+  });
+
+  useEffect(() => {
+    const errors = validate(bindingFormState.values, schema);
+
+    setbindingFormState(bindingFormState => ({
+      ...bindingFormState,
+      isValid: errors ? false : true,
+      errors: errors || {}
+    }));
+  }, [bindingFormState.values]);
+
+  useEffect(() => {
+    if (!isEmpty(quizSetupState.binding_validation_error)) {
+      const errors = quizSetupState.binding_validation_error;
+      setbindingFormState(bindingFormState => ({
+        ...bindingFormState,
+        isValid: errors ? false : true,
+        errors: errors || {}
+      }));
+    }
+  }, [quizSetupState.binding_validation_error]);
+
+  useEffect(() => {
+    if (isEmpty(rolesState.rolesList)) {
+      dispatch(rolesListFetch(session.current_page_permissions.object_id))
+    }
+  }, []);
+
+  useEffect(() => {
+    if (quizSetupState.binding_add_update_status === true) {
+      resetForm();
+      setRefershDataTable(true);
+    }
+  }, [quizSetupState.binding_add_update_status]);
+
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(session.current_page_permissions.rights_edit == '1') ?
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(session.current_page_permissions.rights_delete == '1') ?
+          <StyledFab
+            color="bdanger"
+            aria-label="edit"
+            size="small"
+            onClick={() => showDeleteModal(value.id)}
+          >
+            <DeleteIcon size="small" />
+          </StyledFab>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  const deleteRecord = async () => {
+    await dispatch(deleteQuizBinding(quizBindingId, session.current_page_permissions.object_id, quizSetupState.quiz_id));
+    setRefershDataTable(true);
+  }
+
+  const showDeleteModal = (id) => {
+    setQuizBindingId(id)
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+    setQuizBindingId('')
+  }
+
+  const updateRecord = (value) => {
+    //dispatch(showCommonLoader())
+    let item = value;
+    if (!isEmpty(item)) {
+      setbindingFormState(bindingFormState => ({
+        ...bindingFormState,
+        values: {
+          ...bindingFormState.values,
+          'object_viewed_id': session.current_page_permissions.object_id,
+          'id': item.id,
+          'binded_with': item.binded_with,
+          'user_id': [item.user_id],
+          'user_group_id': [item.user_group_id],
+          'description': item.description,
+          'assigned_from': item.assigned_from,
+          'due_date': item.due_date,
+          'compliance_requirement': item.compliance_requirement
+        },
+        touched: {
+          ...bindingFormState.touched,
+          'object_viewed_id': true,
+          'id': true,
+          'binded_with': true,
+          'user_id': true,
+          'description': true,
+          'assigned_from': true,
+          'due_date': true,
+          'compliance_requirement': true
+        },
+      }));
+
+      if (item.binded_with === 'User') {        
+        setUserGroupValue([]);
+      }
+      else if (item.binded_with === 'UserGroup') {
+        let role_val = find(rolesState.rolesList, ['id', item.user_group_id]);
+        setUserGroupValue(role_val);
+        setUserValue([]);
+      }
+
+      var elmnt = document.getElementById("quiz_bindind_form");
+      elmnt.scrollIntoView();
+    }
+
+  }
+
+  const userOnChange = (event, newValue) => {
+    if (newValue) {
+      setUserValue(newValue)
+      let user_ids = map(newValue, 'id')
+      setUserId(user_ids)
+    }
+    else {
+      setUserValue(newValue)
+      let user_ids = map(newValue, 'id')
+      setUserId(user_ids)
+    }
+
+  }
+
+  const setUserId = user_id => {
+    setbindingFormState(bindingFormState => ({
+      ...bindingFormState,
+      values: {
+        ...bindingFormState.values,
+        'user_id': user_id
+      },
+      touched: {
+        ...bindingFormState.touched,
+        'user_id': true
+      }
+    }));
+    dispatch(hideBindingValidationError('user_id'))
+  }
+  
+  const userGroupOnChange = (event, newValue) => {
+    if (newValue) {
+      setUserGroupValue(newValue)
+      let user_group_ids = map(newValue, 'id')
+      setUserGroupId(user_group_ids)
+    }
+    else {
+      setUserGroupValue(newValue)
+      let user_group_ids = map(newValue, 'id')
+      setUserGroupId(user_group_ids)
+    }
+  }
+
+  const setUserGroupId = user_group_id => {
+    setbindingFormState(bindingFormState => ({
+      ...bindingFormState,
+      values: {
+        ...bindingFormState.values,
+        'user_group_id': user_group_id
+      },
+      touched: {
+        ...bindingFormState.touched,
+        'user_group_id': true
+      }
+    }));
+    dispatch(hideBindingValidationError('user_group_id'))
+  }
+
+  const handleChange = event => {
+    event.persist();
+    setbindingFormState(bindingFormState => ({
+      ...bindingFormState,
+      values: {
+        ...bindingFormState.values,
+        [event.target.name]:
+          event.target.type === 'checkbox'
+            ? event.target.checked
+            : event.target.value
+      },
+      touched: {
+        ...bindingFormState.touched,
+        [event.target.name]: true
+      }
+    }));
+    dispatch(hideBindingValidationError(event.target.name))
+  }
+
+  const handleBindedWithChange = event => {
+    handleChange(event);
+    setUserValue([]);
+    setUserGroupValue([]);
+    setbindingFormState(bindingFormState => ({
+      ...bindingFormState,
+      values: {
+        ...bindingFormState.values,
+        'user_id': null,
+        'user_group_id': null
+      },
+      touched: {
+        ...bindingFormState.touched,
+        'user_id': false,
+        'user_group_id': false
+      }
+    }));
+    dispatch(hideBindingValidationError('description'))
+  }
+
+  const handleSubmit = () => {
+
+    //event.preventDefault();
+    if (!isEmpty(quizSetupState.quiz_id)) {
+      let data = bindingFormState.values;
+      data['quiz_id'] = quizSetupState.quiz_id;
+
+      if (isEmpty(bindingFormState.values.id)) {
+        dispatch(addQuizBinding(data));
+      }
+      else {
+        dispatch(updateQuizBinding(data));
+      }
+    }
+    else {
+      alert('Please Select Course');
+    }
+  }
+
+  const resetForm = () => {
+    setbindingFormState(bindingFormState => ({
+      isValid: false,
+      values: {
+        'object_viewed_id': session.current_page_permissions.object_id,
+        'binded_with': 'User',
+        'description': "",
+        'assigned_from': moment(moment().toDate()).format('YYYY-MM-DD'),
+        'compliance_requirement': false
+      },
+      touched: {
+        'object_viewed_id': true,
+        'binded_with': true,
+        'user_id': true,
+        'user_group_id': true,
+        'description': true,
+        'assigned_from': true,
+        'compliance_requirement': true
+      },
+      errors: {}
+    }));
+    setUserValue([]);
+    setUserGroupValue([]);
+  }
+
+  const setDescription = description => {
+    setbindingFormState(bindingFormState => ({
+      ...bindingFormState,
+      values: {
+        ...bindingFormState.values,
+        'description': description
+      },
+      touched: {
+        ...bindingFormState.touched,
+        'description': true
+      }
+    }));
+    dispatch(hideBindingValidationError('description'))
+  }
+
+  const hasError = field =>
+    bindingFormState.touched[field] && bindingFormState.errors[field] ? true : false;
+
+  return (
+    <div>
+      <div className={classes.formGroup}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={12} id="quiz_bindind_form">
+                <FormControl component="fieldset" error={hasError('binded_with')}>
+                  <FormHelperText component='div' id="binding-error-text">{hasError('binded_with') ? bindingFormState.errors.binded_with[0] : null}</FormHelperText>
+                  <RadioGroup row aria-label="binded_with" name="binded_with" value={bindingFormState.values.binded_with} onChange={handleBindedWithChange}>
+                    <FormControlLabel
+                      value="User"
+                      control={<Radio color="primary" />}
+                      label="Bind With User"
+                      labelPlacement="end"
+                    />
+                    <FormControlLabel
+                      value="UserGroup"
+                      control={<Radio color="primary" />}
+                      label="Bind With User Group"
+                      labelPlacement="end"
+                    />
+                  </RadioGroup>
+                </FormControl>
+              </Grid>
+            </Grid>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={3}>
+                <UserDropdown
+                  UserValue={UserValue}
+                  setUserValue={setUserValue}
+                  id="user_id"
+                  name="user_id"
+                  userOnChange={userOnChange}
+                  limitTags={2}
+                  multiple={true}
+                  showall={false}
+                  selectedChangingId={bindingFormState.values.user_id}
+                  disabled={!(bindingFormState.values.binded_with === 'User')}
+                  renderInput={(params) => <TextField {...params} size="small" label="Select User" InputLabelProps={{ shrink: true, }} variant="outlined" error={hasError('user_id')} helperText={hasError('user_id') ? bindingFormState.errors.user_id[0] : null} />}
+                />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                {(rolesState.rolesList) ?
+                  <Autocomplete
+                    id="user_group_id"
+                    value={UserGroupValue}
+                    onChange={userGroupOnChange}
+                    limitTags={2}
+                    multiple={true}
+                    options={rolesState.rolesList}
+                    getOptionLabel={(option) => option.name}
+                    size="small"
+                    disabled={!(bindingFormState.values.binded_with === 'UserGroup')}
+                    renderInput={(params) => <TextField {...params} size="small" label="Select User Group" InputLabelProps={{ shrink: true, }} variant="outlined" error={hasError('user_group_id')} helperText={hasError('user_group_id') ? bindingFormState.errors.user_group_id[0] : null} />}
+                  />
+                  : ''
+                }
+              </Grid>
+              <Grid item xs={6} sm={2}>
+                <TextField
+                  error={hasError('assigned_from')}
+                  fullWidth
+                  helperText={hasError('assigned_from') ? bindingFormState.errors.assigned_from[0] : null}
+                  label="Assigned From"
+                  name="assigned_from"
+                  onChange={handleChange}
+                  value={bindingFormState.values.assigned_from || ''}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6} sm={2}>
+                <TextField
+                  error={hasError('due_date')}
+                  fullWidth
+                  helperText={hasError('due_date') ? bindingFormState.errors.due_date[0] : null}
+                  label="Due Date"
+                  name="due_date"
+                  onChange={handleChange}
+                  value={bindingFormState.values.due_date || ''}
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6} sm={2}>
+                <FormGroup >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={bindingFormState.values.compliance_requirement}
+                        onChange={handleChange}
+                        name="compliance_requirement"
+                        color="primary"
+                        classes={{
+                          root: radio_classes.root,
+                          switchBase: radio_classes.switchBase,
+                          thumb: radio_classes.thumb,
+                          track: radio_classes.track,
+                          checked: radio_classes.checked,
+                        }}
+                      />
+                    }
+                    label="Compliance Requirement"
+                  />
+                  <FormControl error={hasError('compliance_requirement')} >
+                    <FormHelperText component='div' id="component-error-text">{hasError('compliance_requirement') ? bindingFormState.errors.compliance_requirement[0] : null}</FormHelperText>
+                  </FormControl>
+                </FormGroup>
+              </Grid>
+            </Grid>
+            <br />
+            <div className={classes.formGroup}>
+              <CKEditor
+                editor={ClassicEditor}
+                config={CK_CONFIGS(localStorage.getItem("token"))}
+                data={bindingFormState.values.description || ''}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setDescription(data)
+                }}
+              />
+              <FormControl error={hasError('description')} >
+                <FormHelperText component='div' id="component-error-text">{hasError('description') ? bindingFormState.errors.description[0] : null}</FormHelperText>
+              </FormControl>
+            </div>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={12}>
+                <div style={{ float: 'right' }} >
+                  <StyledButton
+                    color="bprimary"
+                    disabled={!bindingFormState.isValid}
+                    size="small"
+                    type="button"
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSubmit}
+                  >
+                    Save Binding
+                  </StyledButton>&nbsp; &nbsp;
+                  <StyledButton
+                    variant="contained"
+                    color="blight"
+                    size="small"
+                    onClick={() => { resetForm() }}
+                    startIcon={<ClearIcon />}
+                  >
+                    RESET
+                  </StyledButton>
+                </div>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={12}>
+            {!isEmpty(quizSetupState.quiz_id)?
+            <Results
+              className={classes.results}
+              refershDataTable={refershDataTable}
+              setRefershDataTable={setRefershDataTable}
+              actionsCol={getActions}
+              extraFilters={{quiz_id: quizSetupState.quiz_id}}
+            />
+            : ''}
+          </Grid>
+        </Grid>
+        <DeleteAlert
+          title="Binding Delete"
+          alertText="Are you sure, You want delete this Binding?"
+          deleteCallback={deleteRecord}
+          modalOpen={openDeleteModel}
+          handleModalOpen={setOpenDeleteModel}
+          onModelClose={hideDeleteModel}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default QuizBinding;

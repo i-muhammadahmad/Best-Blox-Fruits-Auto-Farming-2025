@@ -1,0 +1,201 @@
+import axios from 'axios';
+import { API_URL } from 'configs'
+import { isEmpty } from 'lodash'
+
+export const ASSET_ATTRIBUTE_REQUEST = 'ASSET_ATTRIBUTE_REQUEST'
+export const SHOW_SNACKBAR = 'SHOW_SNACKBAR';
+export const HIDE_ASSET_ATTRIBUTE_FEILD_VALIDATION_ERROR = 'HIDE_ASSET_ATTRIBUTE_FEILD_VALIDATION_ERROR'
+export const ASSET_ATTRIBUTE_ADD_UPDATE_STATUS = 'ASSET_ATTRIBUTE_ADD_UPDATE_STATUS'
+export const ASSET_ATTRIBUTE_SUCCESS = 'ASSET_ATTRIBUTE_SUCCESS'
+export const ASSET_ATTRIBUTE_VALIDATION_ERROR = 'ASSET_ATTRIBUTE_VALIDATION_ERROR'
+const SHOW_LOADER = 'SHOW_LOADER';
+const HIDE_LOADER = 'HIDE_LOADER';
+
+const showCommonLoader = (label = '') => ({
+  type: SHOW_LOADER,
+  common_loder_label: label
+})
+const hideCommonLoader = () => ({
+  type: HIDE_LOADER,
+})
+
+const assetAttributeRequest = () => ({
+  type: ASSET_ATTRIBUTE_REQUEST,
+})
+
+export const assetAttributeFailure = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'general_error'
+});
+
+const tokenError = notification => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: notification,
+  snackbar_notification_type: 'token_expire'
+})
+
+const assetAttributeSuccessNotification = message => ({
+  type: SHOW_SNACKBAR,
+  snackbar_notification: message,
+  snackbar_notification_type: 'success'
+})
+
+const assetAttributeListSuccess = (assetAttributeList) => ({
+  type: ASSET_ATTRIBUTE_SUCCESS,
+  assetAttributeList: assetAttributeList,
+})
+
+const assetAttributeAddUpdateStatus = (status) => ({
+  type: ASSET_ATTRIBUTE_ADD_UPDATE_STATUS,
+  asset_attribute_add_update_status: status
+});
+
+const validationError = notification => ({
+  type: ASSET_ATTRIBUTE_VALIDATION_ERROR,
+  asset_attribute_validation_error: notification,
+})
+
+const assetAttributeAddUpadteSuccess = (message, action, dispatch) => {
+  dispatch(assetAttributeSuccessNotification(message));
+  dispatch(assetAttributeAddUpdateStatus(true))
+}
+
+export const hidevalidationError = (feild_key) => ({
+  type: HIDE_ASSET_ATTRIBUTE_FEILD_VALIDATION_ERROR,
+  feild_key: feild_key
+})
+
+export const assetAttributeListFetch = (atype_id, object_viewed_id = '') => {
+  var token = localStorage.getItem("token");
+  let request_data = [
+    {
+      'key': 'atype_id',
+      'value': atype_id
+    }
+  ];
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "asset_attributes/getByAttributes", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        "object_viewed_id": object_viewed_id,
+        "request_data": request_data
+      }
+    })
+      .then((response) => {
+        dispatch(assetAttributeListSuccess(response.data));
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        handleErrorResponse(error, dispatch);
+        dispatch(hideCommonLoader())
+      });
+
+  }
+}
+
+export const addAssetAttribute = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetAttributeAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "asset_attributes/create", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        assetAttributeAddUpadteSuccess('Asset Attribute Created Successfully', 'create', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+
+  }
+}
+
+export const updateAssetAttribute = (data) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(assetAttributeAddUpdateStatus(false))
+    dispatch(showCommonLoader())
+    return axios(API_URL + "asset_attributes/update/" + data.id, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: data,
+    })
+      .then((response) => {
+        dispatch(hideCommonLoader())
+        assetAttributeAddUpadteSuccess('Asset Attribute Updated Successfully', 'update', dispatch)
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+}
+
+export const deleteAssetAttribute = (assetAttributeId, object_viewed_id, atype_id) => {
+  var token = localStorage.getItem("token")
+  return dispatch => {
+    dispatch(showCommonLoader())
+    return axios(API_URL + "asset_attributes/delete/" + assetAttributeId, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      data: {
+        object_viewed_id
+      }
+    })
+      .then((response) => { 
+        dispatch(assetAttributeSuccessNotification('Asset Attribute deleted successfully'))
+        dispatch(assetAttributeListFetch(atype_id, object_viewed_id))
+        dispatch(hideCommonLoader())
+      }, (error) => {
+        dispatch(hideCommonLoader())
+        handleErrorResponse(error, dispatch)
+      });
+  }
+
+}
+
+// handling error reponse   
+const handleErrorResponse = (error, dispatch) => {
+  try {
+    if (error.response.status === 422 && error.response.data.error) {
+      dispatch(validationError(error.response.data.error))
+    }
+    else if (error.response.status === 401 && error.response.data.error) {
+      dispatch(tokenError(error.response.data.error.toString()))
+    }
+    else {
+      let err = '';
+      if (error.response.data.error) {
+        err = error.response.data.error.toString()
+      }
+      else {
+        err = error.response.status + ` ` + error.response.statusText
+      }
+      dispatch(assetAttributeFailure(err))
+    }
+  }
+  catch (e) {
+    dispatch(assetAttributeFailure('Unable to perform action.Something went wrong'))
+  }
+}

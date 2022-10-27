@@ -1,0 +1,392 @@
+/* eslint-disable react/display-name */
+import React, { useState, forwardRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { makeStyles } from '@material-ui/styles';
+import {
+  ListItem,
+  Button,
+  Collapse,
+  colors,
+  Box,
+  Grid,
+  Checkbox,
+  FormControlLabel
+} from '@material-ui/core';
+import { has, find, isEmpty } from 'lodash';
+import { StyledButton } from 'components';
+import AddIcon from '@material-ui/icons/Add';
+import RemoveIcon from '@material-ui/icons/Remove';
+import LocationSearchingIcon from '@material-ui/icons/LocationSearching';
+
+const useStyles = makeStyles(theme => ({
+  item: {
+    display: 'block',
+    paddingTop: 0,
+    paddingBottom: '5px',
+  },
+  itemLeaf: {
+    display: 'flex',
+    paddingTop: 0,
+    paddingBottom: '0px',
+
+  },
+  box: {
+    background: theme.palette.bbggray.main,
+    color: theme.palette.bbggray.contrastText,
+    padding: '10px 8px',
+    justifyContent: 'flex-start',
+    textTransform: 'none',
+    letterSpacing: 0,
+    '&:hover': {
+      background: theme.palette.bbggray.main,
+      color: theme.palette.bbggray.contrastText,
+    }
+  },
+  boxLeaf: {
+    background: theme.palette.bbggray.main,
+    color: theme.palette.bbggray.contrastText,
+    padding: '10px 8px',
+    justifyContent: 'flex-start',
+    textTransform: 'none',
+    letterSpacing: 0,
+    width: '100%',
+    fontWeight: theme.typography.fontWeightRegular,
+    '&.depth-0': {
+      fontWeight: theme.typography.fontWeightMedium
+    },
+    '&:hover': {
+      background: theme.palette.bbggray.main,
+      color: theme.palette.bbggray.contrastText,
+    }
+  },
+  expandIcon: {
+    marginLeft: 'auto',
+    height: 16,
+    width: 16,
+    float: 'right'
+  },
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    marginLeft: 'auto'
+
+  },
+  active: {
+    color: theme.palette.primary.contrastText,
+    fontWeight: theme.typography.fontWeightMedium,
+    '& $icon': {
+      color: theme.palette.primary.contrastText
+    }
+  },
+  rightsCheckbox: {
+    color: theme.palette.bbggray.contrastText,
+    padding: 0
+  },
+  rightsLabel: {
+    color: theme.palette.bbggray.contrastText,
+  }
+}));
+
+const Page = props => {
+  const {
+    title,
+    depth,
+    children,
+    className,
+    open: openProp,
+    label: Label,
+    objectType,
+    formState,
+    setFormState,
+    objectListItem,
+    handleModalOpen,
+    setObjectId,
+    ...rest
+  } = props;
+
+  const classes = useStyles();
+  const [open, setOpen] = useState(openProp);
+  const objectsState = useSelector(state => state.objectsState);
+
+  const handleToggle = () => {
+    setOpen(open => !open);
+  };
+
+  const handleChange = (event, id, accessType, parent_id, current = true) => {
+    //setiing permission for current object
+    setObjectPermission(event, id, accessType, current);
+
+    //setting permission for parent
+    let objectsList = objectsState.objectsList;
+    if (!isEmpty(parent_id) && accessType === 'view' && event.target.checked) {
+      let item = find(objectsList, { 'id': parent_id });
+      handleChange(event, item.id, accessType, item.parent_id, false)
+    }
+
+    //setting view button on edit/add/delete
+    if (["add", "edit", "delete"].includes(accessType) && event.target.checked) {
+      handleChange(event, id, 'view', parent_id, false)
+    }
+  };
+
+  const setObjectPermission = (event, id, accessType, current) => {
+    let a_type = !(formState.values.role_access_rights[id][accessType]);
+    if (!current)
+      a_type = true;
+
+    setFormState(formState => ({
+      ...formState,
+      values: {
+        ...formState.values,
+        role_access_rights: {
+          ...formState.values.role_access_rights,
+          [id]: {
+            ...formState.values.role_access_rights[id],
+            [accessType]: a_type,
+          }
+        }
+      }
+    }));
+  };
+
+  let marginLeft = 0;
+  if (depth > 0) {
+    marginLeft = 20 * depth;
+  }
+
+  const style = {
+    marginLeft
+  };
+
+
+  if (children) {
+    return (
+      <ListItem
+        {...rest}
+        className={clsx(classes.item, className)}
+        disableGutters
+      >
+        <Box
+          className={classes.box}
+          style={style}
+        >
+          <Grid container spacing={3}>
+            <Grid item sm={3}>
+              {title}
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['add'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'add', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Add"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['edit'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'edit', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Edit"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['delete'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'delete', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Delete"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['view'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'view', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="View"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+           
+            <Grid item sm={4}>
+              <StyledButton
+                color="bsuccess"
+                size="small"
+                type="button"
+                variant="contained"
+                startIcon={<LocationSearchingIcon />}
+                onClick={()=>{ handleModalOpen(true);setObjectId(objectListItem.id); }}
+              >
+                Define Scope
+              </StyledButton>
+            </Grid>
+            <Grid item sm={1}>
+              {open ? (
+                <RemoveIcon
+                  className={classes.expandIcon}
+                  color="inherit"
+                  onClick={handleToggle}
+                />
+              ) : (
+                  <AddIcon
+                    className={classes.expandIcon}
+                    color="inherit"
+                    onClick={handleToggle}
+                  />
+                )}
+            </Grid>
+          </Grid>
+        </Box>
+        <Collapse in={open}>{children}</Collapse>
+      </ListItem>
+    );
+  } else {
+    return (
+      <ListItem
+        {...rest}
+        className={clsx(classes.itemLeaf, className)}
+        disableGutters
+      >
+        <Box
+          className={clsx(classes.boxLeaf, `depth-${depth}`)}
+          style={style}
+        >
+          <Grid container spacing={3}>
+            <Grid item sm={3}>
+              {title}
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['add'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'add', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Add"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['edit'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'edit', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Edit"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['delete'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'delete', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="Delete"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            <Grid item sm={1}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={has(formState.values.role_access_rights, objectListItem.id) ? formState.values.role_access_rights[objectListItem.id]['view'] : false}
+                    onChange={(event) => { handleChange(event, objectListItem.id, 'view', objectListItem.parent_id) }}
+                    color="primary"
+                    className={classes.rightsCheckbox}
+                  />
+                }
+                label="View"
+                classes={{
+                  label: classes.rightsLabel
+                }}
+              />
+            </Grid>
+            
+            <Grid item sm={4}>
+              <StyledButton
+                color="bsuccess"
+                size="small"
+                type="button"
+                variant="contained"
+                startIcon={<LocationSearchingIcon />}
+                onClick={()=>{ handleModalOpen(true);setObjectId(objectListItem.id); }}
+              >
+                Define Scope
+              </StyledButton>
+            </Grid>  
+            <Grid item sm={1}></Grid>
+          </Grid>
+        </Box>
+      </ListItem>
+    );
+  }
+};
+
+Page.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  depth: PropTypes.number.isRequired,
+  label: PropTypes.any,
+  open: PropTypes.bool,
+  title: PropTypes.string.isRequired,
+  objectType: PropTypes.string.isRequired
+};
+
+Page.defaultProps = {
+  depth: 0,
+  open: false,
+  objectType: 'Page'
+};
+
+export default Page;

@@ -1,0 +1,168 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import PropTypes from 'prop-types';
+import { TextField } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import {
+  activityAllCategoryDropdownListFetch
+} from 'actions';
+import { isEmpty, includes, isArray, forEach, find } from 'lodash'
+
+const useStyles = makeStyles(theme => ({
+  root: {}
+}));
+
+const ActivityCategoryDropdown = props => {
+  const { clientIds, userIds, ActivityCategoryValue, setActivityCategoryValue, selectedId, activityCategoryOnChange, id, name, size, renderInput, showSelectAllOption, ...attr } = props;
+  const classes = useStyles();
+  const dispatch = useDispatch();
+
+  const activityCategoryState = useSelector(state => state.activityCategoryState);
+  const session = useSelector(state => state.session);
+  const [activityCategoryList, setActivityCategoryList] = useState([]);
+  const [campIds, setCampIds] = useState(clientIds);
+  const [LocalUserIds, setLocalUserIds] = useState(userIds);
+
+  useEffect(() => {
+    let camp_ids = [];
+    if (!includes(campIds, 'all')) {
+      camp_ids = campIds;
+    }
+
+    let user_ids = [];
+    if (!includes(LocalUserIds, 'all')) {
+      user_ids = LocalUserIds;
+    }
+    
+    dispatch(activityAllCategoryDropdownListFetch(session.current_page_permissions.object_id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    setCampIds(clientIds);
+  }, [clientIds]);
+
+  useEffect(() => {
+    setLocalUserIds(userIds);
+  }, [userIds]);
+
+  useEffect(() => {
+
+    let camp_ids = [];
+    if (!includes(campIds, 'all')) {
+      camp_ids = campIds;
+    }
+
+    let user_ids = [];
+    if (!includes(LocalUserIds, 'all')) {
+      user_ids = LocalUserIds;
+    }
+    
+    dispatch(activityAllCategoryDropdownListFetch(session.current_page_permissions.object_id));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campIds, LocalUserIds]);
+
+  useEffect(() => {
+    if (activityCategoryState.activityAllCategoriesDropdownList) {
+
+      let activity_category_list = {
+        ...activityCategoryState.activityAllCategoriesDropdownList
+      }
+      activity_category_list = Object.values(activity_category_list);
+
+      if (attr.multiple === true && !isEmpty(activity_category_list) && showSelectAllOption === true) {
+        let first = {
+          id: 'all',
+          opt_display: 'All',
+        }
+        activity_category_list.unshift(first);
+      }
+      else{
+        let first = {
+          id: 'null',
+          parent_id: null,
+          label: 'None',
+          opt_display: 'None',
+        }
+        activity_category_list.unshift(first);
+      }
+
+      setActivityCategoryList(Object.values(activity_category_list));
+
+
+      
+      if (!isEmpty(selectedId)) {
+        if (isArray(selectedId)) {
+          let scat = [];
+          forEach(selectedId, function (value, key) {
+            let item = find(activityCategoryList, ['id', value]);
+            if (!isEmpty(item)) {
+              scat.push(item);
+            }
+          });
+          setActivityCategoryValue(scat);
+
+        }
+        else {
+          let scat = find(activityCategoryList, ['id', selectedId]);
+          console.log(scat)
+          
+          if(!isEmpty(scat)){
+            setActivityCategoryValue(scat);
+          }
+          else{
+            setActivityCategoryValue(null);
+          }
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityCategoryState.activityAllCategoriesDropdownList]);
+
+  return (
+    <>
+      {(activityCategoryList) ?
+        <Autocomplete
+          value={ActivityCategoryValue}
+          onChange={(event, newValue) => {
+            activityCategoryOnChange(event, newValue)
+          }}
+          options={activityCategoryList}
+          getOptionLabel={(option) => option.opt_display}
+          renderOption={option => (
+            <React.Fragment>
+              <div style={{ paddingLeft: (!isEmpty(option.parent_id)) ? '25px' : ''}}>
+                {option.opt_display}
+              </div>
+            </React.Fragment>
+          )}
+          id={id}
+          size={size}
+          name={name}
+          renderInput={renderInput}
+          {...attr}
+        />
+
+        : ''}
+    </>
+  );
+}
+
+ActivityCategoryDropdown.propTypes = {
+  activityCategoryOnChange: PropTypes.any.isRequired,
+  renderInput: PropTypes.any.isRequired
+};
+
+ActivityCategoryDropdown.defaultProps = {
+  clientIds: [],
+  ActivityCategoryValue: [],
+  id: 'activity_category_id',
+  name: 'activity_category_id',
+  size: 'small',
+  selectedId: '',
+  showSelectAllOption: true
+};
+
+export default ActivityCategoryDropdown;

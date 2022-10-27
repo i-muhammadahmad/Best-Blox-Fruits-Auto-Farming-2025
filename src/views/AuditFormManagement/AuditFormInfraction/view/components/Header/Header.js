@@ -1,0 +1,112 @@
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import { makeStyles } from '@material-ui/styles';
+import { 
+  Typography,
+  Grid,
+} from '@material-ui/core';
+import { 
+  redirectToAuditFormInfractionList,
+  deleteAuditFormInfraction,
+  getAuditFormInfractionById,
+} from 'actions';
+import { ViewActionButtons, DeleteAlert } from 'components';
+import useRouter from 'utils/useRouter';
+import { useSelector, useDispatch } from 'react-redux';
+
+const useStyles = makeStyles(() => ({
+  root: {}
+}));
+
+const Header = props => {
+  const { className, ...rest } = props;
+
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  const auditFormInfractionState = useSelector(state => state.auditFormInfractionState);
+  const session = useSelector(state => state.session);
+
+  const [openDeleteModel, setOpenDeleteModel] = useState(false); 
+
+  useEffect(() => {
+    if (auditFormInfractionState.showUpdateForm) {
+      router.history.push('/audit-form-infraction/update');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditFormInfractionState.showUpdateForm]);
+
+  const deleteRecord = async () => {
+    await dispatch(deleteAuditFormInfraction(auditFormInfractionState.auditFormInfractionRecord.id, session.current_page_permissions.object_id));
+    closeView();
+  }
+
+  const showDeleteModal = () => {
+    setOpenDeleteModel(true)
+  }
+
+  const hideDeleteModel = () => {
+  }
+
+  const updateRecord = () => {
+    dispatch(getAuditFormInfractionById(auditFormInfractionState.auditFormInfractionRecord.id, 'update'))
+  }
+
+  const closeView = () => {
+    dispatch(redirectToAuditFormInfractionList())
+  }
+
+  return (
+    <div
+      {...rest}
+      className={clsx(classes.root, className)}
+    >
+      <Grid
+        alignItems="flex-end"
+        container
+        justify="space-between"
+        spacing={3}
+      >
+        <Grid item>
+          <Typography
+            component="h2"
+            gutterBottom
+            variant="overline"
+          >
+            Audit Form Management
+          </Typography>
+          <Typography
+            component="h1"
+            variant="h3"
+          >
+            Audit Form Infraction
+          </Typography>
+        </Grid>
+        <Grid item>
+          <ViewActionButtons  
+            updateRecord={updateRecord}
+            closeView={closeView}
+            deleteRecord={showDeleteModal}
+            currentRecord={auditFormInfractionState.auditFormInfractionRecord}
+          />
+        </Grid>
+      </Grid> 
+      <DeleteAlert
+        title="Audit Form Infraction Delete"
+        alertText="Are you sure, You want delete this Audit Form Infraction?"
+        deleteCallback={deleteRecord}
+        modalOpen={openDeleteModel}
+        handleModalOpen={setOpenDeleteModel}
+        onModelClose={hideDeleteModel}
+      />   
+    </div>
+  );
+};
+
+Header.propTypes = {
+  className: PropTypes.string
+};
+
+export default Header;

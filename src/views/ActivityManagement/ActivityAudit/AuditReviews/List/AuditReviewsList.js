@@ -1,0 +1,176 @@
+import React, { useState, useEffect } from 'react';
+import { makeStyles } from '@material-ui/styles';
+import { useSelector, useDispatch } from 'react-redux';
+import { Page, StyledFab } from 'components';
+import { Header, Results, ExtraFilters, ReviewForm, AuditView } from './components';
+import {
+  getAuditReviewsById,
+  getActivityLogById,
+  infractionsListFetch,
+  auditErrorCategoryByClientFetch
+} from 'actions';
+import moment from 'moment';
+import { forEach, isEmpty } from 'lodash';
+import EditIcon from '@material-ui/icons/Edit';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import AccessRights from 'utils/AccessRights';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
+  },
+  results: {
+    marginTop: theme.spacing(3)
+  },
+  extraFeilds: {
+    marginTop: theme.spacing(3)
+  }
+}));
+
+const AllLogReportList = () => {
+  const classes = useStyles();
+  const dispatch = useDispatch();
+  const [activityLogId, setActivityLogId] = useState('');
+  const [showFirstTimeReport, setShowFirstTimeReport] = useState(false);
+  const [refershDataTable, setRefershDataTable] = useState(false);
+  const [extraFiltersState, setExtraFiltersState] = useState({
+    isValid: false,
+    values: {
+      date_column: 'date_created',
+      from_date: moment(moment().toDate()).format('YYYY-MM-DD') + 'T00:00',
+      to_date: moment(moment().toDate()).format('YYYY-MM-DD') + 'T23:59'
+    },
+    touched: {
+      date_column: true,
+      from_date: true,
+      to_date: true
+    },
+    errors: {}
+  });
+
+  const auditReviewsState = useSelector(state => state.auditReviewsState);
+  const session = useSelector(state => state.session);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) {
+    }
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    dispatch(auditErrorCategoryByClientFetch('', session.current_page_permissions.object_id));
+    dispatch(infractionsListFetch(session.current_page_permissions.object_id));
+  }, []);
+
+  const updateRecord = (activity_id, audit_id, client_id) => {
+    setActivityLogId(activity_id);
+    dispatch(auditErrorCategoryByClientFetch(client_id, session.current_page_permissions.object_id));
+    dispatch(infractionsListFetch(session.current_page_permissions.object_id));
+    dispatch(getActivityLogById(activity_id))
+    dispatch(getAuditReviewsById(audit_id, 'update'));
+  }
+
+  const viewRecord = (activity_id, audit_id, client_id) => {
+    setActivityLogId(activity_id);
+    dispatch(auditErrorCategoryByClientFetch(client_id, session.current_page_permissions.object_id))
+    dispatch(infractionsListFetch(session.current_page_permissions.object_id));
+    dispatch(getActivityLogById(activity_id))
+    dispatch(getAuditReviewsById(audit_id, 'view'));
+  }
+
+  const getActions = value => {
+    return (
+      <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {(!isEmpty(value.audit_review_id) && AccessRights(session.current_page_permissions, 'edit', value.created_by) && value.is_deleted == 'n') ?
+          <><StyledFab
+            color="bprimary"
+            aria-label="Edit"
+            size="small"
+            onClick={() => updateRecord(value.id, value.audit_review_id, value.client_id)}
+          >
+            <EditIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(isEmpty(value.audit_review_id) && (AccessRights(session.current_page_permissions, 'add')) && value.is_deleted == 'n') ?
+          <><StyledFab
+            color="bsuccess"
+            aria-label="Add"
+            size="small"
+            onClick={() => updateRecord(value.id, value.audit_review_id, value.client_id)}
+          >
+            <AddCircleOutlineIcon />
+          </StyledFab>&nbsp;</>
+          : ''
+        }
+        {(AccessRights(session.current_page_permissions, 'view', value.created_by) && !isEmpty(value.audit_review_id)) ?
+          <><StyledFab
+            color="bwarning"
+            aria-label="View"
+            size="small"
+            onClick={() => viewRecord(value.id, value.audit_review_id, value.client_id)}
+          >
+            <VisibilityIcon />
+          </StyledFab></>
+          : ''
+        }
+      </div>
+    )
+  }
+
+  const filterRecords = () => {
+    //dispatch(getAllLoggedAuditActivities(extraFiltersState.values))
+    setRefershDataTable(true);
+    setShowFirstTimeReport(true);
+  }
+
+  return (
+    <Page
+      className={classes.root}
+      title="Audit Reviews"
+    >
+      <Header />
+      {(auditReviewsState.showUpdateForm === true && !isEmpty(activityLogId)) ?
+        <ReviewForm
+          activityLogId={activityLogId}
+          setActivityLogId={setActivityLogId}
+        />
+        :
+        <>
+          {(auditReviewsState.showViewPage === true && !isEmpty(activityLogId)) ?
+            <AuditView
+              activityLogId={activityLogId}
+              setActivityLogId={setActivityLogId}
+            />
+            :
+            <>
+              <ExtraFilters
+                className={classes.extraFeilds}
+                extraFiltersState={extraFiltersState}
+                setExtraFiltersState={setExtraFiltersState}
+                filterRecords={filterRecords}
+              />
+              {(showFirstTimeReport)?
+                <Results
+                  className={classes.results}
+                  actionsCol={getActions}
+                  refershDataTable={refershDataTable}
+                  setRefershDataTable={setRefershDataTable}
+                  extraFiltersState={extraFiltersState}
+                />
+              :""}  
+            </>
+          }
+        </>
+      }
+
+    </Page>
+  );
+};
+
+export default AllLogReportList;
