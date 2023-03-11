@@ -191,7 +191,7 @@ const ClientImage = props => {
               <ListItem>
                 <ButtonBase >
                   {!isEmpty(clientState.clientRecord.client_image)?
-                    <img style={{width:'100%', height:'auto'}} className={classes.img} alt="complex" src={API_URL+clientState.clientRecord.client_image} />
+                    <img style={{width:'100%', height:'auto'}} className={classes.img} alt="complex" src={clientState.clientRecord.client_image} />
                   : '' }  
                 </ButtonBase>
               </ListItem>  

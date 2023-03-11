@@ -947,6 +947,11 @@ const routes = [
         component: lazy(() => import('views/BusinessDevelopment/Company/view'))
       },
       {
+        path: '/cost-calculator',
+        exact: true,
+        component: lazy(() => import('views/BusinessDevelopment/CostCalculator'))
+      },
+      {
         path: '/course-category',
         exact: true,
         component: lazy(() => import('views/QuizManagement/CourseCategory'))

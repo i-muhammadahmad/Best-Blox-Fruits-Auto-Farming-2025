@@ -52,6 +52,7 @@ const AllLogReportList = () => {
 
 
   const filterRecords = () => {
+    console.log(extraFiltersState)
     setRefershDataTable(true);
     setShowFirstTimeReport(true);
   }

@@ -376,7 +376,7 @@ const AssetTypesForm = props => {
                       <div className={classes.thumb} >
                         <div className={classes.thumbInner}>
                           <img
-                            src={API_URL+assetTypesState.assetTypesRecord.assets_type_image}
+                            src={assetTypesState.assetTypesRecord.assets_type_image}
                             className={classes.img}
                             alt={formState.errors.email}
                           />

@@ -82,7 +82,7 @@ const ImagePreviewModel = (props) => {
           <Grid container spacing={3}>
             <Grid item xs={12} sm={12}>
               <Paper variant="outlined">
-                <img alt="Supporting Doc Image" src={API_URL + imageRecord.document_name} />
+                <img alt="Supporting Doc Image" src={imageRecord.document_name} />
               </Paper>
             </Grid>
           </Grid>

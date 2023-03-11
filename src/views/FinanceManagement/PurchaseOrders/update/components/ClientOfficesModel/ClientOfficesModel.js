@@ -216,7 +216,7 @@ const ClientOfficesModel = (props) => {
                       <MenuItem value={officeList.office_id} key={officeList.office_id}>
                           {(officeList.flag_image)?
                             <div className={'actionClass'} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                              <Avatar alt="Office Image" src={API_URL+officeList.flag_image} className={classes.small_img} />
+                              <Avatar alt="Office Image" src={officeList.flag_image} className={classes.small_img} />
                               <span>{officeList.name}</span>
                             </div>
                             :

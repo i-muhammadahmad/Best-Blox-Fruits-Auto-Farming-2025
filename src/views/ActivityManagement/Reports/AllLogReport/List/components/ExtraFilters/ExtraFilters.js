@@ -156,6 +156,20 @@ const ExtraFilters = props => {
     }));
   }
 
+  const getOptionName = (option) => {
+    let name = '';
+    if(!isEmpty(option.activity_client))
+    {
+      name += option.activity_client.client_name +' --> ';
+    }
+    if(!isEmpty(option.activity_category))
+    {
+      name += option.activity_category.opt_display +' --> ';
+    }
+    name += option.name;
+    return name;
+  }
+
   return (
     <div
       {...rest}
@@ -239,7 +253,7 @@ const ExtraFilters = props => {
                   renderInput={(params) => <TextField {...params} label="Select Users" variant="outlined" />}
                 />
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid item xs={12} sm={8}>
                 <Autocomplete
                   multiple
                   limitTags={2}
@@ -259,7 +273,7 @@ const ExtraFilters = props => {
                     }
                   }}
                   options={activitySetupState.activitySetupByAttrList}
-                  getOptionLabel={(option) => option.name}
+                  getOptionLabel={(option) => getOptionName(option)}
                   renderInput={(params) => <TextField {...params} size="small" label="Select Activities" variant="outlined" />}
                 />
 
